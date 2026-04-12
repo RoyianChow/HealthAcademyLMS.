@@ -30,6 +30,8 @@ export async function updateLesson(
         description: result.data.description,
         thumbnailKey: result.data.thumbnailKey,
         videoKey: result.data.videoKey,
+        youtubeUrl: result.youtubeUrl,
+
       },
     });
 

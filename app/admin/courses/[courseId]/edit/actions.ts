@@ -244,6 +244,7 @@ export async function createLesson(
           title: result.data.name,
           description: result.data.description,
           videoKey: result.data.videoKey,
+          youtubeUrl: result.data.youtubeUrl,
           thumbnailKey: result.data.thumbnailKey,
           chapterId: result.data.chapterId,
           position: (maxPos?.position ?? 0) + 1,

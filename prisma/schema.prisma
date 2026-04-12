@@ -1,6 +1,7 @@
 generator client {
-  provider = "prisma-client-js"
-  output   = "../lib/generated/prisma"
+  provider   = "prisma-client"
+  output     = "../src/generated/prisma"
+  engineType = "client"
 }
 
 datasource db {
@@ -140,6 +141,7 @@ model Lesson {
   description  String?
   thumbnailKey String?
   videoKey     String?
+  youtubeUrl   String?
   position     Int
 
   createdAt DateTime @default(now())

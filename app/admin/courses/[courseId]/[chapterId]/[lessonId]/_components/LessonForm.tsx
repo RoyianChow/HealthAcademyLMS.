@@ -47,6 +47,8 @@ export function LessonForm({ chapterId, data, courseId }: iAppProps) {
       description: data.description ?? undefined,
       videoKey: data.videoKey ?? undefined,
       thumbnailKey: data.thumbnailKey ?? undefined,
+      youtubeUrl: data.youtubeUrl ?? undefined,
+
     },
   });
 
@@ -133,6 +135,7 @@ export function LessonForm({ chapterId, data, courseId }: iAppProps) {
                   </FormItem>
                 )}
               />
+              
               <FormField
                 control={form.control}
                 name="videoKey"
@@ -144,6 +147,23 @@ export function LessonForm({ chapterId, data, courseId }: iAppProps) {
                         onChange={field.onChange}
                         value={field.value}
                         fileTypeAccepted="video"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="youtubeUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>YouTube URL</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="https://www.youtube.com/watch?v=..."
+                        {...field}
+                        value={field.value ?? ""}
                       />
                     </FormControl>
                     <FormMessage />

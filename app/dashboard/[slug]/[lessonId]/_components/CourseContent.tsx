@@ -15,6 +15,31 @@ interface iAppProps {
   data: LessonContentType;
 }
 
+function getYoutubeEmbedUrl(url: string) {
+  try {
+    if (!url) return null;
+
+    if (url.includes("youtube.com/watch")) {
+      const parsedUrl = new URL(url);
+      const videoId = parsedUrl.searchParams.get("v");
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+    }
+
+    if (url.includes("youtu.be/")) {
+      const videoId = url.split("youtu.be/")[1]?.split("?")[0];
+      return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+    }
+
+    if (url.includes("youtube.com/embed/")) {
+      return url;
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export function CourseContent({ data }: iAppProps) {
   const [pending, startTransition] = useTransition();
   const { triggerConfetti } = useConfetti();
@@ -22,12 +47,29 @@ export function CourseContent({ data }: iAppProps) {
   function VideoPlayer({
     thumbnailKey,
     videoKey,
+    youtubeUrl,
   }: {
-    thumbnailKey: string;
-    videoKey: string;
+    thumbnailKey?: string;
+    videoKey?: string;
+    youtubeUrl?: string | null;
   }) {
-    const videoUrl = useConstructUrl(videoKey);
-    const thumbnailUrl = useConstructUrl(thumbnailKey);
+    const videoUrl = videoKey ? useConstructUrl(videoKey) : "";
+    const thumbnailUrl = thumbnailKey ? useConstructUrl(thumbnailKey) : "";
+    const youtubeEmbedUrl = youtubeUrl ? getYoutubeEmbedUrl(youtubeUrl) : null;
+
+    if (youtubeEmbedUrl) {
+      return (
+        <div className="aspect-video bg-black rounded-lg relative overflow-hidden">
+          <iframe
+            src={youtubeEmbedUrl}
+            title="Lesson Video"
+            className="w-full h-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          />
+        </div>
+      );
+    }
 
     if (!videoKey) {
       return (
@@ -45,7 +87,7 @@ export function CourseContent({ data }: iAppProps) {
         <video
           className="w-full h-full object-cover"
           controls
-          poster={thumbnailUrl}
+          poster={thumbnailUrl || undefined}
         >
           <source src={videoUrl} type="video/mp4" />
           <source src={videoUrl} type="video/webm" />
@@ -75,11 +117,13 @@ export function CourseContent({ data }: iAppProps) {
       }
     });
   }
+
   return (
-    <div className="flex flex-col h-full bg-background pl-6">
+    <div className="flex h-full w-full flex-col bg-background pl-6">
       <VideoPlayer
         thumbnailKey={data.thumbnailKey ?? ""}
         videoKey={data.videoKey ?? ""}
+        youtubeUrl={data.youtubeUrl ?? ""}
       />
 
       <div className="py-4 border-b">
@@ -99,8 +143,8 @@ export function CourseContent({ data }: iAppProps) {
         )}
       </div>
 
-      <div className="space-y-3 pt-3">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">
+      <div className="w-full space-y-3 pt-3">
+        <h1 className="w-full text-3xl font-bold tracking-tight text-foreground">
           {data.title}
         </h1>
 

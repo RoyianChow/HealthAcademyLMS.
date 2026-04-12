@@ -1,91 +1,189 @@
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
+import { Card, CardContent } from "@/components/ui/card";
 import Link from "next/link";
+import { CountUp } from "./_components/count-up";
 
-interface featureProps {
-  title: string;
-  description: string;
-  icon: string;
-}
-
-const features: featureProps[] = [
-  {
-    title: "Comprehensive Courses",
-    description:
-      "Access a wide range of carefully curated courses designed by industry experts.",
-    icon: "📚",
-  },
-  {
-    title: "Interactive Learning",
-    description:
-      "Engage with interactive content, quizzes, and assignments to enhance your learning experience.",
-    icon: "🎮",
-  },
-  {
-    title: "Progress Tracking",
-    description:
-      "Monitor your progress and achievements with detailed analytics and personalized dashboards.",
-    icon: "📊",
-  },
-  {
-    title: "Community Support",
-    description:
-      "Join a vibrant community of learners and instructors to collaborate and share knowledge.",
-    icon: "👥",
-  },
+const stats = [
+  { value: 50, label: "GLOBAL LEARNERS" },
+  { value: 1000, label: "HOURS OF INSTRUCTION" },
+  { value: 5, label: "TRANSFORMATIONAL PROGRAMS" },
 ];
-
 export default function Home() {
   return (
     <>
-      <section className="relative py-20">
-        <div className="flex flex-col items-center text-center space-y-8">
-          <Badge variant="outline">The Future of Online Education</Badge>
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
-            Elevate your Learning Experience
-          </h1>
-          <p className="max-w-[700px] text-muted-foreground md:text-xl">
-            Discover a new way to learn with our modern, interactive learning
-            management system. Access high-quality courses anytime, anywhere.
-          </p>
+      {/* HERO SECTION */}
+      <section className="relative h-[80vh] w-full overflow-hidden">
+        {/* Background Image */}
+        <img
+          src="/hero-photo.png"
+          alt="Hero"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
 
-          <div className="flex flex-col sm:flex-row gap-4 mt-8">
-            <Link
-              className={buttonVariants({
-                size: "lg",
-              })}
-              href="/courses"
+        {/* Light overlay */}
+        <div className="absolute inset-0 bg-white/40" />
+
+        {/* Content */}
+        <div className="relative z-10 flex h-full items-center">
+          <div className="mx-auto max-w-7xl px-6 lg:px-8">
+            <div className="max-w-2xl space-y-6">
+              <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+                Advanced Nutrition <br />
+                &amp; Holistic Health <br />
+                Courses
+              </h1>
+
+              <Link
+                href="/courses"
+                className="inline-flex items-center gap-2 bg-[#5f7f2e] px-6 py-3 text-sm font-semibold text-white shadow hover:bg-[#4f6a25]"
+              >
+                GET STARTED →
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* STATS */}
+      <section className="border-y bg-background">
+        <div className="mx-auto grid max-w-7xl gap-6 px-6 py-10 md:grid-cols-3 lg:px-8">
+          {stats.map((stat) => (
+            <div
+              key={stat.label}
+              className="flex flex-col items-center justify-center text-center"
             >
-              Explore Courses
-            </Link>
+<p className="text-4xl font-bold tracking-tight">
+  <CountUp end={stat.value} suffix="+" />
+</p>              <p className="mt-2 text-sm font-medium tracking-[0.2em] text-muted-foreground">
+                {stat.label}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ABOUT */}
+      <section className="py-24">
+        <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 lg:grid-cols-2 lg:px-8">
+          <div className="rounded-3xl border bg-card p-4 shadow-sm">
+            <div className="aspect-video overflow-hidden rounded-2xl bg-black">
+              <video
+                className="h-full w-full object-cover"
+                controls
+                poster="/placeholder-about.jpg"
+              >
+                <source src="/sample-video.mp4" type="video/mp4" />
+              </video>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <Badge variant="outline">About Us</Badge>
+
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              Welcome to the Natural Health Academy
+            </h2>
+
+            <p className="text-lg leading-8 text-muted-foreground">
+              Welcome to the Natural Health Academy, where we’re passionate
+              about empowering individuals with the knowledge and skills to take
+              charge of their health through natural, evidence-based approaches.
+            </p>
+
+            <p className="text-lg leading-8 text-muted-foreground">
+              Our mission is to make holistic health knowledge accessible,
+              practical, and transformative. Our academy provides comprehensive
+              education, resources, and support to guide our students toward
+              holistic wellness, blending ancient traditions with modern
+              insights to foster sustainable health solutions.
+            </p>
 
             <Link
+              href="/about"
               className={buttonVariants({
-                size: "lg",
                 variant: "outline",
+                size: "lg",
               })}
-              href="/login"
             >
-              Sign in
+              Read our Story
             </Link>
           </div>
         </div>
       </section>
 
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-32">
-        {features.map((feature, index) => (
-          <Card key={index} className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="text-4xl mb-4">{feature.icon}</div>
-              <CardTitle>{feature.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">{feature.description}</p>
-            </CardContent>
-          </Card>
-        ))}
+      {/* COURSES */}
+      <section className="pb-24">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="mb-10 space-y-4">
+            <Badge variant="outline">Our Courses</Badge>
+
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              Our Courses
+            </h2>
+
+            <p className="max-w-3xl text-lg leading-8 text-muted-foreground">
+              We offer a variety of informative courses ranging from the
+              practical use of natural supplements to teaching you to optimize
+              mental well-being through personalized, functional nutrition
+              strategies.
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            <Card className="overflow-hidden py-0">
+              <div className="aspect-[16/10] bg-muted" />
+              <CardContent className="space-y-3 p-6">
+                <h3 className="text-xl font-semibold">
+                  Functional Nutrition For Cancer Risk Reduction
+                </h3>
+                <p className="text-muted-foreground">
+                  Build a foundational understanding of why nutrition and
+                  lifestyle matter in cancer risk reduction and support.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="overflow-hidden py-0">
+              <div className="aspect-[16/10] bg-muted" />
+              <CardContent className="space-y-3 p-6">
+                <h3 className="text-xl font-semibold">
+                  Functional Nutrition For Mental Health
+                </h3>
+                <p className="text-muted-foreground">
+                  A practitioner-led course teaching you to optimize mental
+                  well-being through personalized, functional nutrition
+                  strategies.
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card className="overflow-hidden py-0">
+              <div className="aspect-[16/10] bg-muted" />
+              <CardContent className="space-y-3 p-6">
+                <h3 className="text-xl font-semibold">
+                  Natural Supplement Advisor
+                </h3>
+                <p className="text-muted-foreground">
+                  A comprehensive course teaching the science and practical use
+                  of natural supplements for safe, personalized health
+                  optimization.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="mt-8">
+            <Link
+              href="/courses"
+              className={buttonVariants({
+                size: "lg",
+              })}
+            >
+              View All Courses
+            </Link>
+          </div>
+        </div>
       </section>
     </>
   );

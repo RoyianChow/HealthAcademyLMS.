@@ -80,6 +80,18 @@ export const lessonSchema = z.object({
 
   videoKey: z.string().optional(),
   thumbnailKey: z.string().optional(),
+  youtubeUrl: z
+    .string()
+    .url("Please enter a valid URL")
+    .refine(
+      (url) =>
+        url.includes("youtube.com/watch?v=") ||
+        url.includes("youtu.be/") ||
+        url.includes("youtube.com/embed/"),
+      "Please enter a valid YouTube URL"
+    )
+    .optional()
+    .or(z.literal("")),
 });
 
 export type CourseSchemaType = z.infer<typeof courseSchema>;
