@@ -4,6 +4,7 @@ import {
   Home,
   LayoutDashboardIcon,
   LogOutIcon,
+  UserIcon,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -36,7 +37,9 @@ export function UserDropdown({ email, name, image }: iAppProps) {
         <Button variant="ghost" className="h-auto p-0 hover:bg-transparent">
           <Avatar>
             <AvatarImage src={image} alt="Profile image" />
-            <AvatarFallback>{name[0].toUpperCase()}</AvatarFallback>
+            <AvatarFallback>
+              {name?.[0]?.toUpperCase() ?? email?.[0]?.toUpperCase() ?? "U"}
+            </AvatarFallback>
           </Avatar>
           <ChevronDownIcon
             size={16}
@@ -45,44 +48,53 @@ export function UserDropdown({ email, name, image }: iAppProps) {
           />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-48 ">
+
+      <DropdownMenuContent align="end" className="min-w-48">
         <DropdownMenuLabel className="flex min-w-0 flex-col">
           <span className="text-foreground truncate text-sm font-medium">
-            {name}
+            {name || email?.split("@")[0] || "User"}
           </span>
           <span className="text-muted-foreground truncate text-xs font-normal">
-            john@john.com
+            {email ?? "No email"}
           </span>
         </DropdownMenuLabel>
+
         <DropdownMenuSeparator />
+
         <DropdownMenuGroup>
           <DropdownMenuItem asChild>
             <Link href="/">
-              <Home size={16} className="opacity-60" aria-hidden="true" />
+              <Home size={16} className="opacity-60" />
               <span>Home</span>
             </Link>
           </DropdownMenuItem>
+
           <DropdownMenuItem asChild>
             <Link href="/course">
-              <BookOpen size={16} className="opacity-60" aria-hidden="true" />
+              <BookOpen size={16} className="opacity-60" />
               <span>Courses</span>
             </Link>
           </DropdownMenuItem>
+
           <DropdownMenuItem asChild>
             <Link href="/dashboard">
-              <LayoutDashboardIcon
-                size={16}
-                className="opacity-60"
-                aria-hidden="true"
-              />
+              <LayoutDashboardIcon size={16} className="opacity-60" />
               <span>Dashboard</span>
             </Link>
           </DropdownMenuItem>
+
+          <DropdownMenuItem asChild>
+            <Link href="/profile">
+              <UserIcon size={16} className="opacity-60" />
+              <span>Profile</span>
+            </Link>
+          </DropdownMenuItem>
         </DropdownMenuGroup>
+
         <DropdownMenuSeparator />
 
         <DropdownMenuItem onClick={handleSignOut}>
-          <LogOutIcon size={16} className="opacity-60" aria-hidden="true" />
+          <LogOutIcon size={16} className="opacity-60" />
           <span>Logout</span>
         </DropdownMenuItem>
       </DropdownMenuContent>

@@ -1,13 +1,12 @@
 "use server";
 
-import { requireUser } from "@/app/data/user/require-user";
 import arcjet, { fixedWindow } from "@/lib/arcjet";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { stripe } from "@/lib/stripe";
-import { ApiResponse } from "@/lib/types";
+import { auth } from "@/lib/auth";
 import { request } from "@arcjet/next";
-import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import Stripe from "stripe";
 
 const aj = arcjet.withRule(
@@ -18,12 +17,44 @@ const aj = arcjet.withRule(
   })
 );
 
+type EnrollInCourseResponse =
+  | {
+      status: "success";
+      message: string;
+      checkoutUrl?: undefined;
+    }
+  | {
+      status: "error";
+      message: string;
+      checkoutUrl?: undefined;
+    }
+  | {
+      status: "unauthenticated";
+      message: string;
+      checkoutUrl?: undefined;
+    }
+  | {
+      status: "success";
+      message: string;
+      checkoutUrl: string;
+    };
+
 export async function enrollInCourseAction(
   courseId: string
-): Promise<ApiResponse | never> {
-  const user = await requireUser();
+): Promise<EnrollInCourseResponse> {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
 
-  let checkoutUrl: string;
+  if (!session?.user) {
+    return {
+      status: "unauthenticated",
+      message: "Please login to enroll",
+    };
+  }
+
+  const user = session.user;
+
   try {
     const req = await request();
     const decision = await aj.protect(req, {
@@ -36,6 +67,7 @@ export async function enrollInCourseAction(
         message: "You have been blocked",
       };
     }
+
     const course = await prisma.course.findUnique({
       where: {
         id: courseId,
@@ -57,6 +89,7 @@ export async function enrollInCourseAction(
     }
 
     let stripeCustomerId: string;
+
     const userWithStripeCustomerId = await prisma.user.findUnique({
       where: {
         id: user.id,
@@ -84,7 +117,7 @@ export async function enrollInCourseAction(
           id: user.id,
         },
         data: {
-          stripeCustomerId: stripeCustomerId,
+          stripeCustomerId,
         },
       });
     }
@@ -94,7 +127,7 @@ export async function enrollInCourseAction(
         where: {
           userId_courseId: {
             userId: user.id,
-            courseId: courseId,
+            courseId,
           },
         },
         select: {
@@ -105,34 +138,30 @@ export async function enrollInCourseAction(
 
       if (existingEnrollment?.status === "Active") {
         return {
-          status: "success",
-          message: "You are alredy enrolled in this Course",
+          status: "success" as const,
+          message: "You are already enrolled in this course",
         };
       }
 
-      let enrollment;
-
-      if (existingEnrollment) {
-        enrollment = await tx.enrollment.update({
-          where: {
-            id: existingEnrollment.id,
-          },
-          data: {
-            amount: course.price,
-            status: "Pending",
-            updatedAt: new Date(),
-          },
-        });
-      } else {
-        enrollment = await tx.enrollment.create({
-          data: {
-            userId: user.id,
-            courseId: course.id,
-            amount: course.price,
-            status: "Pending",
-          },
-        });
-      }
+      const enrollment = existingEnrollment
+        ? await tx.enrollment.update({
+            where: {
+              id: existingEnrollment.id,
+            },
+            data: {
+              amount: course.price,
+              status: "Pending",
+              updatedAt: new Date(),
+            },
+          })
+        : await tx.enrollment.create({
+            data: {
+              userId: user.id,
+              courseId: course.id,
+              amount: course.price,
+              status: "Pending",
+            },
+          });
 
       const checkoutSession = await stripe.checkout.sessions.create({
         customer: stripeCustomerId,
@@ -153,12 +182,13 @@ export async function enrollInCourseAction(
       });
 
       return {
-        enrollment: enrollment,
-        checkoutUrl: checkoutSession.url,
+        status: "success" as const,
+        message: "Redirecting to checkout...",
+        checkoutUrl: checkoutSession.url as string,
       };
     });
 
-    checkoutUrl = result.checkoutUrl as string;
+    return result;
   } catch (error) {
     if (error instanceof Stripe.errors.StripeError) {
       return {
@@ -172,6 +202,4 @@ export async function enrollInCourseAction(
       message: "Failed to enroll in course",
     };
   }
-
-  redirect(checkoutUrl);
 }

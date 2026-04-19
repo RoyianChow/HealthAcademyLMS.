@@ -1,0 +1,28 @@
+import "server-only";
+import { prisma } from "@/lib/db";
+
+
+export async function getAllQuizzes() {
+  return prisma.quiz.findMany({
+    where: {
+      isPublished: true,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    include: {
+      course: {
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+        },
+      },
+      questions: {
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
+}

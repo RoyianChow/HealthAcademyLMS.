@@ -5,7 +5,13 @@ import { RenderDescription } from "@/components/rich-text-editor/RenderDescripti
 import { Button } from "@/components/ui/button";
 import { tryCatch } from "@/hooks/try-catch";
 import { useConstructUrl } from "@/hooks/use-construct-url";
-import { BookIcon, CheckCircle } from "lucide-react";
+import {
+  BookIcon,
+  CheckCircle,
+  FileText,
+  Download,
+  ExternalLink,
+} from "lucide-react";
 import { useTransition } from "react";
 import { markLessonComplete } from "../actions";
 import { toast } from "sonner";
@@ -38,6 +44,23 @@ function getYoutubeEmbedUrl(url: string) {
   } catch {
     return null;
   }
+}
+
+function formatFileSize(size?: number | null) {
+  if (!size) return null;
+
+  const units = ["B", "KB", "MB", "GB"];
+  let value = size;
+  let unitIndex = 0;
+
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex++;
+  }
+
+  return `${value.toFixed(value >= 10 || unitIndex === 0 ? 0 : 1)} ${
+    units[unitIndex]
+  }`;
 }
 
 export function CourseContent({ data }: iAppProps) {
@@ -143,15 +166,76 @@ export function CourseContent({ data }: iAppProps) {
         )}
       </div>
 
-      <div className="w-full space-y-3 pt-3">
-        <h1 className="w-full text-3xl font-bold tracking-tight text-foreground">
-          {data.title}
-        </h1>
+      <div className="w-full space-y-6 pt-3 pb-8">
+        <div className="space-y-3">
+          <h1 className="w-full text-3xl font-bold tracking-tight text-foreground">
+            {data.title}
+          </h1>
 
-        {data.description && (
-          <RenderDescription json={JSON.parse(data.description)} />
+          {data.description && (
+            <RenderDescription json={JSON.parse(data.description)} />
+          )}
+        </div>
+
+        {data.documents && data.documents.length > 0 && (
+          <div className="space-y-3">
+            <h2 className="text-xl font-semibold tracking-tight">Documents</h2>
+
+            <div className="grid gap-3">
+              {data.documents.map((doc) => {
+                const documentUrl = doc.fileUrl || useConstructUrl(doc.fileKey);
+
+                return (
+                  <div
+                    key={doc.id}
+                    className="flex items-center justify-between rounded-xl border bg-card p-4"
+                  >
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="rounded-lg bg-primary/10 p-2 shrink-0">
+                        <FileText className="size-5 text-primary" />
+                      </div>
+
+                      <div className="min-w-0">
+                        <p className="font-medium text-foreground truncate">
+                          {doc.name}
+                        </p>
+
+                        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                          {doc.fileType && <span>{doc.fileType}</span>}
+                          {doc.fileType && doc.fileSize ? <span>•</span> : null}
+                          {doc.fileSize ? (
+                            <span>{formatFileSize(doc.fileSize)}</span>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button variant="outline" size="sm" asChild>
+                        <a
+                          href={documentUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <ExternalLink className="size-4 mr-2" />
+                          View
+                        </a>
+                      </Button>
+
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={documentUrl} download={doc.name}>
+                          <Download className="size-4 mr-2" />
+                          Download
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         )}
       </div>
     </div>
   );
-}
+} 

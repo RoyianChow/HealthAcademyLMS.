@@ -66,8 +66,8 @@ export function NavUser() {
                     : session?.user.email.split("@")[0]}
                 </span>
                 <span className="text-muted-foreground truncate text-xs">
-                  jan@gmail.com
-                </span>
+  {session?.user.email}
+</span>
               </div>
               <IconDotsVertical className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -100,9 +100,9 @@ export function NavUser() {
                       ? session.user.name
                       : session?.user.email.split("@")[0]}
                   </span>
-                  <span className="text-muted-foreground truncate text-xs">
-                    jan@gmail.com
-                  </span>
+                 <span className="text-muted-foreground truncate text-xs">
+  {session?.user.email}
+</span>
                 </div>
               </div>
             </DropdownMenuLabel>

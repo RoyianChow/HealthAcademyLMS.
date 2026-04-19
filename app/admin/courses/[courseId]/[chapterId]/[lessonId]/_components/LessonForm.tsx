@@ -9,10 +9,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { lessonSchema, LessonSchemaType } from "@/lib/zodSchemas";
+import { lessonSchema, LessonSchemaType,lessonDocumentSchema } from "@/lib/zodSchemas";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Form,
@@ -25,17 +25,19 @@ import {
 import { Input } from "@/components/ui/input";
 import { RichTextEditor } from "@/components/rich-text-editor/Editor";
 import { Uploader } from "@/components/file-uploader/Uploader";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { tryCatch } from "@/hooks/try-catch";
 import { updateLesson } from "../actions";
 import { toast } from "sonner";
-
+import { LessonDocumentsUploader } from "./LessonDocumentsUploader";
+ 
 interface iAppProps {
   data: AdminLessonType;
   chapterId: string;
   courseId: string;
-}
 
+}
+ 
 export function LessonForm({ chapterId, data, courseId }: iAppProps) {
   const [pending, startTransition] = useTransition();
   const form = useForm<LessonSchemaType>({
@@ -48,6 +50,8 @@ export function LessonForm({ chapterId, data, courseId }: iAppProps) {
       videoKey: data.videoKey ?? undefined,
       thumbnailKey: data.thumbnailKey ?? undefined,
       youtubeUrl: data.youtubeUrl ?? undefined,
+      documents: data.documents ?? [],
+
 
     },
   });
@@ -152,7 +156,19 @@ export function LessonForm({ chapterId, data, courseId }: iAppProps) {
                     <FormMessage />
                   </FormItem>
                 )}
-              />
+                />
+
+                <FormField
+                control={form.control}
+                name="documents"
+                render={({ field }) => (
+                   <LessonDocumentsUploader
+                          value={field.value ?? []}
+                          onChange={field.onChange}
+                        />    
+                )}
+                />
+
               <FormField
                 control={form.control}
                 name="youtubeUrl"

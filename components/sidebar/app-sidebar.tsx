@@ -35,6 +35,11 @@ const data = {
   navMain: [
     {
       title: "Dashboard",
+      url: "/dashboard",
+      icon: IconDashboard,
+    },
+      {
+      title: "Admin Dashboard",
       url: "/admin",
       icon: IconDashboard,
     },
@@ -44,18 +49,18 @@ const data = {
       icon: IconListDetails,
     },
     {
-      title: "Analytics",
-      url: "#",
+      title: "Quizzes",
+      url: "/admin/quizzes",
       icon: IconChartBar,
     },
     {
-      title: "Projects",
-      url: "#",
+      title: "Assignments",
+      url: "/admin/assignments",
       icon: IconFolder,
     },
     {
-      title: "Team",
-      url: "#",
+      title: "Grade",
+      url: "/admin/grade",
       icon: IconUsers,
     },
   ],

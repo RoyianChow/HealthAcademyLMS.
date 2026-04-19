@@ -67,6 +67,16 @@ export const chapterSchema = z.object({
   courseId: z.string().uuid({ message: "Invalid course id" }),
 });
 
+
+
+export const lessonDocumentSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  fileKey: z.string(),
+  fileUrl: z.string().nullable().optional(),
+  fileType: z.string().nullable().optional(),
+  fileSize: z.number().nullable().optional(),
+});
 export const lessonSchema = z.object({
   name: z
     .string()
@@ -92,6 +102,8 @@ export const lessonSchema = z.object({
     )
     .optional()
     .or(z.literal("")),
+  documents: z.array(lessonDocumentSchema).default([]).optional(),
+
 });
 
 export type CourseSchemaType = z.infer<typeof courseSchema>;

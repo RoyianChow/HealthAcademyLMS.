@@ -16,13 +16,15 @@ export function EnrollmentButton({ courseId }: { courseId: string }) {
         enrollInCourseAction(courseId)
       );
 
-      if (error) {
+      if (error || !result) {
         toast.error("An unexpected error occurred. Please try again.");
         return;
       }
 
       if (result.status === "success") {
         toast.success(result.message);
+      } else if (result.status === "unauthenticated") {
+        toast.error("Please login to enroll");
       } else if (result.status === "error") {
         toast.error(result.message);
       }

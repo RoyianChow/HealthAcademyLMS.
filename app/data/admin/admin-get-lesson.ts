@@ -15,6 +15,7 @@ export async function adminGetLesson(id: string) {
       videoKey: true,
       thumbnailKey: true,
       youtubeUrl: true,
+      documents: true,
       description: true,
       id: true,
       position: true,

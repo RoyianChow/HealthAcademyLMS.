@@ -1,7 +1,6 @@
 generator client {
-  provider   = "prisma-client"
-  output     = "../src/generated/prisma"
-  engineType = "client"
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
 }
 
 datasource db {
@@ -104,8 +103,59 @@ model Course {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
 
+  quizzes    Quiz[]
   chapter    Chapter[]
   enrollment Enrollment[]
+}
+
+model Quiz {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  isPublished Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  questions QuizQuestion[]
+}
+
+model QuizQuestion {
+  id       String @id @default(uuid())
+  question String
+  position Int
+
+  explanation String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  quizId String
+  quiz   Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  options QuizOption[]
+
+  @@index([quizId])
+  @@unique([quizId, position])
+}
+
+model QuizOption {
+  id       String @id @default(uuid())
+  text     String
+  isCorrect Boolean @default(false)
+  position Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  questionId String
+  question   QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
+  @@unique([questionId, position])
 }
 
 enum CourseLevel {
@@ -133,7 +183,6 @@ model Chapter {
 
   lessons Lesson[]
 }
-
 model Lesson {
   id String @id @default(uuid())
 
@@ -150,6 +199,25 @@ model Lesson {
   chapterId String
 
   lessonProgress LessonProgress[]
+  documents      LessonDocument[]
+}
+
+model LessonDocument {
+  id String @id @default(uuid())
+
+  name     String
+  fileKey  String
+  fileUrl  String?
+  fileType String?
+  fileSize Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lessonId String
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@index([lessonId])
 }
 
 model Enrollment {
