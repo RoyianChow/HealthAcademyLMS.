@@ -49,20 +49,20 @@ const data = {
       icon: IconListDetails,
     },
     {
-      title: "Quizzes",
+      title: "Admin Quizzes",
       url: "/admin/quizzes",
+      icon: IconChartBar,
+    },
+       {
+      title: "Quizzes",
+      url: "/quizzes",
       icon: IconChartBar,
     },
     {
       title: "Assignments",
       url: "/admin/assignments",
       icon: IconFolder,
-    },
-    {
-      title: "Grade",
-      url: "/admin/grade",
-      icon: IconUsers,
-    },
+    }
   ],
   navClouds: [
     {

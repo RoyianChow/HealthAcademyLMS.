@@ -41,11 +41,15 @@ export async function adminGetQuiz(quizId: string) {
     description: quiz.description,
     courseId: quiz.courseId,
     isPublished: quiz.isPublished,
+    passingScore: quiz.passingScore,
+    timeLimitMinutes: quiz.timeLimitMinutes,
+    allowMultipleAttempts: quiz.allowMultipleAttempts,
     courses,
-    questions: quiz.questions.map((question: { id: any; question: any; options: any[]; }) => ({
+    questions: quiz.questions.map((question) => ({
       id: question.id,
       question: question.question,
-      options: question.options.map((option: { id: any; text: any; isCorrect: any; }) => ({
+      explanation: question.explanation,
+      options: question.options.map((option) => ({
         id: option.id,
         text: option.text,
         isCorrect: option.isCorrect,

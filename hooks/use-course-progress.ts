@@ -1,31 +1,32 @@
-"use client";
-
-import { CourseSidebarDataType } from "@/app/data/course/get-course-sidebar-data";
 import { useMemo } from "react";
 
-interface iAppProps {
-  courseData: CourseSidebarDataType["course"];
+interface LessonProgress {
+  completed: boolean;
 }
 
-interface CourseProgressResult {
-  totalLessons: number;
-  completedLessons: number;
-  progressPercentage: number;
+interface Lesson {
+  lessonProgress: LessonProgress[];
 }
 
-export function useCourseProgress({
-  courseData,
-}: iAppProps): CourseProgressResult {
+interface Chapter {
+  lessons: Lesson[];
+}
+
+interface CourseData {
+  chapters: Chapter[];
+}
+
+export function useCourseProgress({ courseData }: { courseData: CourseData }) {
   return useMemo(() => {
     let totalLessons = 0;
     let completedLessons = 0;
 
-    courseData.chapter.forEach((chapter) => {
+    courseData.chapters.forEach((chapter) => {
       chapter.lessons.forEach((lesson) => {
         totalLessons++;
 
         const isCompleted = lesson.lessonProgress.some(
-          (progress) => progress.lessonId === lesson.id && progress.completed
+          (progress) => progress.completed
         );
 
         if (isCompleted) {
@@ -35,9 +36,9 @@ export function useCourseProgress({
     });
 
     const progressPercentage =
-      totalLessons > 0
-        ? Math.round((completedLessons / totalLessons) * 100)
-        : 0;
+      totalLessons === 0
+        ? 0
+        : Math.round((completedLessons / totalLessons) * 100);
 
     return {
       totalLessons,

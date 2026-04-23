@@ -1,8 +1,8 @@
-import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, Suspense } from "react";
+import { Suspense } from "react";
 import Link from "next/link";
 
 import { EmptyState } from "@/components/general/EmptyState";
-import { getAllQuizzes } from "@/app/data/quiz/get-all-quizzes";
+import { getEnrolledCourseQuizzes } from "@/app/data/quiz/get-enrolled-course-quizzes";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { QuizResultDialog } from "./_components/QuizResultDialog";
 
 export const dynamic = "force-dynamic";
 
@@ -47,14 +48,14 @@ export default function QuizzesPage() {
 }
 
 async function RenderQuizzes() {
-  const quizzes = await getAllQuizzes();
+  const quizzes = await getEnrolledCourseQuizzes();
 
   if (quizzes.length === 0) {
     return (
       <div className="rounded-3xl border border-dashed border-border bg-muted/20 p-2">
         <EmptyState
           title="No quizzes available"
-          description="Quizzes will appear here once they are published."
+          description="Quizzes for your enrolled courses will appear here once they are published."
           buttonText="Browse Courses"
           href="/courses"
         />
@@ -76,53 +77,120 @@ async function RenderQuizzes() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {quizzes.map((quiz: { id: Key | null | undefined; isPublished: any; course: { title: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; }; title: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; description: any; questions: string | any[]; }) => (
-          <Card
-            key={quiz.id}
-            className="group rounded-2xl border border-border/60 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg"
-          >
-            <CardHeader className="space-y-3">
-              <div className="flex items-start justify-between gap-3">
-                <Badge variant={quiz.isPublished ? "default" : "secondary"}>
-                  {quiz.isPublished ? "Published" : "Draft"}
-                </Badge>
+        {quizzes.map((quiz) => {
+          const latestAttempt = quiz.attempts?.[0];
+          const isCompleted = !!latestAttempt?.isComplete;
+          const passed =
+            isCompleted &&
+            latestAttempt.score !== null &&
+            latestAttempt.score !== undefined &&
+            (quiz.passingScore ?? 0) <= latestAttempt.score;
 
-                {quiz.course?.title ? (
-                  <span className="text-xs text-muted-foreground">
-                    {quiz.course.title}
+          return (
+            <Card
+              key={quiz.id}
+              className="group rounded-2xl border border-border/60 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg"
+            >
+              <CardHeader className="space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <Badge variant={isCompleted ? "secondary" : "default"}>
+                    {isCompleted ? "Completed" : "Available"}
+                  </Badge>
+
+                  {quiz.course?.title ? (
+                    <span className="text-xs text-muted-foreground">
+                      {quiz.course.title}
+                    </span>
+                  ) : null}
+                </div>
+
+                <CardTitle className="text-lg font-semibold leading-snug transition-colors group-hover:text-primary">
+                  {quiz.title}
+                </CardTitle>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">
+                  {quiz.description ?? "No description available for this quiz."}
+                </p>
+
+                <div className="space-y-2 rounded-xl border border-border/60 bg-muted/20 p-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Questions</span>
+                    <span className="font-medium">
+                      {quiz.questions.length} question
+                      {quiz.questions.length !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+
+                  {quiz.timeLimitMinutes !== null ? (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Time Limit</span>
+                      <span className="font-medium">
+                        {quiz.timeLimitMinutes} min
+                      </span>
+                    </div>
+                  ) : null}
+
+                  {isCompleted ? (
+                    <>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Score</span>
+                        <span className="font-semibold">
+                          {latestAttempt.score ?? 0}%
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Attempt</span>
+                        <span className="font-medium">
+                          #{latestAttempt.attemptNumber}
+                        </span>
+                      </div>
+
+                      {quiz.passingScore !== null ? (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Result</span>
+                          <span
+                            className={`font-semibold ${
+                              passed ? "text-green-600" : "text-red-600"
+                            }`}
+                          >
+                            {passed ? "Passed" : "Failed"}
+                          </span>
+                        </div>
+                      ) : null}
+                    </>
+                  ) : (
+                    <div className="text-sm text-muted-foreground">
+                      Not attempted yet
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between border-t pt-4">
+                  <span className="text-sm text-muted-foreground">
+                    {isCompleted ? "View your result" : "Ready to start"}
                   </span>
-                ) : null}
-              </div>
 
-              <CardTitle className="text-lg font-semibold leading-snug transition-colors group-hover:text-primary">
-                {quiz.title}
-              </CardTitle>
-            </CardHeader>
-
-            <CardContent className="space-y-4">
-              <p className="line-clamp-3 text-sm leading-6 text-muted-foreground">
-                {quiz.description ?? "No description available for this quiz."}
-              </p>
-
-              <div className="flex items-center justify-between border-t pt-4">
-                <span className="text-sm text-muted-foreground">
-                  {quiz.questions?.length ?? 0} question
-                  {(quiz.questions?.length ?? 0) !== 1 ? "s" : ""}
-                </span>
-
-                <Link
-                  href={`/quizzes/${quiz.id}`}
-                  className={buttonVariants({
-                    size: "sm",
-                    className: "rounded-full",
-                  })}
-                >
-                  Start Quiz
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                  {isCompleted ? (
+                    <QuizResultDialog quiz={quiz} />
+                  ) : (
+                    <Link
+                      href={`/quizzes/${quiz.id}`}
+                      className={buttonVariants({
+                        size: "sm",
+                        className: "rounded-full",
+                      })}
+                    >
+                      Start Quiz
+                    </Link>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </section>
   );

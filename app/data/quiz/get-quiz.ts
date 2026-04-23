@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 
 export async function getQuiz(quizId: string) {
-  return prisma.quiz.findUnique({
+  return prisma.quiz.findFirst({
     where: {
       id: quizId,
       isPublished: true,
@@ -22,6 +22,10 @@ export async function getQuiz(quizId: string) {
           options: {
             orderBy: {
               position: "asc",
+            },
+            select: {
+              id: true,
+              text: true,
             },
           },
         },

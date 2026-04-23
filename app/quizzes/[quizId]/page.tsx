@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getQuiz } from "@/app/data/quiz/get-quiz";
+import { getOrCreateQuizAttempt } from "@/app/data/quiz/get-or-create-quiz-attempt";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { QuizAttempt } from "./_components/QuizAttempt";
@@ -13,13 +14,18 @@ type PageProps = {
 
 export default async function QuizDetailsPage({ params }: PageProps) {
   const { quizId } = await params;
-  const quiz = await getQuiz(quizId);
 
-  if (!quiz) {
+  const [quiz, attempt] = await Promise.all([
+    getQuiz(quizId),
+    getOrCreateQuizAttempt(quizId),
+  ]);
+
+  if (!quiz || !attempt) {
     notFound();
   }
 
   const totalQuestions = quiz.questions.length;
+  const canAttempt = !attempt.blocked;
 
   return (
     <div className="w-full space-y-6 pb-12">
@@ -43,6 +49,31 @@ export default async function QuizDetailsPage({ params }: PageProps) {
                     {quiz.course.title}
                   </Badge>
                 ) : null}
+
+                {quiz.passingScore !== null ? (
+                  <Badge
+                    variant="outline"
+                    className="rounded-full px-4 py-1.5"
+                  >
+                    Pass: {quiz.passingScore}%
+                  </Badge>
+                ) : null}
+
+                {quiz.allowMultipleAttempts ? (
+                  <Badge
+                    variant="outline"
+                    className="rounded-full px-4 py-1.5"
+                  >
+                    Multiple Attempts
+                  </Badge>
+                ) : (
+                  <Badge
+                    variant="outline"
+                    className="rounded-full px-4 py-1.5"
+                  >
+                    Single Attempt
+                  </Badge>
+                )}
               </div>
 
               <div className="space-y-3">
@@ -57,7 +88,7 @@ export default async function QuizDetailsPage({ params }: PageProps) {
               </div>
             </div>
 
-            <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-3 xl:max-w-[540px]">
+            <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-3 xl:max-w-[720px]">
               <div className="rounded-2xl border border-border bg-background p-5 shadow-sm">
                 <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
                   Questions
@@ -78,10 +109,12 @@ export default async function QuizDetailsPage({ params }: PageProps) {
 
               <div className="rounded-2xl border border-border bg-background p-5 shadow-sm">
                 <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                  Status
+                  Time Limit
                 </p>
                 <p className="mt-2 text-lg font-semibold tracking-tight text-foreground">
-                  Ready to Begin
+                  {quiz.timeLimitMinutes !== null
+                    ? `${quiz.timeLimitMinutes} min`
+                    : "No limit"}
                 </p>
               </div>
             </div>
@@ -93,10 +126,15 @@ export default async function QuizDetailsPage({ params }: PageProps) {
                 {totalQuestions} question{totalQuestions !== 1 ? "s" : ""}
               </span>
               <span>Choose one answer per question</span>
+              <span>Attempt #{attempt.attemptNumber}</span>
+              <span>
+                Previous attempts: {Math.max(0, attempt.attemptNumber - 1)}
+              </span>
+              {!canAttempt ? <span>No more attempts available</span> : null}
             </div>
 
             <Link
-              href="/dashboard/quizzes"
+              href="/quizzes"
               className={buttonVariants({
                 variant: "outline",
                 className: "rounded-full px-5",
@@ -109,7 +147,14 @@ export default async function QuizDetailsPage({ params }: PageProps) {
       </section>
 
       <section className="w-full rounded-3xl border border-border bg-card p-4 shadow-sm md:p-6">
-        <QuizAttempt quiz={quiz} />
+        <QuizAttempt
+          quiz={quiz}
+          attemptId={attempt.attemptId ?? ""}
+          startedAt={attempt.startedAt ? attempt.startedAt.toISOString() : ""}
+          canAttempt={canAttempt}
+          nextAttemptNumber={attempt.attemptNumber}
+          previousAttemptsCount={Math.max(0, attempt.attemptNumber)}
+        />
       </section>
     </div>
   );

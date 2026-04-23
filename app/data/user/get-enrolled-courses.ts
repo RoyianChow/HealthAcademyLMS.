@@ -11,7 +11,7 @@ export async function getEnrolledCourses() {
       status: "Active",
     },
     select: {
-      Course: {
+      course: {
         select: {
           id: true,
           smallDescription: true,
@@ -20,7 +20,7 @@ export async function getEnrolledCourses() {
           level: true,
           slug: true,
           duration: true,
-          chapter: {
+          chapters: {
             select: {
               id: true,
               lessons: {
@@ -45,9 +45,9 @@ export async function getEnrolledCourses() {
     },
   });
 
-  return data;
+  return data.map((item) => item.course);
 }
 
 export type EnrolledCourseType = Awaited<
   ReturnType<typeof getEnrolledCourses>
->[0];
+>[number];

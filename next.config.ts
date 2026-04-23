@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
         port: "",
         pathname: "/**",
       },
+       {
+      protocol: "https",
+      hostname: "health-academy-lms.t3.tigrisfiles.io",
+    },
     ],
   },
     webpack: (config, { isServer }) => {

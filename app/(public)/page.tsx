@@ -113,57 +113,60 @@ export default function Home() {
 
       {/* ABOUT */}
       <section className="py-24 md:py-28">
-        <div className="grid items-center gap-14 px-6 md:px-10 lg:grid-cols-2 lg:px-16 xl:px-24">
-          <div className="relative overflow-hidden rounded-[2rem] border border-border/60 bg-card p-4 shadow-xl">
-            <div className="aspect-video overflow-hidden rounded-[1.5rem] bg-black">
-              <video
-                className="h-full w-full object-cover"
-                controls
-                poster="/placeholder-about.jpg"
-              >
-                <source src="/sample-video.mp4" type="video/mp4" />
-              </video>
-            </div>
-          </div>
+  <div className="grid items-center gap-14 px-6 md:px-10 lg:grid-cols-2 lg:px-16 xl:px-24">
+    <div className="relative flex min-h-[560px] items-center rounded-[2rem] border border-border/60 bg-card p-6 shadow-xl md:p-8">
+      <div className="relative overflow-hidden rounded-[2rem] border border-border/60 bg-card shadow-xl">
+        <video
+          controls
+          playsInline
+          className="block w-full h-full rounded-[2rem]"
+        >
+          <source
+            src="https://health-academy-lms.t3.tigrisfiles.io/FINAL-1.mp4"
+            type="video/mp4"
+          />
+        </video>
+      </div>
+    </div>
 
-          <div className="max-w-2xl space-y-6">
-            <Badge variant="outline" className="rounded-full px-4 py-1.5">
-              About Us
-            </Badge>
+    <div className="max-w-2xl space-y-6">
+      <Badge variant="outline" className="rounded-full px-4 py-1.5">
+        About Us
+      </Badge>
 
-            <div className="space-y-4">
-              <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl">
-                Welcome to the Natural Health Academy
-              </h2>
+      <div className="space-y-4">
+        <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl">
+          Welcome to the Natural Health Academy
+        </h2>
 
-              <p className="text-base leading-8 text-muted-foreground sm:text-lg">
-                We are passionate about empowering individuals with the
-                knowledge and skills to take charge of their health through
-                natural, evidence-based approaches.
-              </p>
+        <p className="text-base leading-8 text-muted-foreground sm:text-lg">
+          We are passionate about empowering individuals with the knowledge and
+          skills to take charge of their health through natural, evidence-based
+          approaches.
+        </p>
 
-              <p className="text-base leading-8 text-muted-foreground sm:text-lg">
-                Our mission is to make holistic health education accessible,
-                practical, and transformative. We blend traditional wisdom with
-                modern insight to help students build sustainable, informed
-                approaches to wellness.
-              </p>
-            </div>
+        <p className="text-base leading-8 text-muted-foreground sm:text-lg">
+          Our mission is to make holistic health education accessible,
+          practical, and transformative. We blend traditional wisdom with
+          modern insight to help students build sustainable, informed
+          approaches to wellness.
+        </p>
+      </div>
 
-            <Link
-              href="/about"
-              className={buttonVariants({
-                variant: "outline",
-                size: "lg",
-                className:
-                  "rounded-full px-6 shadow-sm transition hover:shadow-md",
-              })}
-            >
-              Read Our Story
-            </Link>
-          </div>
-        </div>
-      </section>
+      <Link
+        href="/about"
+        className={buttonVariants({
+          variant: "outline",
+          size: "lg",
+          className:
+            "rounded-full px-6 shadow-sm transition hover:shadow-md",
+        })}
+      >
+        Read Our Story
+      </Link>
+    </div>
+  </div>
+</section>
 
       {/* COURSES */}
       <section className="pb-24 md:pb-28">
@@ -196,39 +199,7 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {courses.map((course) => (
-              <Card
-                key={course.title}
-                className="group overflow-hidden rounded-[1.75rem] border border-border/60 py-0 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl"
-              >
-                <div className="relative aspect-[16/10] overflow-hidden bg-muted">
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#5f7f2e]/20 via-transparent to-black/10" />
-                  <div className="absolute bottom-4 left-4 rounded-full bg-background/90 px-3 py-1 text-xs font-medium text-foreground shadow-sm backdrop-blur">
-                    Featured Course
-                  </div>
-                </div>
-
-                <CardContent className="space-y-4 p-6">
-                  <h3 className="text-xl font-semibold leading-snug transition-colors group-hover:text-[#5f7f2e]">
-                    {course.title}
-                  </h3>
-
-                  <p className="text-sm leading-7 text-muted-foreground">
-                    {course.description}
-                  </p>
-
-                  <Link
-                    href="/courses"
-                    className="inline-flex items-center gap-2 text-sm font-semibold text-[#5f7f2e] transition hover:gap-3"
-                  >
-                    Learn more
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          
         </div>
       </section>
     </div>
