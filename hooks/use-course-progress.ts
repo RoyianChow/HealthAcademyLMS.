@@ -1,11 +1,7 @@
 import { useMemo } from "react";
 
-interface LessonProgress {
-  completed: boolean;
-}
-
 interface Lesson {
-  lessonProgress: LessonProgress[];
+  lessonProgress: boolean;
 }
 
 interface Chapter {
@@ -25,11 +21,7 @@ export function useCourseProgress({ courseData }: { courseData: CourseData }) {
       chapter.lessons.forEach((lesson) => {
         totalLessons++;
 
-        const isCompleted = lesson.lessonProgress.some(
-          (progress) => progress.completed
-        );
-
-        if (isCompleted) {
+        if (lesson.lessonProgress) {
           completedLessons++;
         }
       });

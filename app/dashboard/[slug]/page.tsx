@@ -10,7 +10,7 @@ export default async function CourseSlugRoute({ params }: iAppProps) {
 
   const course = await getCourseSidebarData(slug);
 
-  const firstChapter = course.course.chapter[0];
+  const firstChapter = course.course.chapters[0];
   const firstLesson = firstChapter?.lessons[0];
 
   if (firstLesson) {

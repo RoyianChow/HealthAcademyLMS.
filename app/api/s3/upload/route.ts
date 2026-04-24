@@ -12,26 +12,30 @@ const fileUploadSchema = z.object({
   fileName: z.string().min(1, { message: "Filename is required" }),
   contentType: z.string().min(1, { message: "Content type is required" }),
   size: z.number().min(1, { message: "Size is required" }),
-  isImage: z.boolean(),
+  fileType: z.enum(["image", "video", "document"]).optional(),
 });
 
 const aj = arcjet.withRule(
   fixedWindow({
     mode: "LIVE",
     window: "1m",
-    max: 5,
+    max: 10,
   })
 );
 
 export async function POST(request: Request) {
-  const session = await requireAdmin();
   try {
+    const session = await requireAdmin();
+
     const decision = await aj.protect(request, {
-      fingerprint: session?.user.id as string,
+      fingerprint: session.user.id,
     });
 
     if (decision.isDenied()) {
-      return NextResponse.json({ error: "dudde not good" }, { status: 429 });
+      return NextResponse.json(
+        { error: "Too many upload requests. Please try again later." },
+        { status: 429 }
+      );
     }
 
     const body = await request.json();
@@ -40,33 +44,47 @@ export async function POST(request: Request) {
 
     if (!validation.success) {
       return NextResponse.json(
-        { error: "Invalid Request Body" },
+        {
+          error: "Invalid request body",
+          details: validation.error.flatten(),
+        },
         { status: 400 }
       );
     }
 
-    const { fileName, contentType, size } = validation.data;
+    const { fileName, contentType, size, fileType } = validation.data;
 
-    const uniqueKey = `${uuidv4()}-${fileName}`;
+    const safeFileName = fileName.replace(/[^a-zA-Z0-9.\-_]/g, "-");
+    const folder =
+      fileType === "document"
+        ? "lesson-documents"
+        : fileType === "video"
+          ? "lesson-videos"
+          : "images";
+
+    const uniqueKey = `${folder}/${uuidv4()}-${safeFileName}`;
 
     const command = new PutObjectCommand({
       Bucket: env.NEXT_PUBLIC_S3_BUCKET_NAME_IMAGES,
+      Key: uniqueKey,
       ContentType: contentType,
       ContentLength: size,
-      Key: uniqueKey,
     });
 
     const presignedUrl = await getSignedUrl(S3, command, {
-      expiresIn: 360, 
+      expiresIn: 360,
     });
 
-    const response = {
+    return NextResponse.json({
+      url: presignedUrl,
       presignedUrl,
+      fileKey: uniqueKey,
       key: uniqueKey,
-    };
+      fileUrl: `${env.NEXT_PUBLIC_S3_PUBLIC_URL}/${uniqueKey}`,
+    });
+  } catch (error) {
+    console.error("S3_UPLOAD_URL_ERROR", error);
 
-    return NextResponse.json(response);
-  } catch {
     return NextResponse.json(
       { error: "Failed to generate presigned URL" },
       { status: 500 }

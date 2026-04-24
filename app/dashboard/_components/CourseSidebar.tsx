@@ -56,7 +56,7 @@ export function CourseSidebar({ course }: iAppProps) {
       </div>
 
       <div className="py-4 pr-4 space-y-3">
-        {course.chapter.map((chapter, index) => (
+        {course.chapters.map((chapter, index) => (
           <Collapsible key={chapter.id} defaultOpen={index === 0}>
             <CollapsibleTrigger asChild>
               <Button
@@ -79,18 +79,14 @@ export function CourseSidebar({ course }: iAppProps) {
             </CollapsibleTrigger>
             <CollapsibleContent className="mt-3 pl-6 border-l-2 space-y-3">
               {chapter.lessons.map((lesson) => (
-                <LessonItem
-                  key={lesson.id}
-                  lesson={lesson}
-                  slug={course.slug}
-                  isActive={currentLessonId === lesson.id}
-                  completed={
-                    lesson.lessonProgress.find(
-                      (progress) => progress.lessonId === lesson.id
-                    )?.completed || false
-                  }
-                />
-              ))}
+  <LessonItem
+    key={lesson.id}
+    lesson={lesson}
+    slug={course.slug}
+    isActive={currentLessonId === lesson.id}
+    completed={lesson.lessonProgress}
+  />
+))}
             </CollapsibleContent>
           </Collapsible>
         ))}
