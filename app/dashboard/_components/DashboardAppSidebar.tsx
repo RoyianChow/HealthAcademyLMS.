@@ -8,6 +8,7 @@ import {
   IconSettings,
   IconChecklist,
   IconUser,
+  IconMessage,
 } from "@tabler/icons-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -65,6 +66,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       title: "Profile",
       url: "/profile",
       icon: IconUser,
+    },
+       {
+      title: "Chatbot",
+      url: "/chatbot",
+      icon: IconMessage,
     },
     ...(session?.user?.role === "admin"
       ? [

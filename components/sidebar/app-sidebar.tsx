@@ -49,6 +49,11 @@ const data = {
           url: "/profile",
           icon: IconUser,
         },
+            {
+              title: "Chatbot",
+              url: "/chatbot",
+              icon: IconMessage,
+            },
     {
       title: "Courses",
       url: "/admin/courses",
