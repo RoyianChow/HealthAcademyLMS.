@@ -12,6 +12,7 @@ import {
   IconListDetails,
   IconSearch,
   IconSettings,
+  IconUser,
   IconUsers,
 } from "@tabler/icons-react";
 import Logo from "@/public/logo.png";
@@ -43,6 +44,11 @@ const data = {
       url: "/admin",
       icon: IconDashboard,
     },
+       {
+          title: "Profile",
+          url: "/profile",
+          icon: IconUser,
+        },
     {
       title: "Courses",
       url: "/admin/courses",

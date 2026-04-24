@@ -7,6 +7,7 @@ import {
   IconSearch,
   IconSettings,
   IconChecklist,
+  IconUser,
 } from "@tabler/icons-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -59,6 +60,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       title: "Quizzes",
       url: "/quizzes",
       icon: IconChecklist,
+    },
+      {
+      title: "Profile",
+      url: "/profile",
+      icon: IconUser,
     },
     ...(session?.user?.role === "admin"
       ? [

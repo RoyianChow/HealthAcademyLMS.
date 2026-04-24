@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { AdminSelfEnrollButton } from "./AdminSelfEnrollButton";
 
 interface iAppProps {
   data: AdminCourseType;
@@ -50,6 +51,11 @@ export function AdminCourseCard({ data }: iAppProps) {
                 Preview
               </Link>
             </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+                <AdminSelfEnrollButton courseId={data.id} />
+
+            </DropdownMenuItem>
+
 
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>

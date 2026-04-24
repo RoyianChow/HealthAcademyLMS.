@@ -1,4 +1,3 @@
-import "server-only";
 
 import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
@@ -18,7 +17,7 @@ export async function getIndividualCourse(slug: string) {
       level: true,
       category: true,
       smallDescription: true,
-      chapter: {
+      chapters: {
         select: {
           id: true,
           title: true,

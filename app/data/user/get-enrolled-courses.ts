@@ -1,6 +1,6 @@
-import "server-only";
 import { requireUser } from "./require-user";
 import { prisma } from "@/lib/db";
+import { EnrollmentStatus } from "@/src/generated/prisma";
 
 export async function getEnrolledCourses() {
   const user = await requireUser();
@@ -8,7 +8,7 @@ export async function getEnrolledCourses() {
   const data = await prisma.enrollment.findMany({
     where: {
       userId: user.id,
-      status: "Active",
+      status: EnrollmentStatus.Active,
     },
     select: {
       course: {
@@ -17,25 +17,29 @@ export async function getEnrolledCourses() {
           smallDescription: true,
           title: true,
           fileKey: true,
+          thumbnailKey: true,
           level: true,
           slug: true,
           duration: true,
+          courseProgress: {
+            where: {
+              userId: user.id,
+            },
+            select: {
+              id: true,
+              completed: true,
+              completedAt: true,
+              courseId: true,
+            },
+          },
           chapters: {
             select: {
               id: true,
               lessons: {
                 select: {
                   id: true,
-                  lessonProgress: {
-                    where: {
-                      userId: user.id,
-                    },
-                    select: {
-                      id: true,
-                      completed: true,
-                      lessonId: true,
-                    },
-                  },
+                  title: true,
+                  lessonProgress: true,
                 },
               },
             },

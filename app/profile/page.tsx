@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { format } from "date-fns";
 
+import { EnrollmentStatus } from "@/src/generated/prisma";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,14 +25,14 @@ export default async function ProfilePage() {
     include: {
       accounts: true,
       courses: true,
-      enrollment: {
+      enrollments: {
         include: {
-          Course: true,
+          course: true,
         },
       },
-      lessonProgress: {
+      courseProgress: {
         include: {
-          Lesson: true,
+          course: true,
         },
       },
     },
@@ -42,19 +43,23 @@ export default async function ProfilePage() {
   }
 
   const coursesCreatedCount = user.courses.length;
-  const totalEnrollmentsCount = user.enrollment.length;
-  const activeEnrollmentsCount = user.enrollment.filter(
-    (enrollment) => enrollment.status === "Active"
-  ).length;
-  const pendingEnrollmentsCount = user.enrollment.filter(
-    (enrollment) => enrollment.status === "Pending"
-  ).length;
-  const cancelledEnrollmentsCount = user.enrollment.filter(
-    (enrollment) => enrollment.status === "Cancelled"
+  const totalEnrollmentsCount = user.enrollments.length;
+
+  const activeEnrollmentsCount = user.enrollments.filter(
+    (enrollment) => enrollment.status === EnrollmentStatus.Active
   ).length;
 
-  const totalLessonProgressCount = user.lessonProgress.length;
-  const completedLessonsCount = user.lessonProgress.filter(
+  const pendingEnrollmentsCount = user.enrollments.filter(
+    (enrollment) => enrollment.status === EnrollmentStatus.Pending
+  ).length;
+
+  const cancelledEnrollmentsCount = user.enrollments.filter(
+    (enrollment) => enrollment.status === EnrollmentStatus.Cancelled
+  ).length;
+
+  const totalCourseProgressCount = user.courseProgress.length;
+
+  const completedCoursesCount = user.courseProgress.filter(
     (progress) => progress.completed
   ).length;
 
@@ -87,7 +92,9 @@ export default async function ProfilePage() {
 
                 <div className="flex flex-wrap gap-2">
                   <Badge variant={user.emailVerified ? "default" : "secondary"}>
-                    {user.emailVerified ? "Email Verified" : "Email Not Verified"}
+                    {user.emailVerified
+                      ? "Email Verified"
+                      : "Email Not Verified"}
                   </Badge>
 
                   <Badge variant="outline">{user.role ?? "student"}</Badge>
@@ -110,7 +117,7 @@ export default async function ProfilePage() {
               <div className="rounded-xl border p-4">
                 <p className="text-muted-foreground text-sm">Email Address</p>
                 <p className="font-medium break-all">{user.email}</p>
-              </div>    
+              </div>
 
               <div className="rounded-xl border p-4">
                 <p className="text-muted-foreground text-sm">Role</p>
@@ -120,7 +127,9 @@ export default async function ProfilePage() {
               </div>
 
               <div className="rounded-xl border p-4">
-                <p className="text-muted-foreground text-sm">Stripe Customer ID</p>
+                <p className="text-muted-foreground text-sm">
+                  Stripe Customer ID
+                </p>
                 <p className="font-medium break-all">
                   {user.stripeCustomerId ?? "Not connected"}
                 </p>
@@ -134,6 +143,7 @@ export default async function ProfilePage() {
             <CardHeader>
               <CardTitle>Learning Stats</CardTitle>
             </CardHeader>
+
             <CardContent>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="rounded-xl border p-4">
@@ -174,19 +184,19 @@ export default async function ProfilePage() {
 
                 <div className="rounded-xl border p-4">
                   <p className="text-muted-foreground text-sm">
-                    Lesson Progress Records
+                    Course Progress Records
                   </p>
                   <p className="text-2xl font-semibold">
-                    {totalLessonProgressCount}
+                    {totalCourseProgressCount}
                   </p>
                 </div>
 
                 <div className="rounded-xl border p-4">
                   <p className="text-muted-foreground text-sm">
-                    Completed Lessons
+                    Completed Courses
                   </p>
                   <p className="text-2xl font-semibold">
-                    {completedLessonsCount}
+                    {completedCoursesCount}
                   </p>
                 </div>
               </div>
@@ -197,6 +207,7 @@ export default async function ProfilePage() {
             <CardHeader>
               <CardTitle>Creator Stats</CardTitle>
             </CardHeader>
+
             <CardContent>
               <div className="grid gap-4">
                 <div className="rounded-xl border p-4">
@@ -212,6 +223,7 @@ export default async function ProfilePage() {
                   <p className="text-muted-foreground text-sm">
                     Connected Providers
                   </p>
+
                   {user.accounts.length > 0 ? (
                     <div className="mt-2 flex flex-wrap gap-2">
                       {user.accounts.map((account) => (
@@ -234,17 +246,18 @@ export default async function ProfilePage() {
             <CardHeader>
               <CardTitle>My Enrolled Courses</CardTitle>
             </CardHeader>
+
             <CardContent>
-              {user.enrollment.length > 0 ? (
+              {user.enrollments.length > 0 ? (
                 <div className="space-y-3">
-                  {user.enrollment.map((enrollment) => (
+                  {user.enrollments.map((enrollment) => (
                     <div
                       key={enrollment.id}
                       className="flex items-center justify-between rounded-xl border p-4"
                     >
                       <div className="min-w-0">
-                        <p className="font-medium truncate">
-                          {enrollment.Course.title}
+                        <p className="truncate font-medium">
+                          {enrollment.course.title}
                         </p>
                         <p className="text-muted-foreground text-sm">
                           Enrolled on{" "}
@@ -268,6 +281,7 @@ export default async function ProfilePage() {
             <CardHeader>
               <CardTitle>My Created Courses</CardTitle>
             </CardHeader>
+
             <CardContent>
               {user.courses.length > 0 ? (
                 <div className="space-y-3">
@@ -277,7 +291,7 @@ export default async function ProfilePage() {
                       className="flex items-center justify-between rounded-xl border p-4"
                     >
                       <div className="min-w-0">
-                        <p className="font-medium truncate">{course.title}</p>
+                        <p className="truncate font-medium">{course.title}</p>
                         <p className="text-muted-foreground text-sm">
                           Created on {format(new Date(course.createdAt), "PPP")}
                         </p>

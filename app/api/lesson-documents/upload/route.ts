@@ -36,15 +36,14 @@ export async function POST(req: Request) {
     const fileKey = `lesson-documents/${Date.now()}-${randomUUID()}-${safeFileName}`;
 
     const command = new PutObjectCommand({
-      Bucket: env.NEXT_PUBLIC_S3_PUBLIC_URL,
+      Bucket: env.S3_BUCKET_NAME,
       Key: fileKey,
       ContentType: contentType,
     });
 
     const url = await getSignedUrl(s3, command, { expiresIn: 60 });
 
-    const endpoint = new URL(env.AWS_ENDPOINT_URL_S3);
-    const fileUrl = `https://${env.NEXT_PUBLIC_S3_PUBLIC_URL}.${endpoint.host}/${fileKey}`;
+    const fileUrl = `${env.NEXT_PUBLIC_S3_PUBLIC_URL}/${fileKey}`;
 
     return NextResponse.json({
       url,

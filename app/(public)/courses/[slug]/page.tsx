@@ -87,8 +87,8 @@ export default async function SlugPage({ params }: { params: Params }) {
               Course Content
             </h2>
             <div>
-              {course.chapter.length} chapters |{" "}
-              {course.chapter.reduce(
+              {course.chapters.length} chapters |{" "}
+              {course.chapters.reduce(
                 (total, chapter) => total + chapter.lessons.length,
                 0
               ) || 0}{" "}
@@ -97,7 +97,7 @@ export default async function SlugPage({ params }: { params: Params }) {
           </div>
 
           <div className="space-y-4">
-            {course.chapter.map((chapter, index) => (
+            {course.chapters.map((chapter, index) => (
               <Collapsible key={chapter.id} defaultOpen={index === 0}>
                 <Card className="p-0 overflow-hidden border-2 transition-all duration-200 hover:shadow-md gap-0">
                   <CollapsibleTrigger>
@@ -223,7 +223,7 @@ export default async function SlugPage({ params }: { params: Params }) {
                     <div>
                       <p className="text-sm font-medium">Total Lessons</p>
                       <p className="text-sm text-muted-foreground">
-                        {course.chapter.reduce(
+                        {course.chapters.reduce(
                           (total, chapter) => total + chapter.lessons.length,
                           0
                         ) || 0}{" "}
