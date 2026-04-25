@@ -29,6 +29,15 @@ export async function adminGetQuiz(quizId: string) {
     select: {
       id: true,
       title: true,
+      chapters: {
+        select: {
+          id: true,
+          title: true,
+        },
+        orderBy: {
+          position: "asc",
+        },
+      },
     },
     orderBy: {
       createdAt: "desc",
@@ -40,6 +49,7 @@ export async function adminGetQuiz(quizId: string) {
     title: quiz.title,
     description: quiz.description,
     courseId: quiz.courseId,
+    chapterId: quiz.chapterId,
     isPublished: quiz.isPublished,
     passingScore: quiz.passingScore,
     timeLimitMinutes: quiz.timeLimitMinutes,

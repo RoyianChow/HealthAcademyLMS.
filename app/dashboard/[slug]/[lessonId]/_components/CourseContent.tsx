@@ -124,7 +124,7 @@ export function CourseContent({ data }: iAppProps) {
   function onSubmit() {
     startTransition(async () => {
       const { data: result, error } = await tryCatch(
-        markLessonComplete(data.id, data.Chapter.Course.slug)
+        markLessonComplete(data.id, data.chapter.course.slug)
       );
 
       if (error) {
@@ -150,20 +150,20 @@ export function CourseContent({ data }: iAppProps) {
       />
 
       <div className="py-4 border-b">
-        {data.lessonProgress.length > 0 ? (
-          <Button
-            variant="outline"
-            className="bg-green-500/10 text-green-500 hover:text-green-600"
-          >
-            <CheckCircle className="size-4 mr-2 text-green-500" />
-            Completed
-          </Button>
-        ) : (
-          <Button variant="outline" onClick={onSubmit} disabled={pending}>
-            <CheckCircle className="size-4 mr-2 text-green-500" />
-            Mark as Complete
-          </Button>
-        )}
+        {data.lessonProgress ? (
+  <Button
+    variant="outline"
+    className="bg-green-500/10 text-green-500 hover:text-green-600"
+  >
+    <CheckCircle className="size-4 mr-2 text-green-500" />
+    Completed
+  </Button>
+) : (
+  <Button variant="outline" onClick={onSubmit} disabled={pending}>
+    <CheckCircle className="size-4 mr-2 text-green-500" />
+    Mark as Complete
+  </Button>
+)}
       </div>
 
       <div className="w-full space-y-6 pt-3 pb-8">

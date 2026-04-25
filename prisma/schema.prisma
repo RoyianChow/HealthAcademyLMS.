@@ -9,32 +9,32 @@ datasource db {
 }
 
 model User {
-  id               String           @id
-  name             String
-  email            String
-  emailVerified    Boolean
-  image            String?
-  createdAt        DateTime
-  updatedAt        DateTime
+  id            String   @id
+  name          String
+  email         String
+  emailVerified Boolean
+  image         String?
+  createdAt     DateTime
+  updatedAt     DateTime
 
-  stripeCustomerId String?          @unique
+  stripeCustomerId String? @unique
 
-  role             String?
-  banned           Boolean?
-  banReason        String?
-  banExpires       DateTime?
+  role       String?
+  banned     Boolean?
+  banReason  String?
+  banExpires DateTime?
 
-  sessions         Session[]
-  accounts         Account[]
-  courses          Course[]
-  enrollments      Enrollment[]
+  sessions    Session[]
+  accounts    Account[]
+  courses     Course[]
+  enrollments Enrollment[]
 
   // NEW:
   // Tracks overall course completion per user.
   // Use this if you want to show "Course completed" or award certificates.
-  courseProgress   CourseProgress[]
+  courseProgress CourseProgress[]
 
-  quizAttempts     QuizAttempt[]
+  quizAttempts QuizAttempt[]
 
   @@unique([email])
   @@map("user")
@@ -51,7 +51,7 @@ model Session {
   userId         String
   impersonatedBy String?
 
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([token])
   @@map("session")
@@ -72,7 +72,7 @@ model Account {
   createdAt             DateTime
   updatedAt             DateTime
 
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("account")
 }
@@ -89,152 +89,141 @@ model Verification {
 }
 
 model Course {
-  id               String           @id @default(uuid())
+  id String @id @default(uuid())
 
   title            String
   description      String
   smallDescription String
-  slug             String           @unique
+  slug             String @unique
   category         String
 
-  price            Int
-  duration         Int
-  level            CourseLevel      @default(Beginner)
-  status           CourseStatus     @default(Draft)
+  price    Int
+  duration Int
+  level    CourseLevel  @default(Beginner)
+  status   CourseStatus @default(Draft)
 
-  fileKey          String
+  fileKey String
 
   // NEW:
   // Optional separate course thumbnail/image key.
   // Use this if you want a dedicated course cover image instead of reusing fileKey.
-  thumbnailKey     String?
+  thumbnailKey String?
 
-  stripePriceId    String           @unique
+  stripePriceId String @unique
 
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  userId           String
-  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  chapters         Chapter[]
-  quizzes          Quiz[]
-  enrollments      Enrollment[]
+  chapters    Chapter[]
+  quizzes     Quiz[]
+  enrollments Enrollment[]
 
   // NEW:
   // Lets you see progress/completion at the course level.
-  courseProgress   CourseProgress[]
+  courseProgress CourseProgress[]
 
   @@index([userId])
   @@index([status])
 }
 
 model Chapter {
-  id          String    @id @default(uuid())
+  id String @id @default(uuid())
 
-  title       String
-  position    Int
+  title    String
+  position Int
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  courseId    String
-  course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
-  lessons     Lesson[]
+  lessons Lesson[]
+  quizzes Quiz[]
 
-  @@index([courseId])
   @@unique([courseId, position])
+  @@index([courseId])
 }
 
 model Lesson {
-  id             String           @id @default(uuid())
+  id String @id @default(uuid())
 
-  title          String
-  description    String?
+  title       String
+  description String?
 
-  // NEW:
-  // Main lesson body/content.
-  // Put your rich text lesson content here if you are using a text editor.
-  // If you later move to JSON-based editors, this could become Json instead.
-  content        String?
+  content String?
 
-  thumbnailKey   String?
-  videoKey       String?
-  youtubeUrl     String?
+  thumbnailKey String?
+  videoKey     String?
+  youtubeUrl   String?
 
-  position       Int
+  position      Int
+  isPublished   Boolean @default(false)
+  isFreePreview Boolean @default(false)
 
-  // NEW:
-  // Controls whether students can actually see this lesson.
-  // Helpful when a course is published but some lessons are still unfinished.
-  isPublished    Boolean          @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // NEW:
-  // Lets non-enrolled users preview this lesson for free.
-  // Useful for "sample lesson" or marketing preview content.
-  isFreePreview  Boolean          @default(false)
-
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-
-  chapterId      String
-  chapter        Chapter          @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  chapterId String
+  chapter   Chapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
 
   lessonProgress Boolean          @default(false)
   documents      LessonDocument[]
 
-  @@index([chapterId])
   @@unique([chapterId, position])
+  @@index([chapterId])
 }
 
 model LessonDocument {
-  id         String    @id @default(uuid())
+  id String @id @default(uuid())
 
-  name       String
-  fileKey    String
-  fileUrl    String?
-  fileType   String?
-  fileSize   Int?
+  name     String
+  fileKey  String
+  fileUrl  String?
+  fileType String?
+  fileSize Int?
 
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  lessonId   String
-  lesson     Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  lessonId String
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
   @@index([lessonId])
 }
 
 model Enrollment {
-  id               String           @id @default(uuid())
+  id String @id @default(uuid())
 
-  amount           Int
-  status           EnrollmentStatus @default(Pending)
+  amount Int
+  status EnrollmentStatus @default(Pending)
 
   // NEW:
   // Store the Stripe Checkout Session ID here.
   // Very useful for webhook matching and debugging purchases.
-  stripeSessionId  String?
+  stripeSessionId String?
 
   // NEW:
   // Store the payment intent/payment ID if you want payment-level tracing.
   // Helpful for refunds, disputes, and admin support.
-  stripePaymentId  String?
+  stripePaymentId String?
 
   // NEW:
   // When the purchase was actually completed.
   // Good for receipts, dashboards, and access history.
-  purchasedAt      DateTime?
+  purchasedAt DateTime?
 
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  courseId         String
-  userId           String
+  courseId String
+  userId   String
 
-  course           Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, courseId])
   @@index([status])
@@ -242,28 +231,27 @@ model Enrollment {
   @@index([userId])
 }
 
-
 model CourseProgress {
-  id          String    @id @default(uuid())
+  id String @id @default(uuid())
 
   // NEW TABLE:
   // Stores a user's overall completion state for a course.
   // This is useful if you do not want to recalculate completion every time from lessons.
-  completed   Boolean   @default(false)
+  completed Boolean @default(false)
 
   // NEW:
   // Timestamp for when the course was fully completed.
   // Good for certificates, transcripts, and completion history.
   completedAt DateTime?
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  userId      String
-  courseId    String
+  userId   String
+  courseId String
 
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([userId, courseId])
   @@index([userId])
@@ -271,142 +259,134 @@ model CourseProgress {
 }
 
 model Quiz {
-  id                    String         @id @default(uuid())
+  id String @id @default(uuid())
 
-  title                 String
-  description           String?
-  isPublished           Boolean        @default(false)
+  title       String
+  description String?
+  isPublished Boolean @default(false)
 
-  // NEW:
-  // Minimum score required to pass the quiz.
-  // Example: 70 means user needs at least 70 marks/percent depending on your grading logic.
   passingScore          Int?
-
-  // NEW:
-  // Optional time limit for the quiz.
-  // Store in minutes. Example: 30 = 30 minute quiz.
   timeLimitMinutes      Int?
+  allowMultipleAttempts Boolean @default(false)
 
-  // NEW:
-  // Controls whether users can take the same quiz more than once.
-  // Your backend/UI should enforce this logic.
-  allowMultipleAttempts Boolean        @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  createdAt             DateTime       @default(now())
-  updatedAt             DateTime       @updatedAt
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
-  courseId              String
-  course                Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  // ✅ NEW: connect quiz to chapter (optional)
+  chapterId String?
+  chapter   Chapter? @relation(fields: [chapterId], references: [id], onDelete: Cascade)
 
-  questions             QuizQuestion[]
-  attempts              QuizAttempt[]
+  questions QuizQuestion[]
+  attempts  QuizAttempt[]
 
   @@index([courseId])
-  @@index([isPublished])
+  @@index([chapterId])
 }
 
 model QuizQuestion {
-  id          String       @id @default(uuid())
+  id String @id @default(uuid())
 
   question    String
   position    Int
   explanation String?
 
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  quizId      String
-  quiz        Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  quizId String
+  quiz   Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade)
 
-  options     QuizOption[]
-  answers     QuizAnswer[]
+  options QuizOption[]
+  answers QuizAnswer[]
 
-  @@index([quizId])
   @@unique([quizId, position])
+  @@index([quizId])
 }
 
 model QuizOption {
-  id           String       @id @default(uuid())
+  id String @id @default(uuid())
 
-  text         String
-  isCorrect    Boolean      @default(false)
-  position     Int
+  text      String
+  isCorrect Boolean @default(false)
+  position  Int
 
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  questionId   String
-  question     QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  questionId String
+  question   QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
-  answers      QuizAnswer[] @relation("SelectedOptionAnswers")
+  answers QuizAnswer[] @relation("SelectedOptionAnswers")
 
-  @@index([questionId])
   @@unique([questionId, position])
+  @@index([questionId])
 }
 
 model QuizAttempt {
-  id            String       @id @default(cuid())
+  id String @id @default(cuid())
 
-  quizId         String
-  userId         String
+  quizId String
+  userId String
 
   // NEW:
   // Which try this is for the same user on the same quiz.
   // Example: 1 = first attempt, 2 = second attempt.
-  attemptNumber  Int          @default(1)
+  attemptNumber Int @default(1)
 
-  isComplete     Boolean      @default(false)
+  isComplete Boolean @default(false)
 
   // NEW:
   // Marks whether teacher/admin has finished grading this submission.
   // Useful for admin dashboards and "pending grading" filters.
-  isGraded       Boolean      @default(false)
+  isGraded Boolean @default(false)
 
-  score          Int?
+  score Int?
 
   // NEW:
   // Teacher/admin written feedback for this attempt.
   // Example: "Good work, but review question 3."
-  feedback       String?
+  feedback String?
 
-  submittedAt    DateTime?
-  gradedAt       DateTime?
+  submittedAt DateTime?
+  gradedAt    DateTime?
 
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  quiz           Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  answers        QuizAnswer[]
-
-  @@index([quizId])
-  @@index([userId])
-  @@index([isComplete])
-  @@index([isGraded])
+  answers QuizAnswer[]
 
   // NEW:
   // Ensures one row per attempt number for the same user and quiz.
   // So the same user can have attempt 1, attempt 2, attempt 3, etc.
   @@unique([quizId, userId, attemptNumber])
+  @@index([quizId])
+  @@index([userId])
+  @@index([isComplete])
+  @@index([isGraded])
 }
 
 model QuizAnswer {
-  id               String       @id @default(cuid())
+  id String @id @default(cuid())
 
   attemptId        String
   questionId       String
   selectedOptionId String?
 
-  isCorrect        Boolean?
-  createdAt        DateTime     @default(now())
+  isCorrect Boolean?
+  createdAt DateTime @default(now())
 
-  attempt          QuizAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  question         QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  attempt  QuizAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   // Uses a named relation because QuizOption already relates to QuizQuestion,
   // so Prisma needs help knowing this relation is specifically for selected answers.
-  selectedOption   QuizOption?  @relation("SelectedOptionAnswers", fields: [selectedOptionId], references: [id], onDelete: SetNull)
+  selectedOption QuizOption? @relation("SelectedOptionAnswers", fields: [selectedOptionId], references: [id], onDelete: SetNull)
 
   @@unique([attemptId, questionId])
   @@index([questionId])

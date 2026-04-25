@@ -17,6 +17,13 @@ export default async function AdminQuizzesPage() {
           title: true,
         },
       },
+      chapter: {
+        select: {
+          id: true,
+          title: true,
+          position: true,
+        },
+      },
       _count: {
         select: {
           questions: true,
@@ -85,6 +92,12 @@ export default async function AdminQuizzesPage() {
 
                     <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                       <span>Course: {quiz.course?.title ?? "Not linked"}</span>
+                      <span>
+                        Chapter:{" "}
+                        {quiz.chapter
+                          ? `${quiz.chapter.position}. ${quiz.chapter.title}`
+                          : "Not linked"}
+                      </span>
                       <span>Questions: {quiz._count.questions}</span>
                       <span>Total Attempts: {quiz._count.attempts}</span>
                       <span>
@@ -143,7 +156,9 @@ export default async function AdminQuizzesPage() {
                                 {attempt.score ?? "Not graded"}
                               </td>
                               <td className="px-4 py-3">
-                                {attempt.isComplete ? "Completed" : "In Progress"}
+                                {attempt.isComplete
+                                  ? "Completed"
+                                  : "In Progress"}
                               </td>
                               <td className="px-4 py-3 text-muted-foreground">
                                 {attempt.submittedAt

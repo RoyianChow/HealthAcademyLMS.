@@ -15,6 +15,9 @@ export async function getEnrolledCourseQuizzes() {
   return prisma.quiz.findMany({
     where: {
       isPublished: true,
+      chapterId: {
+        not: null,
+      },
       course: {
         is: {
           status: CourseStatus.Published,
@@ -37,6 +40,14 @@ export async function getEnrolledCourseQuizzes() {
       isPublished: true,
       passingScore: true,
       timeLimitMinutes: true,
+      chapterId: true,
+      chapter: {
+        select: {
+          id: true,
+          title: true,
+          position: true,
+        },
+      },
       course: {
         select: {
           id: true,
@@ -45,6 +56,9 @@ export async function getEnrolledCourseQuizzes() {
         },
       },
       questions: {
+        orderBy: {
+          position: "asc",
+        },
         select: {
           id: true,
           question: true,
@@ -59,9 +73,6 @@ export async function getEnrolledCourseQuizzes() {
               isCorrect: true,
             },
           },
-        },
-        orderBy: {
-          position: "asc",
         },
       },
       attempts: {

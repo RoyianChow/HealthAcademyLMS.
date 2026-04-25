@@ -1749,7 +1749,8 @@ export const QuizScalarFieldEnum = {
   allowMultipleAttempts: 'allowMultipleAttempts',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
-  courseId: 'courseId'
+  courseId: 'courseId',
+  chapterId: 'chapterId'
 } as const
 
 export type QuizScalarFieldEnum = (typeof QuizScalarFieldEnum)[keyof typeof QuizScalarFieldEnum]

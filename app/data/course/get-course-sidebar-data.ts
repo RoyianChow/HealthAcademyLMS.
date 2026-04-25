@@ -40,6 +40,21 @@ export async function getCourseSidebarData(slug: string) {
               lessonProgress: true,
             },
           },
+          quizzes: {
+            where: {
+              isPublished: true,
+            },
+            orderBy: {
+              createdAt: "asc",
+            },
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              isPublished: true,
+              chapterId: true,
+            },
+          },
         },
       },
     },

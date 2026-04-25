@@ -18,9 +18,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { QuizQuestion, type Option } from "./QuizQuestion";
 
+type ChapterOption = {
+  id: string;
+  title: string;
+};
+
 type CourseOption = {
   id: string;
   title: string;
+  chapters?: ChapterOption[];
 };
 
 type QuizFormData = {
@@ -28,6 +34,7 @@ type QuizFormData = {
   title: string;
   description: string | null;
   courseId: string | null;
+  chapterId: string | null;
   isPublished?: boolean;
   passingScore?: number | null;
   timeLimitMinutes?: number | null;
@@ -74,15 +81,20 @@ export function QuizForm({ mode, initialData }: QuizFormProps) {
   const [title, setTitle] = useState(initialData?.title ?? "");
   const [description, setDescription] = useState(initialData?.description ?? "");
   const [courseId, setCourseId] = useState(initialData?.courseId ?? "");
+  const [chapterId, setChapterId] = useState(initialData?.chapterId ?? "");
+
   const [isPublished, setIsPublished] = useState(
     initialData?.isPublished ?? false
   );
+
   const [passingScore, setPassingScore] = useState<string>(
     initialData?.passingScore?.toString() ?? ""
   );
+
   const [timeLimitMinutes, setTimeLimitMinutes] = useState<string>(
     initialData?.timeLimitMinutes?.toString() ?? ""
   );
+
   const [allowMultipleAttempts, setAllowMultipleAttempts] = useState(
     initialData?.allowMultipleAttempts ?? false
   );
@@ -102,7 +114,17 @@ export function QuizForm({ mode, initialData }: QuizFormProps) {
   });
 
   const courses = useMemo(() => initialData?.courses ?? [], [initialData]);
+
+  const chapters = useMemo(() => {
+    return courses.find((course) => course.id === courseId)?.chapters ?? [];
+  }, [courses, courseId]);
+
   const isEditMode = mode === "edit";
+
+  function handleCourseChange(value: string) {
+    setCourseId(value);
+    setChapterId("");
+  }
 
   function addQuestion() {
     setQuestions((prev) => [...prev, createEmptyQuestion()]);
@@ -162,9 +184,6 @@ export function QuizForm({ mode, initialData }: QuizFormProps) {
       options: Option[];
     }
   ) {
-    const currentQuestion = questions[index];
-    if (!currentQuestion) return;
-
     const hasEmptyQuestion = !savedQuestion.question.trim();
     const hasEmptyOption = savedQuestion.options.some(
       (option) => !option.text.trim()
@@ -218,8 +237,14 @@ export function QuizForm({ mode, initialData }: QuizFormProps) {
       return;
     }
 
+    if (!chapterId) {
+      toast.error("Please select a chapter");
+      return;
+    }
+
     const parsedPassingScore =
       passingScore.trim() === "" ? null : Number(passingScore);
+
     const parsedTimeLimitMinutes =
       timeLimitMinutes.trim() === "" ? null : Number(timeLimitMinutes);
 
@@ -267,6 +292,7 @@ export function QuizForm({ mode, initialData }: QuizFormProps) {
             title: title.trim(),
             description: description.trim() || null,
             courseId,
+            chapterId,
             isPublished,
             passingScore: parsedPassingScore,
             timeLimitMinutes: parsedTimeLimitMinutes,
@@ -345,23 +371,47 @@ export function QuizForm({ mode, initialData }: QuizFormProps) {
             />
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="courseId">Connect to Course</Label>
-            <select
-              id="courseId"
-              value={courseId}
-              onChange={(e) => setCourseId(e.target.value)}
-              disabled={isPending}
-              className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-              required
-            >
-              <option value="">Select a course</option>
-              {courses.map((course) => (
-                <option key={course.id} value={course.id}>
-                  {course.title}
+          <div className="grid gap-2 md:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor="courseId">Connect to Course</Label>
+              <select
+                id="courseId"
+                value={courseId}
+                onChange={(e) => handleCourseChange(e.target.value)}
+                disabled={isPending}
+                className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                required
+              >
+                <option value="">Select a course</option>
+                {courses.map((course) => (
+                  <option key={course.id} value={course.id}>
+                    {course.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="chapterId">Connect to Chapter</Label>
+              <select
+                id="chapterId"
+                value={chapterId}
+                onChange={(e) => setChapterId(e.target.value)}
+                disabled={isPending || !courseId}
+                className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                required
+              >
+                <option value="">
+                  {courseId ? "Select a chapter" : "Select a course first"}
                 </option>
-              ))}
-            </select>
+
+                {chapters.map((chapter) => (
+                  <option key={chapter.id} value={chapter.id}>
+                    {chapter.title}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="grid gap-2 md:grid-cols-2">
@@ -378,9 +428,6 @@ export function QuizForm({ mode, initialData }: QuizFormProps) {
                 onChange={(e) => setPassingScore(e.target.value)}
                 disabled={isPending}
               />
-              <p className="text-sm text-muted-foreground">
-                Leave blank if you do not want to enforce a passing score.
-              </p>
             </div>
 
             <div className="grid gap-2">
@@ -395,9 +442,6 @@ export function QuizForm({ mode, initialData }: QuizFormProps) {
                 onChange={(e) => setTimeLimitMinutes(e.target.value)}
                 disabled={isPending}
               />
-              <p className="text-sm text-muted-foreground">
-                Leave blank for no time limit.
-              </p>
             </div>
           </div>
 
@@ -413,10 +457,6 @@ export function QuizForm({ mode, initialData }: QuizFormProps) {
               <option value="false">Draft</option>
               <option value="true">Published</option>
             </select>
-            <p className="text-sm text-muted-foreground">
-              Draft quizzes stay hidden from students. Published quizzes will be
-              visible on eligible student pages.
-            </p>
           </div>
 
           <div className="grid gap-2">
@@ -433,15 +473,14 @@ export function QuizForm({ mode, initialData }: QuizFormProps) {
               <option value="false">Single attempt only</option>
               <option value="true">Allow multiple attempts</option>
             </select>
-            <p className="text-sm text-muted-foreground">
-              Choose whether students can retake this quiz after submitting.
-            </p>
           </div>
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <Label className="text-base font-semibold">Quiz Questions</Label>
+                <Label className="text-base font-semibold">
+                  Quiz Questions
+                </Label>
                 <p className="text-sm text-muted-foreground">
                   Add and manage the questions for this quiz.
                 </p>
@@ -469,6 +508,7 @@ export function QuizForm({ mode, initialData }: QuizFormProps) {
                       <h3 className="text-sm font-medium">
                         Question {index + 1}
                       </h3>
+
                       {question.isSaved ? (
                         <span className="text-xs font-medium text-green-600">
                           Saved
