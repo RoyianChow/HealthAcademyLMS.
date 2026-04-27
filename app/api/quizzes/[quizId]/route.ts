@@ -1,89 +1,82 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
+export const runtime = "nodejs";
+
 type RouteContext = {
   params: Promise<{
     quizId: string;
   }>;
 };
 
+type QuizOptionInput = {
+  text: string;
+  isCorrect: boolean;
+};
+
+type QuizQuestionInput = {
+  question: string;
+  explanation?: string | null;
+  options: QuizOptionInput[];
+};
+
+type QuizUpdateBody = {
+  title?: string;
+  description?: string | null;
+  courseId?: string;
+  chapterId?: string;
+  isPublished?: boolean;
+  passingScore?: number | null;
+  timeLimitMinutes?: number | null;
+  allowMultipleAttempts?: boolean;
+  questions?: QuizQuestionInput[];
+};
+
+function apiError(message: string, status = 400) {
+  return NextResponse.json(
+    {
+      status: "error",
+      message,
+    },
+    { status }
+  );
+}
+
 export async function PATCH(req: Request, { params }: RouteContext) {
   try {
     const { quizId } = await params;
-    const body = await req.json();
+    const body = (await req.json()) as QuizUpdateBody;
 
     const {
       title,
       description,
       courseId,
       chapterId,
-      questions,
       isPublished,
       passingScore,
       timeLimitMinutes,
       allowMultipleAttempts,
+      questions,
     } = body;
 
+    if (!quizId) {
+      return apiError("Quiz ID is required");
+    }
+
     if (!title?.trim()) {
-      return NextResponse.json(
-        { error: "Quiz title is required" },
-        { status: 400 }
-      );
+      return apiError("Quiz title is required");
     }
 
     if (!courseId) {
-      return NextResponse.json(
-        { error: "Course is required" },
-        { status: 400 }
-      );
+      return apiError("Course is required");
     }
 
     if (!chapterId) {
-      return NextResponse.json(
-        { error: "Chapter is required" },
-        { status: 400 }
-      );
-    }
-
-    const parsedPassingScore =
-      passingScore === "" || passingScore === undefined || passingScore === null
-        ? null
-        : Number(passingScore);
-
-    const parsedTimeLimitMinutes =
-      timeLimitMinutes === "" ||
-      timeLimitMinutes === undefined ||
-      timeLimitMinutes === null
-        ? null
-        : Number(timeLimitMinutes);
-
-    if (
-      parsedPassingScore !== null &&
-      (!Number.isInteger(parsedPassingScore) ||
-        parsedPassingScore < 0 ||
-        parsedPassingScore > 100)
-    ) {
-      return NextResponse.json(
-        { error: "Passing score must be a whole number between 0 and 100" },
-        { status: 400 }
-      );
-    }
-
-    if (
-      parsedTimeLimitMinutes !== null &&
-      (!Number.isInteger(parsedTimeLimitMinutes) || parsedTimeLimitMinutes <= 0)
-    ) {
-      return NextResponse.json(
-        { error: "Time limit must be a whole number greater than 0" },
-        { status: 400 }
-      );
+      return apiError("Chapter is required");
     }
 
     if (!Array.isArray(questions) || questions.length === 0) {
-      return NextResponse.json(
-        { error: "At least one question is required" },
-        { status: 400 }
-      );
+      return apiError("At least one question is required");
     }
 
     const chapter = await prisma.chapter.findFirst({
@@ -97,45 +90,32 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     });
 
     if (!chapter) {
-      return NextResponse.json(
-        { error: "Selected chapter does not belong to this course" },
-        { status: 400 }
-      );
+      return apiError("Selected chapter does not belong to this course");
     }
 
     for (const question of questions) {
-      if (!question.question?.trim()) {
-        return NextResponse.json(
-          { error: "Each question must have text" },
-          { status: 400 }
-        );
+      if (!question.question.trim()) {
+        return apiError("Each question must have text");
       }
 
       if (!Array.isArray(question.options) || question.options.length < 2) {
-        return NextResponse.json(
-          { error: "Each question must have at least 2 options" },
-          { status: 400 }
-        );
+        return apiError("Each question must have at least two options");
       }
 
-      const hasCorrect = question.options.some(
-        (option: { isCorrect: boolean }) => option.isCorrect
+      const hasEmptyOption = question.options.some(
+        (option) => !option.text.trim()
       );
 
-      if (!hasCorrect) {
-        return NextResponse.json(
-          { error: "Each question must have a correct answer" },
-          { status: 400 }
-        );
+      if (hasEmptyOption) {
+        return apiError("Each option must have text");
       }
 
-      for (const option of question.options) {
-        if (!option.text?.trim()) {
-          return NextResponse.json(
-            { error: "Option text cannot be empty" },
-            { status: 400 }
-          );
-        }
+      const hasCorrectOption = question.options.some(
+        (option) => option.isCorrect
+      );
+
+      if (!hasCorrectOption) {
+        return apiError("Each question needs at least one correct option");
       }
     }
 
@@ -156,47 +136,39 @@ export async function PATCH(req: Request, { params }: RouteContext) {
           courseId,
           chapterId,
           isPublished: Boolean(isPublished),
-          passingScore: parsedPassingScore,
-          timeLimitMinutes: parsedTimeLimitMinutes,
+          passingScore: passingScore ?? null,
+          timeLimitMinutes: timeLimitMinutes ?? null,
           allowMultipleAttempts: Boolean(allowMultipleAttempts),
           questions: {
-            create: questions.map(
-              (
-                question: {
-                  question: string;
-                  explanation?: string | null;
-                  options: { text: string; isCorrect: boolean }[];
-                },
-                questionIndex: number
-              ) => ({
-                question: question.question.trim(),
-                explanation: question.explanation?.trim() || null,
-                position: questionIndex + 1,
-                options: {
-                  create: question.options.map(
-                    (
-                      option: { text: string; isCorrect: boolean },
-                      optionIndex: number
-                    ) => ({
-                      text: option.text.trim(),
-                      isCorrect: Boolean(option.isCorrect),
-                      position: optionIndex + 1,
-                    })
-                  ),
-                },
-              })
-            ),
+            create: questions.map((question, questionIndex) => ({
+              question: question.question.trim(),
+              explanation: question.explanation?.trim() || null,
+              position: questionIndex + 1,
+              options: {
+                create: question.options.map((option, optionIndex) => ({
+                  text: option.text.trim(),
+                  isCorrect: Boolean(option.isCorrect),
+                  position: optionIndex + 1,
+                })),
+              },
+            })),
           },
         },
       });
     });
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      status: "success",
+      message: "Quiz updated successfully",
+    });
   } catch (error) {
     console.error("QUIZ_UPDATE_ERROR", error);
 
     return NextResponse.json(
-      { error: "Failed to update quiz" },
+      {
+        status: "error",
+        message: "Failed to update quiz",
+      },
       { status: 500 }
     );
   }

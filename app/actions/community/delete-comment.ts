@@ -1,4 +1,4 @@
-// app/actions/community/delete-post.ts
+// app/actions/community/delete-comment.ts
 
 "use server";
 
@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/app/data/user/require-user";
 
-export async function deleteCommunityPost(postId: string) {
+export async function deleteCommunityComment(commentId: string) {
   try {
     const user = await requireUser();
 
@@ -19,63 +19,50 @@ export async function deleteCommunityPost(postId: string) {
       },
     });
 
-    const post = await prisma.communityPost.findUnique({
+    const comment = await prisma.communityComment.findUnique({
       where: {
-        id: postId,
+        id: commentId,
       },
       select: {
         id: true,
         userId: true,
+        postId: true,
       },
     });
 
-    if (!post) {
+    if (!comment) {
       return {
         status: "error" as const,
-        message: "Post not found.",
+        message: "Comment not found.",
       };
     }
 
-    const isOwner = post.userId === user.id;
+    const isOwner = comment.userId === user.id;
     const isAdmin = String(dbUser?.role ?? "").toLowerCase() === "admin";
 
     if (!isOwner && !isAdmin) {
       return {
         status: "error" as const,
-        message: "You do not have permission to delete this post.",
+        message: "You do not have permission to delete this comment.",
       };
     }
 
-    await prisma.$transaction(async (tx) => {
-      await tx.communityLike.deleteMany({
-        where: {
-          postId,
-        },
-      });
-
-      await tx.communityComment.deleteMany({
-        where: {
-          postId,
-        },
-      });
-
-      await tx.communityPost.delete({
-        where: {
-          id: postId,
-        },
-      });
+    await prisma.communityComment.delete({
+      where: {
+        id: commentId,
+      },
     });
 
     revalidatePath("/community");
 
     return {
       status: "success" as const,
-      message: "Post deleted successfully.",
+      message: "Comment deleted successfully.",
     };
   } catch {
     return {
       status: "error" as const,
-      message: "Failed to delete post.",
+      message: "Failed to delete comment.",
     };
   }
 }

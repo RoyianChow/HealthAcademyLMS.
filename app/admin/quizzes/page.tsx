@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus } from "lucide-react";
+import { DeleteQuizAttemptButton } from "./_components/DeleteQuizAttemptButton";
+import { DeleteQuizButton } from "./_components/DeleteQuizButton";
 
 export default async function AdminQuizzesPage() {
   const quizzes = await prisma.quiz.findMany({
@@ -106,11 +108,15 @@ export default async function AdminQuizzesPage() {
                     </div>
                   </div>
 
-                  <Button asChild variant="outline">
-                    <Link href={`/admin/quizzes/${quiz.id}/edit`}>
-                      Edit Quiz
-                    </Link>
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={`/admin/quizzes/${quiz.id}/edit`}>
+                        Edit Quiz
+                      </Link>
+                    </Button>
+
+                    <DeleteQuizButton quizId={quiz.id} />
+                  </div>
                 </div>
 
                 <div className="rounded-xl border">
@@ -134,6 +140,7 @@ export default async function AdminQuizzesPage() {
                             <th className="px-4 py-3 font-medium">Status</th>
                             <th className="px-4 py-3 font-medium">Submitted</th>
                             <th className="px-4 py-3 font-medium">Graded</th>
+                            <th className="px-4 py-3 font-medium">Actions</th>
                           </tr>
                         </thead>
 
@@ -146,20 +153,27 @@ export default async function AdminQuizzesPage() {
                               <td className="px-4 py-3">
                                 {attempt.user?.name || "Unknown User"}
                               </td>
+
                               <td className="px-4 py-3 text-muted-foreground">
                                 {attempt.user?.email || "No email"}
                               </td>
+
                               <td className="px-4 py-3">
                                 #{attempt.attemptNumber}
                               </td>
+
                               <td className="px-4 py-3 font-medium">
-                                {attempt.score ?? "Not graded"}
+                                {attempt.score !== null
+                                  ? `${attempt.score}%`
+                                  : "Not graded"}
                               </td>
+
                               <td className="px-4 py-3">
                                 {attempt.isComplete
                                   ? "Completed"
                                   : "In Progress"}
                               </td>
+
                               <td className="px-4 py-3 text-muted-foreground">
                                 {attempt.submittedAt
                                   ? new Date(
@@ -167,8 +181,15 @@ export default async function AdminQuizzesPage() {
                                     ).toLocaleDateString()
                                   : "Not submitted"}
                               </td>
+
                               <td className="px-4 py-3 text-muted-foreground">
                                 {attempt.isGraded ? "Graded" : "Pending"}
+                              </td>
+
+                              <td className="px-4 py-3">
+                                <DeleteQuizAttemptButton
+                                  attemptId={attempt.id}
+                                />
                               </td>
                             </tr>
                           ))}

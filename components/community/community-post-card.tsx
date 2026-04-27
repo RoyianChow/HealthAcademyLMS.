@@ -1,18 +1,42 @@
 "use client";
 
+"use client";
+
 import {
   ReactNode,
   useMemo,
+  useState,
   useTransition,
   type CSSProperties,
 } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, Pin, UserCircle } from "lucide-react";
+import {
+  Heart,
+  Loader2,
+  MessageCircle,
+  Pin,
+  Trash2,
+  UserCircle,
+} from "lucide-react";
 import { toggleLike } from "@/app/actions/community/toggle-like";
+import { deleteCommunityPost } from "@/app/actions/community/delete-post";
 import { formatDistanceToNow } from "date-fns";
 import { CommentForm } from "@/components/community/comment-form";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+import { deleteCommunityComment } from "@/app/actions/community/delete-comment";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 type TiptapMark = {
   type: string;
@@ -564,23 +588,78 @@ function UserAvatar({
       {name ? getInitials(name) : <UserCircle className="size-5" />}
     </div>
   );
-}
+}function CommentItem({
+  comment,
+  userId,
+  isAdmin,
+}: {
+  comment: CommentType;
+  userId: string;
+  isAdmin: boolean;
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
 
-function CommentItem({ comment }: { comment: CommentType }) {
+  const canDeleteComment = comment.user.id === userId || isAdmin;
+
+  function handleDeleteComment() {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this comment? This action cannot be undone."
+    );
+
+    if (!confirmed) return;
+
+    startTransition(async () => {
+      const result = await deleteCommunityComment(comment.id);
+
+      if (result.status === "error") {
+        toast.error(result.message);
+        return;
+      }
+
+      toast.success(result.message);
+      router.refresh();
+    });
+  }
+
   return (
     <div className="flex gap-3 rounded-lg bg-muted/40 p-3">
       <UserAvatar name={comment.user.name} image={comment.user.image} />
 
       <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <p className="text-sm font-medium">{comment.user.name ?? "User"}</p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <p className="text-sm font-medium">
+                {comment.user.name ?? "User"}
+              </p>
 
-          {comment.createdAt && (
-            <p className="text-xs text-muted-foreground">
-              {formatDistanceToNow(new Date(comment.createdAt), {
-                addSuffix: true,
-              })}
-            </p>
+              {comment.createdAt && (
+                <p className="text-xs text-muted-foreground">
+                  {formatDistanceToNow(new Date(comment.createdAt), {
+                    addSuffix: true,
+                  })}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {canDeleteComment && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              disabled={pending}
+              onClick={handleDeleteComment}
+              className="size-8 shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+              title="Delete comment"
+            >
+              {pending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Trash2 className="size-4" />
+              )}
+            </Button>
           )}
         </div>
 
@@ -591,49 +670,90 @@ function CommentItem({ comment }: { comment: CommentType }) {
     </div>
   );
 }
-
 export function CommunityPostCard({
   post,
   userId,
+  isAdmin = false,
 }: {
   post: PostType;
   userId: string;
+  isAdmin?: boolean;
 }) {
-  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+const [likePending, startLikeTransition] = useTransition();
+const [deletePending, startDeleteTransition] = useTransition();
 
-  const hasLiked = post.likes.some((like) => like.userId === userId);
+const hasLiked = post.likes.some((like) => like.userId === userId);
+const canDeletePost = post.user.id === userId || isAdmin;
 
-  const handleLike = () => {
-    startTransition(async () => {
-      await toggleLike(post.id);
-    });
-  };
+const handleLike = () => {
+  startLikeTransition(async () => {
+    await toggleLike(post.id);
+    router.refresh();
+  });
+};
+
+const handleDeletePost = () => {
+  startDeleteTransition(async () => {
+    const result = await deleteCommunityPost(post.id);
+
+    if (result.status === "error") {
+      toast.error(result.message);
+      return;
+    }
+
+    toast.success(result.message);
+    setDeleteDialogOpen(false);
+    router.refresh();
+  });
+};
 
   return (
     <Card className="overflow-hidden shadow-sm">
       <CardContent className="space-y-5 p-5">
         <div className="flex items-start justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <UserAvatar name={post.user.name} image={post.user.image} />
+  <div className="flex min-w-0 items-center gap-3">
+    <UserAvatar name={post.user.name} image={post.user.image} />
 
-            <div className="min-w-0">
-              <p className="truncate font-medium">{post.user.name ?? "User"}</p>
+    <div className="min-w-0">
+      <p className="truncate font-medium">{post.user.name ?? "User"}</p>
 
-              <p className="text-xs text-muted-foreground">
-                {formatDistanceToNow(new Date(post.createdAt), {
-                  addSuffix: true,
-                })}
-              </p>
-            </div>
-          </div>
+      <p className="text-xs text-muted-foreground">
+        {formatDistanceToNow(new Date(post.createdAt), {
+          addSuffix: true,
+        })}
+      </p>
+    </div>
+  </div>
 
-          {post.isPinned && (
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-              <Pin className="size-3" />
-              Pinned
-            </span>
-          )}
-        </div>
+  <div className="flex shrink-0 items-center gap-2">
+    {post.isPinned && (
+      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+        <Pin className="size-3" />
+        Pinned
+      </span>
+    )}
+
+    {canDeletePost && (
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        onClick={() => setDeleteDialogOpen(true)}
+        disabled={deletePending}
+        className="size-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+        title="Delete post"
+      >
+        {deletePending ? (
+          <Loader2 className="size-4 animate-spin" />
+        ) : (
+          <Trash2 className="size-4" />
+        )}
+      </Button>
+    )}
+  </div>
+</div>
 
         <div className="rounded-xl border bg-background p-4">
           <RichPostContent content={post.content} />
@@ -645,7 +765,7 @@ export function CommunityPostCard({
             variant="ghost"
             size="sm"
             onClick={handleLike}
-            disabled={isPending}
+            disabled={likePending}
             aria-pressed={hasLiked}
             className={cn(
               "flex items-center gap-2",
@@ -674,14 +794,43 @@ export function CommunityPostCard({
           {post.comments.length > 0 && (
             <div className="space-y-3">
               {post.comments.map((comment) => (
-                <CommentItem key={comment.id} comment={comment} />
-              ))}
+ <CommentItem
+    key={comment.id}
+    comment={comment}
+    userId={userId}
+    isAdmin={isAdmin}
+  />              ))}
             </div>
           )}
 
           <CommentForm postId={post.id} />
         </div>
       </CardContent>
-    </Card>
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+  <AlertDialogContent>
+    <AlertDialogHeader>
+      <AlertDialogTitle>Delete this post?</AlertDialogTitle>
+      <AlertDialogDescription>
+        This will permanently delete the post, its likes, and its comments.
+        This action cannot be undone.
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+
+    <AlertDialogFooter>
+      <AlertDialogCancel disabled={deletePending}>
+        Cancel
+      </AlertDialogCancel>
+
+      <AlertDialogAction
+        onClick={handleDeletePost}
+        disabled={deletePending}
+        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+      >
+        {deletePending ? "Deleting..." : "Delete Post"}
+      </AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
+</Card>
   );
 }

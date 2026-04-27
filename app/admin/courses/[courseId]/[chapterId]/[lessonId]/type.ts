@@ -1,4 +1,4 @@
-type LessonDocument = {
+export type LessonDocument = {
   id: string;
   name: string;
   fileKey: string;
@@ -7,16 +7,16 @@ type LessonDocument = {
   fileSize?: number | null;
 };
 
-type LessonFormValues = {
+export type LessonFormValues = {
   title: string;
-  description?: string;
-  youtubeUrl?: string;
-  videoKey?: string;
-  thumbnailKey?: string;
+  description?: string | null;
+  youtubeUrl?: string | null;
+  videoKey?: string | null;
+  thumbnailKey?: string | null;
   documents: LessonDocument[];
 };
 
-const ACCEPTED_DOCUMENT_TYPES = [
+export const ACCEPTED_DOCUMENT_TYPES: string[] = [
   "application/pdf",
   "text/csv",
   "text/plain",

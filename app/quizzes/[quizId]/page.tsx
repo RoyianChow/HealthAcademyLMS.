@@ -1,13 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CheckCircle2, Clock3, FileQuestion, RotateCcw } from "lucide-react";
-
+import { CheckCircle2, Clock3, FileQuestion, RotateCcw } from "lucide-react";
 import { getQuiz } from "@/app/data/quiz/get-quiz";
 import { getOrCreateQuizAttempt } from "@/app/data/quiz/get-or-create-quiz-attempt";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { QuizAttempt } from "./_components/QuizAttempt";
-
+import { QuizBackButton } from "./_components/QuizBackButton";
 type PageProps = {
   params: Promise<{
     quizId: string;
@@ -34,12 +33,11 @@ export default async function QuizDetailsPage({ params }: PageProps) {
     <main className="min-h-[calc(100vh-5rem)] bg-muted/20 px-4 py-6 md:px-8">
       <div className="mx-auto w-full max-w-6xl space-y-6">
         <div className="flex items-center justify-between gap-4">
-          <Button asChild variant="ghost" className="gap-2 px-0">
-            <Link href={`/dashboard/${quiz.course.slug}`}>
-              <ArrowLeft className="size-4" />
-              Back to {quiz.course.title}
-            </Link>
-          </Button>
+         <QuizBackButton
+  href={`/dashboard/${quiz.course.slug}`}
+  label={`Back to ${quiz.course.title}`}
+  shouldWarn={canAttempt && quiz.timeLimitMinutes !== null}
+/>
 
           <Badge variant={canAttempt ? "default" : "secondary"}>
             {canAttempt ? "Available" : "Attempt Locked"}

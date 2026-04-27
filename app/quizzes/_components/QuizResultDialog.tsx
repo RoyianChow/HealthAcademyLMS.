@@ -1,5 +1,8 @@
 "use client";
 
+import clsx from "clsx";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -7,9 +10,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import clsx from "clsx";
 
 type QuizResultDialogProps = {
   quiz: {
@@ -31,7 +31,7 @@ type QuizResultDialogProps = {
       id: string;
       score: number | null;
       attemptNumber: number;
-      submittedAt: Date | null;
+      submittedAt: Date | string | null;
       feedback: string | null;
       answers: {
         id: string;
@@ -46,9 +46,7 @@ type QuizResultDialogProps = {
 export function QuizResultDialog({ quiz }: QuizResultDialogProps) {
   const latestAttempt = quiz.attempts[0];
 
-  if (!latestAttempt) {
-    return null;
-  }
+  if (!latestAttempt) return null;
 
   const score = latestAttempt.score ?? 0;
   const passed =
@@ -65,7 +63,9 @@ export function QuizResultDialog({ quiz }: QuizResultDialogProps) {
       <DialogContent className="max-h-[85vh] max-w-3xl overflow-y-auto">
         <DialogHeader className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary">Attempt #{latestAttempt.attemptNumber}</Badge>
+            <Badge variant="secondary">
+              Attempt #{latestAttempt.attemptNumber}
+            </Badge>
 
             <Badge
               className={clsx(
@@ -79,28 +79,27 @@ export function QuizResultDialog({ quiz }: QuizResultDialogProps) {
 
             <Badge variant="outline">Score: {score}%</Badge>
 
-            {quiz.passingScore !== null ? (
+            {quiz.passingScore !== null && (
               <Badge variant="outline">Pass Mark: {quiz.passingScore}%</Badge>
-            ) : null}
+            )}
           </div>
 
           <DialogTitle className="text-2xl">{quiz.title} Result</DialogTitle>
 
-          {latestAttempt.submittedAt ? (
+          {latestAttempt.submittedAt && (
             <p className="text-sm text-muted-foreground">
-              Submitted on{" "}
-              {new Date(latestAttempt.submittedAt).toLocaleString()}
+              Submitted on {new Date(latestAttempt.submittedAt).toLocaleString()}
             </p>
-          ) : null}
+          )}
 
-          {latestAttempt.feedback ? (
+          {latestAttempt.feedback && (
             <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
               <p className="text-sm font-medium">Feedback</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 {latestAttempt.feedback}
               </p>
             </div>
-          ) : null}
+          )}
         </DialogHeader>
 
         <div className="space-y-4">
@@ -117,7 +116,12 @@ export function QuizResultDialog({ quiz }: QuizResultDialogProps) {
               (option) => option.isCorrect
             );
 
-            const gotItRight = userAnswer?.isCorrect === true;
+            const hasAnswered = Boolean(userAnswer);
+
+            const gotItRight =
+              userAnswer?.isCorrect === true ||
+              selectedOption?.isCorrect === true ||
+              userAnswer?.selectedOptionId === correctOption?.id;
 
             return (
               <div
@@ -127,15 +131,19 @@ export function QuizResultDialog({ quiz }: QuizResultDialogProps) {
                 <div className="mb-3 flex flex-wrap items-center gap-2">
                   <Badge variant="secondary">Question {index + 1}</Badge>
 
-                  <Badge
-                    className={clsx(
-                      gotItRight
-                        ? "bg-green-600 text-white hover:bg-green-600"
-                        : "bg-red-600 text-white hover:bg-red-600"
-                    )}
-                  >
-                    {gotItRight ? "Correct" : "Incorrect"}
-                  </Badge>
+                  {hasAnswered ? (
+                    <Badge
+                      className={clsx(
+                        gotItRight
+                          ? "bg-green-600 text-white hover:bg-green-600"
+                          : "bg-red-600 text-white hover:bg-red-600"
+                      )}
+                    >
+                      {gotItRight ? "Correct" : "Incorrect"}
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline">Not Answered</Badge>
+                  )}
                 </div>
 
                 <h3 className="text-base font-semibold leading-relaxed">
@@ -155,8 +163,8 @@ export function QuizResultDialog({ quiz }: QuizResultDialogProps) {
                           isCorrect
                             ? "border-green-600 bg-green-50"
                             : isSelected
-                            ? "border-red-600 bg-red-50"
-                            : "border-border/60 bg-muted/20"
+                              ? "border-red-600 bg-red-50"
+                              : "border-border/60 bg-muted/20"
                         )}
                       >
                         <div className="flex items-start justify-between gap-3">
@@ -168,14 +176,15 @@ export function QuizResultDialog({ quiz }: QuizResultDialogProps) {
                           </div>
 
                           <div className="flex shrink-0 gap-2">
-                            {isSelected ? (
+                            {isSelected && (
                               <Badge variant="outline">Your Answer</Badge>
-                            ) : null}
-                            {isCorrect ? (
+                            )}
+
+                            {isCorrect && (
                               <Badge className="bg-green-600 text-white hover:bg-green-600">
                                 Correct Answer
                               </Badge>
-                            ) : null}
+                            )}
                           </div>
                         </div>
                       </div>
@@ -183,26 +192,32 @@ export function QuizResultDialog({ quiz }: QuizResultDialogProps) {
                   })}
                 </div>
 
-                {question.explanation ? (
+                {question.explanation && (
                   <div className="mt-4 rounded-xl border border-border/60 bg-muted/30 p-4">
                     <p className="text-sm font-medium">Explanation</p>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {question.explanation}
                     </p>
                   </div>
-                ) : null}
+                )}
 
-                {!selectedOption && (
+                {!hasAnswered ? (
                   <p className="mt-4 text-sm text-muted-foreground">
                     You did not answer this question.
                   </p>
-                )}
-
-                {!gotItRight && correctOption ? (
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Correct answer: <span className="font-medium">{correctOption.text}</span>
+                ) : !selectedOption ? (
+                  <p className="mt-4 text-sm text-amber-600">
+                    Your answer was recorded, but the selected option was not
+                    saved.
                   </p>
                 ) : null}
+
+                {!gotItRight && correctOption && (
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Correct answer:{" "}
+                    <span className="font-medium">{correctOption.text}</span>
+                  </p>
+                )}
               </div>
             );
           })}

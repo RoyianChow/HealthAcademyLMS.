@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, HeartPulse, Users, Briefcase } from "lucide-react";
 import {
@@ -8,6 +7,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+
 const benefits = [
   {
     title: "Higher Productivity",
@@ -24,7 +24,7 @@ const benefits = [
   {
     title: "Fewer Sick Days",
     description:
-      "Investing in wellness means less “out of office” emails for preventable issues.",
+      "Investing in wellness means fewer preventable issues and less time away from work.",
     icon: CheckCircle2,
   },
   {
@@ -36,9 +36,21 @@ const benefits = [
 ];
 
 const workshops = [
-  "Healthy Diet for Stress Management",
-  "Nutrition for Energy and Focus",
-  "Building Natural Immunity through Diet and Supplementation",
+  {
+    title: "Healthy Diet for Stress Management",
+    description:
+      "Ditch the tension with proper nutritional strategies and practical stress relief techniques, perfect for tackling that never-ending to-do list.",
+  },
+  {
+    title: "Nutrition for Energy and Focus",
+    description:
+      "Uncover how what you eat fuels how you feel. Learn quick tips for meal planning, smart snacking, and conquering the mid-afternoon slump.",
+  },
+  {
+    title: "Building Natural Immunity through Diet and Supplementation",
+    description:
+      "Support your immune system with simple, effective nutrition and supplementation strategies that your team can easily apply in daily life.",
+  },
 ];
 
 const expectations = [
@@ -50,7 +62,7 @@ const expectations = [
   {
     title: "Tailored Content",
     description:
-      "We tailor each workshop to align with your company’s culture and wellness objectives.",
+      "We tailor each workshop to align with your company culture and wellness objectives.",
   },
   {
     title: "Expert Teachers",
@@ -79,13 +91,15 @@ export default function CorporateWellnessPage() {
                 Wellness workshops that help your team feel better and work
                 better
               </h1>
+
               <p className="max-w-2xl text-lg leading-8 text-muted-foreground">
-                Work doesn’t have to mean stress, burnout, and endless coffee
+                Work does not have to mean stress, burnout, and endless coffee
                 breaks just to survive the day. Our Corporate Wellness Workshops
                 are designed to help your team thrive through interactive,
                 practical sessions that bring energy, focus, and positivity into
                 the workplace.
               </p>
+
               <p className="max-w-2xl text-muted-foreground">
                 No dull lectures. Just real solutions your team can actually use
                 and remember.
@@ -96,6 +110,7 @@ export default function CorporateWellnessPage() {
               <Button asChild size="lg">
                 <Link href="/contact">Book Today</Link>
               </Button>
+
               <Button asChild size="lg" variant="outline">
                 <Link href="/courses">Explore Courses</Link>
               </Button>
@@ -104,10 +119,14 @@ export default function CorporateWellnessPage() {
 
           <div className="relative overflow-hidden rounded-3xl border bg-muted/40 p-8 shadow-sm">
             <div className="space-y-4">
-              <h2 className="text-2xl font-semibold">Why Wellness Workshops Work</h2>
+              <h2 className="text-2xl font-semibold">
+                Why Wellness Workshops Work
+              </h2>
+
               <p className="text-muted-foreground">
                 When your team feels great, they do great. Wellness supports
-                productivity, collaboration, and long-term employee satisfaction.
+                productivity, collaboration, and long-term employee
+                satisfaction.
               </p>
             </div>
 
@@ -123,7 +142,9 @@ export default function CorporateWellnessPage() {
                     <div className="mb-3 inline-flex rounded-xl bg-primary/10 p-2">
                       <Icon className="h-5 w-5" />
                     </div>
+
                     <h3 className="font-semibold">{benefit.title}</h3>
+
                     <p className="mt-2 text-sm text-muted-foreground">
                       {benefit.description}
                     </p>
@@ -135,66 +156,41 @@ export default function CorporateWellnessPage() {
         </section>
 
         <section className="space-y-10 py-6">
-  <div className="space-y-4 text-center">
-    <p className="text-sm font-medium uppercase tracking-[0.2em] text-[#7a9442]">
-      Signature Sessions
-    </p>
-    <h2 className="text-3xl font-bold tracking-tight text-[#232742] md:text-4xl">
-      Workshops your team will love
-    </h2>
-    <p className="mx-auto max-w-2xl text-muted-foreground">
-      Practical, engaging sessions designed to improve well-being, focus,
-      and performance in the workplace.
-    </p>
-  </div>
+          <div className="space-y-4 text-center">
+            <p className="text-sm font-medium uppercase tracking-[0.2em] text-[#7a9442]">
+              Signature Sessions
+            </p>
 
-  <div className="mx-auto max-w-3xl">
-    <Accordion type="single" collapsible className="space-y-4">
-      
-      <AccordionItem
-        value="item-1"
-        className="rounded-2xl border bg-white px-6 shadow-sm"
-      >
-        <AccordionTrigger className="text-left text-lg font-semibold text-[#232742]">
-          Healthy Diet for Stress Management
-        </AccordionTrigger>
-        <AccordionContent className="text-muted-foreground leading-7">
-          Ditch the tension with proper nutritional strategies and practical
-          stress relief techniques—perfect for tackling that never-ending
-          to-do list.
-        </AccordionContent>
-      </AccordionItem>
+            <h2 className="text-3xl font-bold tracking-tight text-[#232742] md:text-4xl">
+              Workshops your team will love
+            </h2>
 
-      <AccordionItem
-        value="item-2"
-        className="rounded-2xl border bg-white px-6 shadow-sm"
-      >
-        <AccordionTrigger className="text-left text-lg font-semibold text-[#232742]">
-          Nutrition for Energy and Focus
-        </AccordionTrigger>
-        <AccordionContent className="text-muted-foreground leading-7">
-          Uncover how what you eat fuels how you feel. Learn quick tips for
-          meal planning, smart snacking, and conquering the mid-afternoon
-          slump.
-        </AccordionContent>
-      </AccordionItem>
+            <p className="mx-auto max-w-2xl text-muted-foreground">
+              Practical, engaging sessions designed to improve well-being,
+              focus, and performance in the workplace.
+            </p>
+          </div>
 
-      <AccordionItem
-        value="item-3"
-        className="rounded-2xl border bg-white px-6 shadow-sm"
-      >
-        <AccordionTrigger className="text-left text-lg font-semibold text-[#232742]">
-          Building Natural Immunity through Diet and Supplementation
-        </AccordionTrigger>
-        <AccordionContent className="text-muted-foreground leading-7">
-          Support your immune system with simple, effective nutrition and
-          supplementation strategies that your team can easily apply in daily life.
-        </AccordionContent>
-      </AccordionItem>
+          <div className="mx-auto max-w-3xl">
+            <Accordion type="single" collapsible className="space-y-4">
+              {workshops.map((workshop, index) => (
+                <AccordionItem
+                  key={workshop.title}
+                  value={`item-${index + 1}`}
+                  className="rounded-2xl border bg-white px-6 shadow-sm"
+                >
+                  <AccordionTrigger className="text-left text-lg font-semibold text-[#232742]">
+                    {workshop.title}
+                  </AccordionTrigger>
 
-    </Accordion>
-  </div>
-</section>
+                  <AccordionContent className="leading-7 text-muted-foreground">
+                    {workshop.description}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
+        </section>
 
         <section className="grid gap-8 lg:grid-cols-2 lg:items-center">
           <div className="overflow-hidden rounded-3xl border bg-muted/30 shadow-sm">
@@ -203,12 +199,14 @@ export default function CorporateWellnessPage() {
                 <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
                   Workshop Experience
                 </p>
+
                 <h3 className="text-2xl font-semibold">
                   A welcoming, modern, and collaborative environment
                 </h3>
+
                 <p className="mx-auto max-w-md text-muted-foreground">
-                  A group of diverse adults attending a business meeting in a
-                  modern conference room.
+                  A supportive group experience designed for modern teams,
+                  whether delivered in person or online.
                 </p>
               </div>
             </div>
@@ -219,9 +217,10 @@ export default function CorporateWellnessPage() {
               <h2 className="text-3xl font-bold tracking-tight">
                 What to Expect
               </h2>
+
               <p className="text-muted-foreground">
                 Every workshop is designed to be practical, supportive, and easy
-                to bring into your team’s day-to-day routine.
+                to bring into your team&apos;s day-to-day routine.
               </p>
             </div>
 
@@ -232,6 +231,7 @@ export default function CorporateWellnessPage() {
                   className="rounded-2xl border bg-background p-5 shadow-sm"
                 >
                   <h3 className="font-semibold">{item.title}</h3>
+
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">
                     {item.description}
                   </p>
@@ -246,11 +246,13 @@ export default function CorporateWellnessPage() {
             <h2 className="text-3xl font-bold tracking-tight">
               Your Team Deserves This
             </h2>
+
             <p className="text-lg text-muted-foreground">
               When wellness is fun, it sticks. And when it sticks, your business
-              thrives. Ready to invest in your team’s happiness, health, and
-              success?
+              thrives. Ready to invest in your team&apos;s happiness, health,
+              and success?
             </p>
+
             <div className="pt-2">
               <Button asChild size="lg">
                 <Link href="/contact">Book Today</Link>
@@ -258,26 +260,6 @@ export default function CorporateWellnessPage() {
             </div>
           </div>
         </section>
-
-        <section className="space-y-6 text-center">
-  <div className="space-y-3">
-    <h2 className="text-3xl font-bold tracking-tight">
-      Featured Video
-    </h2>
-    <p className="mx-auto max-w-2xl text-muted-foreground">
-      Check out our channel for educational content and join a community
-      focused on improving health and wellness.
-    </p>
-  </div>
-
-<div className="flex justify-center">
-  <video
-    src="https://health-academy-lms.t3.tigrisfiles.io/Public_Speaking.mp4"
-    controls
-    className="w-[400px] rounded-2xl shadow-md"
-  />
-</div>
-</section>
       </div>
     </main>
   );

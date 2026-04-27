@@ -208,8 +208,12 @@ export default async function CommunityPage({ params }: PageProps) {
 
           {course.communityPosts.length > 0 ? (
             course.communityPosts.map((post) => (
-              <CommunityPostCard key={post.id} post={post} userId={user.id} />
-            ))
+<CommunityPostCard
+  key={post.id}
+  post={post}
+  userId={user.id}
+  isAdmin={user.role === "admin"}
+/>            ))
           ) : (
             <Card className="border-dashed shadow-sm">
               <CardContent className="flex flex-col items-center justify-center py-14 text-center">

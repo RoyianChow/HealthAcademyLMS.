@@ -2,13 +2,10 @@
 
 import * as React from "react";
 import {
-  IconDashboard,
-  IconHelp,
-  IconSearch,
-  IconSettings,
   IconChecklist,
-  IconUser,
+  IconDashboard,
   IconGlobe,
+  IconUser,
 } from "@tabler/icons-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -27,26 +24,6 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
-const data = {
-  navSecondary: [
-    {
-      title: "Settings",
-      url: "#",
-      icon: IconSettings,
-    },
-    {
-      title: "Get Help",
-      url: "#",
-      icon: IconHelp,
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: IconSearch,
-    },
-  ],
-};
-
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { data: session } = authClient.useSession();
 
@@ -61,16 +38,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       url: "/quizzes",
       icon: IconChecklist,
     },
-       {
-                title: "Profile",
-                url: "/profile",
-                icon: IconUser,
-              },
-                 {
-                title: "Community",
-                url: "/dashboard/community",
-                icon: IconGlobe,
-              },
+    {
+      title: "Profile",
+      url: "/profile",
+      icon: IconUser,
+    },
+    {
+      title: "Community",
+      url: "/dashboard/community",
+      icon: IconGlobe,
+    },
     ...(session?.user?.role === "admin"
       ? [
           {
@@ -83,12 +60,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             url: "/admin/quizzes",
             icon: IconChecklist,
           },
-            {
-                title: "Admin Community",
-                url: "/admin/community",
-                icon: IconGlobe,
-              },
-          
+          {
+            title: "Admin Community",
+            url: "/admin/community",
+            icon: IconGlobe,
+          },
         ]
       : []),
   ];
@@ -103,9 +79,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               className="data-[slot=sidebar-menu-button]:!p-1.5"
             >
               <Link href="/">
-                <Image src={Logo} alt="Logo" className="size-5" />
+                <Image
+                  src={Logo}
+                  alt="Healthy Academy LMS logo"
+                  className="size-5"
+                  priority
+                />
                 <span className="text-base font-semibold">
-                  Healthy Academy LMS.
+                  Healthy Academy LMS
                 </span>
               </Link>
             </SidebarMenuButton>

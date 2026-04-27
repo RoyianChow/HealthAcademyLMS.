@@ -5,15 +5,15 @@ import { adminGetLesson } from "@/app/data/admin/admin-get-lesson";
 import { LessonForm } from "./_components/LessonForm";
 
 type PageProps = {
-  params: {
+  params: Promise<{
     courseId: string;
     chapterId: string;
     lessonId: string;
-  };
+  }>;
 };
+export default async function LessonEditPage({ params }: PageProps) {
+  const { courseId, chapterId, lessonId } = await params;
 
-export default async function LessonIdPage({ params }: PageProps) {
-  const { courseId, chapterId, lessonId } = params;
 
   const lesson = await adminGetLesson(lessonId);
 
