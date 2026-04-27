@@ -23,7 +23,7 @@ export function CourseProgressCard({ data }: iAppProps) {
     useCourseProgress({ courseData: data as any });
 
   return (
-    <Card className="group relative gap-0 py-0">
+    <Card className="relative gap-0 py-0">
       <Badge className="absolute top-2 right-2 z-10">{data.level}</Badge>
 
       <Image
@@ -35,12 +35,7 @@ export function CourseProgressCard({ data }: iAppProps) {
       />
 
       <CardContent className="p-4">
-        <Link
-          className="line-clamp-2 text-lg font-medium transition-colors hover:underline group-hover:text-primary"
-          href={`/dashboard/${data.slug}`}
-        >
-          {data.title}
-        </Link>
+        <h3 className="line-clamp-2 text-lg font-medium">{data.title}</h3>
 
         <p className="mt-2 line-clamp-2 text-sm leading-tight text-muted-foreground">
           {data.smallDescription}
@@ -59,12 +54,26 @@ export function CourseProgressCard({ data }: iAppProps) {
           </p>
         </div>
 
-        <Link
-          href={`/dashboard/${data.slug}`}
-          className={buttonVariants({ className: "mt-4 w-full" })}
-        >
-          Learn More
-        </Link>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <Link
+            href={`/dashboard/${data.slug}/community`}
+            className={buttonVariants({
+              variant: "outline",
+              className: "w-full",
+            })}
+          >
+            Visit Community
+          </Link>
+
+          <Link
+            href={`/dashboard/${data.slug}`}
+            className={buttonVariants({
+              className: "w-full",
+            })}
+          >
+            Continue Course
+          </Link>
+        </div>
       </CardContent>
     </Card>
   );

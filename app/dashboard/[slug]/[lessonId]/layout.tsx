@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { CourseSidebar } from "../_components/CourseSidebar";
+import { CourseSidebar } from "../../_components/CourseSidebar";
 import { getCourseSidebarData } from "@/app/data/course/get-course-sidebar-data";
 
 interface iAppProps {

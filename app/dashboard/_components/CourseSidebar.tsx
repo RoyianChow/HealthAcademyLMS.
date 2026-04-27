@@ -9,7 +9,12 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Progress } from "@/components/ui/progress";
-import { ChevronDown, ClipboardList, Play } from "lucide-react";
+import {
+  ChevronDown,
+  ClipboardList,
+  MessageCircle,
+  Play,
+} from "lucide-react";
 import { LessonItem } from "./LessonItem";
 import { usePathname } from "next/navigation";
 import { useCourseProgress } from "@/hooks/use-course-progress";
@@ -25,6 +30,8 @@ export function CourseSidebar({ course }: iAppProps) {
 
   const { completedLessons, totalLessons, progressPercentage } =
     useCourseProgress({ courseData: course });
+
+  const isCommunityActive = pathname === `/dashboard/${course.slug}/community`;
 
   return (
     <div className="flex h-full flex-col">
@@ -60,7 +67,7 @@ export function CourseSidebar({ course }: iAppProps) {
         </div>
       </div>
 
-      <div className="space-y-3 py-4 pr-4">
+      <div className="flex-1 space-y-3 overflow-y-auto py-4 pr-4">
         {course.chapters.map((chapter, index) => (
           <Collapsible key={chapter.id} defaultOpen={index === 0}>
             <CollapsibleTrigger asChild>
@@ -115,6 +122,27 @@ export function CourseSidebar({ course }: iAppProps) {
             </CollapsibleContent>
           </Collapsible>
         ))}
+
+        <div className="border-t border-border pt-4">
+          <Link
+            href={`/dashboard/${course.slug}/community`}
+            className={cn(
+              "flex items-center gap-3 rounded-lg border px-3 py-3 text-sm font-medium transition hover:bg-muted",
+              isCommunityActive && "border-primary bg-primary/10 text-primary"
+            )}
+          >
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+              <MessageCircle className="size-4 text-primary" />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p className="truncate">Visit Community</p>
+              <p className="truncate text-xs font-normal text-muted-foreground">
+                Ask questions and connect with learners
+              </p>
+            </div>
+          </Link>
+        </div>
       </div>
     </div>
   );

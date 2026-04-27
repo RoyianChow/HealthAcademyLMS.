@@ -9,6 +9,7 @@ import {
   IconChecklist,
   IconUser,
   IconMessage,
+  IconGlobe,
 } from "@tabler/icons-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -71,6 +72,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       url: "/chatbot",
       icon: IconMessage,
     },
+       {
+      title: "Community",
+      url: "/dashboard/community",
+      icon: IconGlobe,
+    },
     ...(session?.user?.role === "admin"
       ? [
           {
@@ -83,6 +89,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             url: "/admin/quizzes",
             icon: IconChecklist,
           },
+                 {
+      title: "Admin Community",
+      url: "/admin/community",
+      icon: IconGlobe,
+    },
         ]
       : []),
   ];

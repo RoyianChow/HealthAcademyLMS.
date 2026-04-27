@@ -21,7 +21,7 @@ type EnrollInCourseResponse =
   | {
       status: "success";
       message: string;
-      checkoutUrl?: undefined;
+      checkoutUrl?: string;
     }
   | {
       status: "error";
@@ -32,11 +32,6 @@ type EnrollInCourseResponse =
       status: "unauthenticated";
       message: string;
       checkoutUrl?: undefined;
-    }
-  | {
-      status: "success";
-      message: string;
-      checkoutUrl: string;
     };
 
 export async function enrollInCourseAction(
@@ -57,6 +52,7 @@ export async function enrollInCourseAction(
 
   try {
     const req = await request();
+
     const decision = await aj.protect(req, {
       fingerprint: user.id,
     });
@@ -85,6 +81,13 @@ export async function enrollInCourseAction(
       return {
         status: "error",
         message: "Course not found",
+      };
+    }
+
+    if (!course.stripePriceId) {
+      return {
+        status: "error",
+        message: "This course does not have a Stripe price configured.",
       };
     }
 
@@ -122,7 +125,7 @@ export async function enrollInCourseAction(
       });
     }
 
-    const result = await prisma.$transaction(async (tx) => {
+    const enrollment = await prisma.$transaction(async (tx) => {
       const existingEnrollment = await tx.enrollment.findUnique({
         where: {
           userId_courseId: {
@@ -131,65 +134,78 @@ export async function enrollInCourseAction(
           },
         },
         select: {
-          status: true,
           id: true,
+          status: true,
         },
       });
 
       if (existingEnrollment?.status === "Active") {
-        return {
-          status: "success" as const,
-          message: "You are already enrolled in this course",
-        };
+        return null;
       }
 
-      const enrollment = existingEnrollment
-        ? await tx.enrollment.update({
-            where: {
-              id: existingEnrollment.id,
-            },
-            data: {
-              amount: course.price,
-              status: "Pending",
-              updatedAt: new Date(),
-            },
-          })
-        : await tx.enrollment.create({
-            data: {
-              userId: user.id,
-              courseId: course.id,
-              amount: course.price,
-              status: "Pending",
-            },
-          });
-
-      const checkoutSession = await stripe.checkout.sessions.create({
-        customer: stripeCustomerId,
-        line_items: [
-          {
-            price: course.stripePriceId,
-            quantity: 1,
+      if (existingEnrollment) {
+        return tx.enrollment.update({
+          where: {
+            id: existingEnrollment.id,
           },
-        ],
-        mode: "payment",
-        success_url: `${env.BETTER_AUTH_URL}/payment/success`,
-        cancel_url: `${env.BETTER_AUTH_URL}/payment/cancel`,
-        metadata: {
+          data: {
+            amount: course.price,
+            status: "Pending",
+            updatedAt: new Date(),
+          },
+        });
+      }
+
+      return tx.enrollment.create({
+        data: {
           userId: user.id,
           courseId: course.id,
-          enrollmentId: enrollment.id,
+          amount: course.price,
+          status: "Pending",
         },
       });
-
-      return {
-        status: "success" as const,
-        message: "Redirecting to checkout...",
-        checkoutUrl: checkoutSession.url as string,
-      };
     });
 
-    return result;
+    if (!enrollment) {
+      return {
+        status: "success",
+        message: "You are already enrolled in this course",
+      };
+    }
+
+    const checkoutSession = await stripe.checkout.sessions.create({
+      customer: stripeCustomerId,
+      line_items: [
+        {
+          price: course.stripePriceId,
+          quantity: 1,
+        },
+      ],
+      mode: "payment",
+      success_url: `${env.BETTER_AUTH_URL}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${env.BETTER_AUTH_URL}/payment/cancel`,
+      metadata: {
+        userId: user.id,
+        courseId: course.id,
+        enrollmentId: enrollment.id,
+      },
+    });
+
+    if (!checkoutSession.url) {
+      return {
+        status: "error",
+        message: "Could not create checkout session.",
+      };
+    }
+
+    return {
+      status: "success",
+      message: "Redirecting to checkout...",
+      checkoutUrl: checkoutSession.url,
+    };
   } catch (error) {
+    console.error("Enroll in course error:", error);
+
     if (error instanceof Stripe.errors.StripeError) {
       return {
         status: "error",

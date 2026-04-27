@@ -8,6 +8,7 @@ import {
   IconFileAi,
   IconFileDescription,
   IconFolder,
+  IconGlobe,
   IconHelp,
   IconListDetails,
   IconMessage,
@@ -71,9 +72,14 @@ const data = {
       icon: IconChartBar,
     },
     {
-      title: "Assignments",
-      url: "/admin/assignments",
-      icon: IconFolder,
+      title: "Community",
+      url: "/dashboard/community",
+      icon: IconGlobe,
+    },
+    {
+      title: "Admin Community",
+      url: "/admin/community",
+      icon: IconGlobe,
     }
   ],
   navClouds: [
