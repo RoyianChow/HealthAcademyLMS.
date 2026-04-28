@@ -116,6 +116,21 @@ export type QuizAttempt = Prisma.QuizAttemptModel
  * 
  */
 export type QuizAnswer = Prisma.QuizAnswerModel
+/**
+ * Model CommunityPost
+ * 
+ */
+export type CommunityPost = Prisma.CommunityPostModel
+/**
+ * Model CommunityComment
+ * 
+ */
+export type CommunityComment = Prisma.CommunityCommentModel
+/**
+ * Model CommunityLike
+ * 
+ */
+export type CommunityLike = Prisma.CommunityLikeModel
 
 export type CourseLevel = $Enums.CourseLevel
 export const CourseLevel = $Enums.CourseLevel

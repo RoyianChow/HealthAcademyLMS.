@@ -9,6 +9,9 @@ export async function getOrCreateQuizAttempt(quizId: string) {
     where: {
       id: quizId,
       isPublished: true,
+      chapterId: {
+        not: null,
+      },
       course: {
         is: {
           status: CourseStatus.Published,
@@ -23,8 +26,24 @@ export async function getOrCreateQuizAttempt(quizId: string) {
     },
     select: {
       id: true,
+      title: true,
+      chapterId: true,
       allowMultipleAttempts: true,
       timeLimitMinutes: true,
+      course: {
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+        },
+      },
+      chapter: {
+        select: {
+          id: true,
+          title: true,
+          position: true,
+        },
+      },
       attempts: {
         where: {
           userId: user.id,
@@ -50,14 +69,18 @@ export async function getOrCreateQuizAttempt(quizId: string) {
 
   if (latestAttempt && !latestAttempt.isComplete) {
     return {
+      blocked: false as const,
       attemptId: latestAttempt.id,
       attemptNumber: latestAttempt.attemptNumber,
       startedAt: latestAttempt.createdAt,
       timeLimitMinutes: quiz.timeLimitMinutes,
+      quiz,
     };
   }
 
-  const completedAttempts = quiz.attempts.filter((attempt) => attempt.isComplete);
+  const completedAttempts = quiz.attempts.filter(
+    (attempt) => attempt.isComplete
+  );
 
   if (!quiz.allowMultipleAttempts && completedAttempts.length > 0) {
     return {
@@ -66,11 +89,13 @@ export async function getOrCreateQuizAttempt(quizId: string) {
       attemptNumber: completedAttempts[0].attemptNumber,
       startedAt: null,
       timeLimitMinutes: quiz.timeLimitMinutes,
+      quiz,
     };
   }
 
-  const nextAttemptNumber =
-    latestAttempt?.attemptNumber ? latestAttempt.attemptNumber + 1 : 1;
+  const nextAttemptNumber = latestAttempt?.attemptNumber
+    ? latestAttempt.attemptNumber + 1
+    : 1;
 
   const createdAttempt = await prisma.quizAttempt.create({
     data: {
@@ -93,5 +118,6 @@ export async function getOrCreateQuizAttempt(quizId: string) {
     attemptNumber: createdAttempt.attemptNumber,
     startedAt: createdAttempt.createdAt,
     timeLimitMinutes: quiz.timeLimitMinutes,
+    quiz,
   };
 }

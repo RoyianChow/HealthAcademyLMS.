@@ -40,12 +40,13 @@ export type QuizMinAggregateOutputType = {
   title: string | null
   description: string | null
   isPublished: boolean | null
-  passingScore: number | null
-  timeLimitMinutes: number | null
-  allowMultipleAttempts: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
   courseId: string | null
+  allowMultipleAttempts: boolean | null
+  passingScore: number | null
+  timeLimitMinutes: number | null
+  chapterId: string | null
 }
 
 export type QuizMaxAggregateOutputType = {
@@ -53,12 +54,13 @@ export type QuizMaxAggregateOutputType = {
   title: string | null
   description: string | null
   isPublished: boolean | null
-  passingScore: number | null
-  timeLimitMinutes: number | null
-  allowMultipleAttempts: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
   courseId: string | null
+  allowMultipleAttempts: boolean | null
+  passingScore: number | null
+  timeLimitMinutes: number | null
+  chapterId: string | null
 }
 
 export type QuizCountAggregateOutputType = {
@@ -66,12 +68,13 @@ export type QuizCountAggregateOutputType = {
   title: number
   description: number
   isPublished: number
-  passingScore: number
-  timeLimitMinutes: number
-  allowMultipleAttempts: number
   createdAt: number
   updatedAt: number
   courseId: number
+  allowMultipleAttempts: number
+  passingScore: number
+  timeLimitMinutes: number
+  chapterId: number
   _all: number
 }
 
@@ -91,12 +94,13 @@ export type QuizMinAggregateInputType = {
   title?: true
   description?: true
   isPublished?: true
-  passingScore?: true
-  timeLimitMinutes?: true
-  allowMultipleAttempts?: true
   createdAt?: true
   updatedAt?: true
   courseId?: true
+  allowMultipleAttempts?: true
+  passingScore?: true
+  timeLimitMinutes?: true
+  chapterId?: true
 }
 
 export type QuizMaxAggregateInputType = {
@@ -104,12 +108,13 @@ export type QuizMaxAggregateInputType = {
   title?: true
   description?: true
   isPublished?: true
-  passingScore?: true
-  timeLimitMinutes?: true
-  allowMultipleAttempts?: true
   createdAt?: true
   updatedAt?: true
   courseId?: true
+  allowMultipleAttempts?: true
+  passingScore?: true
+  timeLimitMinutes?: true
+  chapterId?: true
 }
 
 export type QuizCountAggregateInputType = {
@@ -117,12 +122,13 @@ export type QuizCountAggregateInputType = {
   title?: true
   description?: true
   isPublished?: true
-  passingScore?: true
-  timeLimitMinutes?: true
-  allowMultipleAttempts?: true
   createdAt?: true
   updatedAt?: true
   courseId?: true
+  allowMultipleAttempts?: true
+  passingScore?: true
+  timeLimitMinutes?: true
+  chapterId?: true
   _all?: true
 }
 
@@ -217,12 +223,13 @@ export type QuizGroupByOutputType = {
   title: string
   description: string | null
   isPublished: boolean
-  passingScore: number | null
-  timeLimitMinutes: number | null
-  allowMultipleAttempts: boolean
   createdAt: Date
   updatedAt: Date
   courseId: string
+  allowMultipleAttempts: boolean
+  passingScore: number | null
+  timeLimitMinutes: number | null
+  chapterId: string | null
   _count: QuizCountAggregateOutputType | null
   _avg: QuizAvgAggregateOutputType | null
   _sum: QuizSumAggregateOutputType | null
@@ -253,15 +260,17 @@ export type QuizWhereInput = {
   title?: Prisma.StringFilter<"Quiz"> | string
   description?: Prisma.StringNullableFilter<"Quiz"> | string | null
   isPublished?: Prisma.BoolFilter<"Quiz"> | boolean
-  passingScore?: Prisma.IntNullableFilter<"Quiz"> | number | null
-  timeLimitMinutes?: Prisma.IntNullableFilter<"Quiz"> | number | null
-  allowMultipleAttempts?: Prisma.BoolFilter<"Quiz"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Quiz"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Quiz"> | Date | string
   courseId?: Prisma.StringFilter<"Quiz"> | string
+  allowMultipleAttempts?: Prisma.BoolFilter<"Quiz"> | boolean
+  passingScore?: Prisma.IntNullableFilter<"Quiz"> | number | null
+  timeLimitMinutes?: Prisma.IntNullableFilter<"Quiz"> | number | null
+  chapterId?: Prisma.StringNullableFilter<"Quiz"> | string | null
+  chapter?: Prisma.XOR<Prisma.ChapterNullableScalarRelationFilter, Prisma.ChapterWhereInput> | null
   course?: Prisma.XOR<Prisma.CourseScalarRelationFilter, Prisma.CourseWhereInput>
-  questions?: Prisma.QuizQuestionListRelationFilter
   attempts?: Prisma.QuizAttemptListRelationFilter
+  questions?: Prisma.QuizQuestionListRelationFilter
 }
 
 export type QuizOrderByWithRelationInput = {
@@ -269,15 +278,17 @@ export type QuizOrderByWithRelationInput = {
   title?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   isPublished?: Prisma.SortOrder
-  passingScore?: Prisma.SortOrderInput | Prisma.SortOrder
-  timeLimitMinutes?: Prisma.SortOrderInput | Prisma.SortOrder
-  allowMultipleAttempts?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   courseId?: Prisma.SortOrder
+  allowMultipleAttempts?: Prisma.SortOrder
+  passingScore?: Prisma.SortOrderInput | Prisma.SortOrder
+  timeLimitMinutes?: Prisma.SortOrderInput | Prisma.SortOrder
+  chapterId?: Prisma.SortOrderInput | Prisma.SortOrder
+  chapter?: Prisma.ChapterOrderByWithRelationInput
   course?: Prisma.CourseOrderByWithRelationInput
-  questions?: Prisma.QuizQuestionOrderByRelationAggregateInput
   attempts?: Prisma.QuizAttemptOrderByRelationAggregateInput
+  questions?: Prisma.QuizQuestionOrderByRelationAggregateInput
 }
 
 export type QuizWhereUniqueInput = Prisma.AtLeast<{
@@ -288,15 +299,17 @@ export type QuizWhereUniqueInput = Prisma.AtLeast<{
   title?: Prisma.StringFilter<"Quiz"> | string
   description?: Prisma.StringNullableFilter<"Quiz"> | string | null
   isPublished?: Prisma.BoolFilter<"Quiz"> | boolean
-  passingScore?: Prisma.IntNullableFilter<"Quiz"> | number | null
-  timeLimitMinutes?: Prisma.IntNullableFilter<"Quiz"> | number | null
-  allowMultipleAttempts?: Prisma.BoolFilter<"Quiz"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Quiz"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Quiz"> | Date | string
   courseId?: Prisma.StringFilter<"Quiz"> | string
+  allowMultipleAttempts?: Prisma.BoolFilter<"Quiz"> | boolean
+  passingScore?: Prisma.IntNullableFilter<"Quiz"> | number | null
+  timeLimitMinutes?: Prisma.IntNullableFilter<"Quiz"> | number | null
+  chapterId?: Prisma.StringNullableFilter<"Quiz"> | string | null
+  chapter?: Prisma.XOR<Prisma.ChapterNullableScalarRelationFilter, Prisma.ChapterWhereInput> | null
   course?: Prisma.XOR<Prisma.CourseScalarRelationFilter, Prisma.CourseWhereInput>
-  questions?: Prisma.QuizQuestionListRelationFilter
   attempts?: Prisma.QuizAttemptListRelationFilter
+  questions?: Prisma.QuizQuestionListRelationFilter
 }, "id">
 
 export type QuizOrderByWithAggregationInput = {
@@ -304,12 +317,13 @@ export type QuizOrderByWithAggregationInput = {
   title?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   isPublished?: Prisma.SortOrder
-  passingScore?: Prisma.SortOrderInput | Prisma.SortOrder
-  timeLimitMinutes?: Prisma.SortOrderInput | Prisma.SortOrder
-  allowMultipleAttempts?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   courseId?: Prisma.SortOrder
+  allowMultipleAttempts?: Prisma.SortOrder
+  passingScore?: Prisma.SortOrderInput | Prisma.SortOrder
+  timeLimitMinutes?: Prisma.SortOrderInput | Prisma.SortOrder
+  chapterId?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.QuizCountOrderByAggregateInput
   _avg?: Prisma.QuizAvgOrderByAggregateInput
   _max?: Prisma.QuizMaxOrderByAggregateInput
@@ -325,12 +339,13 @@ export type QuizScalarWhereWithAggregatesInput = {
   title?: Prisma.StringWithAggregatesFilter<"Quiz"> | string
   description?: Prisma.StringNullableWithAggregatesFilter<"Quiz"> | string | null
   isPublished?: Prisma.BoolWithAggregatesFilter<"Quiz"> | boolean
-  passingScore?: Prisma.IntNullableWithAggregatesFilter<"Quiz"> | number | null
-  timeLimitMinutes?: Prisma.IntNullableWithAggregatesFilter<"Quiz"> | number | null
-  allowMultipleAttempts?: Prisma.BoolWithAggregatesFilter<"Quiz"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Quiz"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Quiz"> | Date | string
   courseId?: Prisma.StringWithAggregatesFilter<"Quiz"> | string
+  allowMultipleAttempts?: Prisma.BoolWithAggregatesFilter<"Quiz"> | boolean
+  passingScore?: Prisma.IntNullableWithAggregatesFilter<"Quiz"> | number | null
+  timeLimitMinutes?: Prisma.IntNullableWithAggregatesFilter<"Quiz"> | number | null
+  chapterId?: Prisma.StringNullableWithAggregatesFilter<"Quiz"> | string | null
 }
 
 export type QuizCreateInput = {
@@ -338,14 +353,15 @@ export type QuizCreateInput = {
   title: string
   description?: string | null
   isPublished?: boolean
-  passingScore?: number | null
-  timeLimitMinutes?: number | null
-  allowMultipleAttempts?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  allowMultipleAttempts?: boolean
+  passingScore?: number | null
+  timeLimitMinutes?: number | null
+  chapter?: Prisma.ChapterCreateNestedOneWithoutQuizzesInput
   course: Prisma.CourseCreateNestedOneWithoutQuizzesInput
-  questions?: Prisma.QuizQuestionCreateNestedManyWithoutQuizInput
   attempts?: Prisma.QuizAttemptCreateNestedManyWithoutQuizInput
+  questions?: Prisma.QuizQuestionCreateNestedManyWithoutQuizInput
 }
 
 export type QuizUncheckedCreateInput = {
@@ -353,14 +369,15 @@ export type QuizUncheckedCreateInput = {
   title: string
   description?: string | null
   isPublished?: boolean
-  passingScore?: number | null
-  timeLimitMinutes?: number | null
-  allowMultipleAttempts?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   courseId: string
-  questions?: Prisma.QuizQuestionUncheckedCreateNestedManyWithoutQuizInput
+  allowMultipleAttempts?: boolean
+  passingScore?: number | null
+  timeLimitMinutes?: number | null
+  chapterId?: string | null
   attempts?: Prisma.QuizAttemptUncheckedCreateNestedManyWithoutQuizInput
+  questions?: Prisma.QuizQuestionUncheckedCreateNestedManyWithoutQuizInput
 }
 
 export type QuizUpdateInput = {
@@ -368,14 +385,15 @@ export type QuizUpdateInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  passingScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  timeLimitMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  allowMultipleAttempts?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  allowMultipleAttempts?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  passingScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  timeLimitMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  chapter?: Prisma.ChapterUpdateOneWithoutQuizzesNestedInput
   course?: Prisma.CourseUpdateOneRequiredWithoutQuizzesNestedInput
-  questions?: Prisma.QuizQuestionUpdateManyWithoutQuizNestedInput
   attempts?: Prisma.QuizAttemptUpdateManyWithoutQuizNestedInput
+  questions?: Prisma.QuizQuestionUpdateManyWithoutQuizNestedInput
 }
 
 export type QuizUncheckedUpdateInput = {
@@ -383,14 +401,15 @@ export type QuizUncheckedUpdateInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  passingScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  timeLimitMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  allowMultipleAttempts?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   courseId?: Prisma.StringFieldUpdateOperationsInput | string
-  questions?: Prisma.QuizQuestionUncheckedUpdateManyWithoutQuizNestedInput
+  allowMultipleAttempts?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  passingScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  timeLimitMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  chapterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attempts?: Prisma.QuizAttemptUncheckedUpdateManyWithoutQuizNestedInput
+  questions?: Prisma.QuizQuestionUncheckedUpdateManyWithoutQuizNestedInput
 }
 
 export type QuizCreateManyInput = {
@@ -398,12 +417,13 @@ export type QuizCreateManyInput = {
   title: string
   description?: string | null
   isPublished?: boolean
-  passingScore?: number | null
-  timeLimitMinutes?: number | null
-  allowMultipleAttempts?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   courseId: string
+  allowMultipleAttempts?: boolean
+  passingScore?: number | null
+  timeLimitMinutes?: number | null
+  chapterId?: string | null
 }
 
 export type QuizUpdateManyMutationInput = {
@@ -411,11 +431,11 @@ export type QuizUpdateManyMutationInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  passingScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  timeLimitMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  allowMultipleAttempts?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  allowMultipleAttempts?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  passingScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  timeLimitMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type QuizUncheckedUpdateManyInput = {
@@ -423,12 +443,13 @@ export type QuizUncheckedUpdateManyInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  passingScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  timeLimitMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  allowMultipleAttempts?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   courseId?: Prisma.StringFieldUpdateOperationsInput | string
+  allowMultipleAttempts?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  passingScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  timeLimitMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  chapterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type QuizListRelationFilter = {
@@ -446,12 +467,13 @@ export type QuizCountOrderByAggregateInput = {
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
   isPublished?: Prisma.SortOrder
-  passingScore?: Prisma.SortOrder
-  timeLimitMinutes?: Prisma.SortOrder
-  allowMultipleAttempts?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   courseId?: Prisma.SortOrder
+  allowMultipleAttempts?: Prisma.SortOrder
+  passingScore?: Prisma.SortOrder
+  timeLimitMinutes?: Prisma.SortOrder
+  chapterId?: Prisma.SortOrder
 }
 
 export type QuizAvgOrderByAggregateInput = {
@@ -464,12 +486,13 @@ export type QuizMaxOrderByAggregateInput = {
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
   isPublished?: Prisma.SortOrder
-  passingScore?: Prisma.SortOrder
-  timeLimitMinutes?: Prisma.SortOrder
-  allowMultipleAttempts?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   courseId?: Prisma.SortOrder
+  allowMultipleAttempts?: Prisma.SortOrder
+  passingScore?: Prisma.SortOrder
+  timeLimitMinutes?: Prisma.SortOrder
+  chapterId?: Prisma.SortOrder
 }
 
 export type QuizMinOrderByAggregateInput = {
@@ -477,12 +500,13 @@ export type QuizMinOrderByAggregateInput = {
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
   isPublished?: Prisma.SortOrder
-  passingScore?: Prisma.SortOrder
-  timeLimitMinutes?: Prisma.SortOrder
-  allowMultipleAttempts?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   courseId?: Prisma.SortOrder
+  allowMultipleAttempts?: Prisma.SortOrder
+  passingScore?: Prisma.SortOrder
+  timeLimitMinutes?: Prisma.SortOrder
+  chapterId?: Prisma.SortOrder
 }
 
 export type QuizSumOrderByAggregateInput = {
@@ -537,6 +561,48 @@ export type QuizUncheckedUpdateManyWithoutCourseNestedInput = {
   deleteMany?: Prisma.QuizScalarWhereInput | Prisma.QuizScalarWhereInput[]
 }
 
+export type QuizCreateNestedManyWithoutChapterInput = {
+  create?: Prisma.XOR<Prisma.QuizCreateWithoutChapterInput, Prisma.QuizUncheckedCreateWithoutChapterInput> | Prisma.QuizCreateWithoutChapterInput[] | Prisma.QuizUncheckedCreateWithoutChapterInput[]
+  connectOrCreate?: Prisma.QuizCreateOrConnectWithoutChapterInput | Prisma.QuizCreateOrConnectWithoutChapterInput[]
+  createMany?: Prisma.QuizCreateManyChapterInputEnvelope
+  connect?: Prisma.QuizWhereUniqueInput | Prisma.QuizWhereUniqueInput[]
+}
+
+export type QuizUncheckedCreateNestedManyWithoutChapterInput = {
+  create?: Prisma.XOR<Prisma.QuizCreateWithoutChapterInput, Prisma.QuizUncheckedCreateWithoutChapterInput> | Prisma.QuizCreateWithoutChapterInput[] | Prisma.QuizUncheckedCreateWithoutChapterInput[]
+  connectOrCreate?: Prisma.QuizCreateOrConnectWithoutChapterInput | Prisma.QuizCreateOrConnectWithoutChapterInput[]
+  createMany?: Prisma.QuizCreateManyChapterInputEnvelope
+  connect?: Prisma.QuizWhereUniqueInput | Prisma.QuizWhereUniqueInput[]
+}
+
+export type QuizUpdateManyWithoutChapterNestedInput = {
+  create?: Prisma.XOR<Prisma.QuizCreateWithoutChapterInput, Prisma.QuizUncheckedCreateWithoutChapterInput> | Prisma.QuizCreateWithoutChapterInput[] | Prisma.QuizUncheckedCreateWithoutChapterInput[]
+  connectOrCreate?: Prisma.QuizCreateOrConnectWithoutChapterInput | Prisma.QuizCreateOrConnectWithoutChapterInput[]
+  upsert?: Prisma.QuizUpsertWithWhereUniqueWithoutChapterInput | Prisma.QuizUpsertWithWhereUniqueWithoutChapterInput[]
+  createMany?: Prisma.QuizCreateManyChapterInputEnvelope
+  set?: Prisma.QuizWhereUniqueInput | Prisma.QuizWhereUniqueInput[]
+  disconnect?: Prisma.QuizWhereUniqueInput | Prisma.QuizWhereUniqueInput[]
+  delete?: Prisma.QuizWhereUniqueInput | Prisma.QuizWhereUniqueInput[]
+  connect?: Prisma.QuizWhereUniqueInput | Prisma.QuizWhereUniqueInput[]
+  update?: Prisma.QuizUpdateWithWhereUniqueWithoutChapterInput | Prisma.QuizUpdateWithWhereUniqueWithoutChapterInput[]
+  updateMany?: Prisma.QuizUpdateManyWithWhereWithoutChapterInput | Prisma.QuizUpdateManyWithWhereWithoutChapterInput[]
+  deleteMany?: Prisma.QuizScalarWhereInput | Prisma.QuizScalarWhereInput[]
+}
+
+export type QuizUncheckedUpdateManyWithoutChapterNestedInput = {
+  create?: Prisma.XOR<Prisma.QuizCreateWithoutChapterInput, Prisma.QuizUncheckedCreateWithoutChapterInput> | Prisma.QuizCreateWithoutChapterInput[] | Prisma.QuizUncheckedCreateWithoutChapterInput[]
+  connectOrCreate?: Prisma.QuizCreateOrConnectWithoutChapterInput | Prisma.QuizCreateOrConnectWithoutChapterInput[]
+  upsert?: Prisma.QuizUpsertWithWhereUniqueWithoutChapterInput | Prisma.QuizUpsertWithWhereUniqueWithoutChapterInput[]
+  createMany?: Prisma.QuizCreateManyChapterInputEnvelope
+  set?: Prisma.QuizWhereUniqueInput | Prisma.QuizWhereUniqueInput[]
+  disconnect?: Prisma.QuizWhereUniqueInput | Prisma.QuizWhereUniqueInput[]
+  delete?: Prisma.QuizWhereUniqueInput | Prisma.QuizWhereUniqueInput[]
+  connect?: Prisma.QuizWhereUniqueInput | Prisma.QuizWhereUniqueInput[]
+  update?: Prisma.QuizUpdateWithWhereUniqueWithoutChapterInput | Prisma.QuizUpdateWithWhereUniqueWithoutChapterInput[]
+  updateMany?: Prisma.QuizUpdateManyWithWhereWithoutChapterInput | Prisma.QuizUpdateManyWithWhereWithoutChapterInput[]
+  deleteMany?: Prisma.QuizScalarWhereInput | Prisma.QuizScalarWhereInput[]
+}
+
 export type QuizCreateNestedOneWithoutQuestionsInput = {
   create?: Prisma.XOR<Prisma.QuizCreateWithoutQuestionsInput, Prisma.QuizUncheckedCreateWithoutQuestionsInput>
   connectOrCreate?: Prisma.QuizCreateOrConnectWithoutQuestionsInput
@@ -570,13 +636,14 @@ export type QuizCreateWithoutCourseInput = {
   title: string
   description?: string | null
   isPublished?: boolean
-  passingScore?: number | null
-  timeLimitMinutes?: number | null
-  allowMultipleAttempts?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
-  questions?: Prisma.QuizQuestionCreateNestedManyWithoutQuizInput
+  allowMultipleAttempts?: boolean
+  passingScore?: number | null
+  timeLimitMinutes?: number | null
+  chapter?: Prisma.ChapterCreateNestedOneWithoutQuizzesInput
   attempts?: Prisma.QuizAttemptCreateNestedManyWithoutQuizInput
+  questions?: Prisma.QuizQuestionCreateNestedManyWithoutQuizInput
 }
 
 export type QuizUncheckedCreateWithoutCourseInput = {
@@ -584,13 +651,14 @@ export type QuizUncheckedCreateWithoutCourseInput = {
   title: string
   description?: string | null
   isPublished?: boolean
-  passingScore?: number | null
-  timeLimitMinutes?: number | null
-  allowMultipleAttempts?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
-  questions?: Prisma.QuizQuestionUncheckedCreateNestedManyWithoutQuizInput
+  allowMultipleAttempts?: boolean
+  passingScore?: number | null
+  timeLimitMinutes?: number | null
+  chapterId?: string | null
   attempts?: Prisma.QuizAttemptUncheckedCreateNestedManyWithoutQuizInput
+  questions?: Prisma.QuizQuestionUncheckedCreateNestedManyWithoutQuizInput
 }
 
 export type QuizCreateOrConnectWithoutCourseInput = {
@@ -627,12 +695,69 @@ export type QuizScalarWhereInput = {
   title?: Prisma.StringFilter<"Quiz"> | string
   description?: Prisma.StringNullableFilter<"Quiz"> | string | null
   isPublished?: Prisma.BoolFilter<"Quiz"> | boolean
-  passingScore?: Prisma.IntNullableFilter<"Quiz"> | number | null
-  timeLimitMinutes?: Prisma.IntNullableFilter<"Quiz"> | number | null
-  allowMultipleAttempts?: Prisma.BoolFilter<"Quiz"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Quiz"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Quiz"> | Date | string
   courseId?: Prisma.StringFilter<"Quiz"> | string
+  allowMultipleAttempts?: Prisma.BoolFilter<"Quiz"> | boolean
+  passingScore?: Prisma.IntNullableFilter<"Quiz"> | number | null
+  timeLimitMinutes?: Prisma.IntNullableFilter<"Quiz"> | number | null
+  chapterId?: Prisma.StringNullableFilter<"Quiz"> | string | null
+}
+
+export type QuizCreateWithoutChapterInput = {
+  id?: string
+  title: string
+  description?: string | null
+  isPublished?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  allowMultipleAttempts?: boolean
+  passingScore?: number | null
+  timeLimitMinutes?: number | null
+  course: Prisma.CourseCreateNestedOneWithoutQuizzesInput
+  attempts?: Prisma.QuizAttemptCreateNestedManyWithoutQuizInput
+  questions?: Prisma.QuizQuestionCreateNestedManyWithoutQuizInput
+}
+
+export type QuizUncheckedCreateWithoutChapterInput = {
+  id?: string
+  title: string
+  description?: string | null
+  isPublished?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  courseId: string
+  allowMultipleAttempts?: boolean
+  passingScore?: number | null
+  timeLimitMinutes?: number | null
+  attempts?: Prisma.QuizAttemptUncheckedCreateNestedManyWithoutQuizInput
+  questions?: Prisma.QuizQuestionUncheckedCreateNestedManyWithoutQuizInput
+}
+
+export type QuizCreateOrConnectWithoutChapterInput = {
+  where: Prisma.QuizWhereUniqueInput
+  create: Prisma.XOR<Prisma.QuizCreateWithoutChapterInput, Prisma.QuizUncheckedCreateWithoutChapterInput>
+}
+
+export type QuizCreateManyChapterInputEnvelope = {
+  data: Prisma.QuizCreateManyChapterInput | Prisma.QuizCreateManyChapterInput[]
+  skipDuplicates?: boolean
+}
+
+export type QuizUpsertWithWhereUniqueWithoutChapterInput = {
+  where: Prisma.QuizWhereUniqueInput
+  update: Prisma.XOR<Prisma.QuizUpdateWithoutChapterInput, Prisma.QuizUncheckedUpdateWithoutChapterInput>
+  create: Prisma.XOR<Prisma.QuizCreateWithoutChapterInput, Prisma.QuizUncheckedCreateWithoutChapterInput>
+}
+
+export type QuizUpdateWithWhereUniqueWithoutChapterInput = {
+  where: Prisma.QuizWhereUniqueInput
+  data: Prisma.XOR<Prisma.QuizUpdateWithoutChapterInput, Prisma.QuizUncheckedUpdateWithoutChapterInput>
+}
+
+export type QuizUpdateManyWithWhereWithoutChapterInput = {
+  where: Prisma.QuizScalarWhereInput
+  data: Prisma.XOR<Prisma.QuizUpdateManyMutationInput, Prisma.QuizUncheckedUpdateManyWithoutChapterInput>
 }
 
 export type QuizCreateWithoutQuestionsInput = {
@@ -640,11 +765,12 @@ export type QuizCreateWithoutQuestionsInput = {
   title: string
   description?: string | null
   isPublished?: boolean
-  passingScore?: number | null
-  timeLimitMinutes?: number | null
-  allowMultipleAttempts?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  allowMultipleAttempts?: boolean
+  passingScore?: number | null
+  timeLimitMinutes?: number | null
+  chapter?: Prisma.ChapterCreateNestedOneWithoutQuizzesInput
   course: Prisma.CourseCreateNestedOneWithoutQuizzesInput
   attempts?: Prisma.QuizAttemptCreateNestedManyWithoutQuizInput
 }
@@ -654,12 +780,13 @@ export type QuizUncheckedCreateWithoutQuestionsInput = {
   title: string
   description?: string | null
   isPublished?: boolean
-  passingScore?: number | null
-  timeLimitMinutes?: number | null
-  allowMultipleAttempts?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   courseId: string
+  allowMultipleAttempts?: boolean
+  passingScore?: number | null
+  timeLimitMinutes?: number | null
+  chapterId?: string | null
   attempts?: Prisma.QuizAttemptUncheckedCreateNestedManyWithoutQuizInput
 }
 
@@ -684,11 +811,12 @@ export type QuizUpdateWithoutQuestionsInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  passingScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  timeLimitMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  allowMultipleAttempts?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  allowMultipleAttempts?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  passingScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  timeLimitMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  chapter?: Prisma.ChapterUpdateOneWithoutQuizzesNestedInput
   course?: Prisma.CourseUpdateOneRequiredWithoutQuizzesNestedInput
   attempts?: Prisma.QuizAttemptUpdateManyWithoutQuizNestedInput
 }
@@ -698,12 +826,13 @@ export type QuizUncheckedUpdateWithoutQuestionsInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  passingScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  timeLimitMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  allowMultipleAttempts?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   courseId?: Prisma.StringFieldUpdateOperationsInput | string
+  allowMultipleAttempts?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  passingScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  timeLimitMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  chapterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attempts?: Prisma.QuizAttemptUncheckedUpdateManyWithoutQuizNestedInput
 }
 
@@ -712,11 +841,12 @@ export type QuizCreateWithoutAttemptsInput = {
   title: string
   description?: string | null
   isPublished?: boolean
-  passingScore?: number | null
-  timeLimitMinutes?: number | null
-  allowMultipleAttempts?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  allowMultipleAttempts?: boolean
+  passingScore?: number | null
+  timeLimitMinutes?: number | null
+  chapter?: Prisma.ChapterCreateNestedOneWithoutQuizzesInput
   course: Prisma.CourseCreateNestedOneWithoutQuizzesInput
   questions?: Prisma.QuizQuestionCreateNestedManyWithoutQuizInput
 }
@@ -726,12 +856,13 @@ export type QuizUncheckedCreateWithoutAttemptsInput = {
   title: string
   description?: string | null
   isPublished?: boolean
-  passingScore?: number | null
-  timeLimitMinutes?: number | null
-  allowMultipleAttempts?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   courseId: string
+  allowMultipleAttempts?: boolean
+  passingScore?: number | null
+  timeLimitMinutes?: number | null
+  chapterId?: string | null
   questions?: Prisma.QuizQuestionUncheckedCreateNestedManyWithoutQuizInput
 }
 
@@ -756,11 +887,12 @@ export type QuizUpdateWithoutAttemptsInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  passingScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  timeLimitMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  allowMultipleAttempts?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  allowMultipleAttempts?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  passingScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  timeLimitMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  chapter?: Prisma.ChapterUpdateOneWithoutQuizzesNestedInput
   course?: Prisma.CourseUpdateOneRequiredWithoutQuizzesNestedInput
   questions?: Prisma.QuizQuestionUpdateManyWithoutQuizNestedInput
 }
@@ -770,12 +902,13 @@ export type QuizUncheckedUpdateWithoutAttemptsInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  passingScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  timeLimitMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  allowMultipleAttempts?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   courseId?: Prisma.StringFieldUpdateOperationsInput | string
+  allowMultipleAttempts?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  passingScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  timeLimitMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  chapterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   questions?: Prisma.QuizQuestionUncheckedUpdateManyWithoutQuizNestedInput
 }
 
@@ -784,11 +917,12 @@ export type QuizCreateManyCourseInput = {
   title: string
   description?: string | null
   isPublished?: boolean
-  passingScore?: number | null
-  timeLimitMinutes?: number | null
-  allowMultipleAttempts?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  allowMultipleAttempts?: boolean
+  passingScore?: number | null
+  timeLimitMinutes?: number | null
+  chapterId?: string | null
 }
 
 export type QuizUpdateWithoutCourseInput = {
@@ -796,13 +930,14 @@ export type QuizUpdateWithoutCourseInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  passingScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  timeLimitMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  allowMultipleAttempts?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  questions?: Prisma.QuizQuestionUpdateManyWithoutQuizNestedInput
+  allowMultipleAttempts?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  passingScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  timeLimitMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  chapter?: Prisma.ChapterUpdateOneWithoutQuizzesNestedInput
   attempts?: Prisma.QuizAttemptUpdateManyWithoutQuizNestedInput
+  questions?: Prisma.QuizQuestionUpdateManyWithoutQuizNestedInput
 }
 
 export type QuizUncheckedUpdateWithoutCourseInput = {
@@ -810,13 +945,14 @@ export type QuizUncheckedUpdateWithoutCourseInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  passingScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  timeLimitMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  allowMultipleAttempts?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
-  questions?: Prisma.QuizQuestionUncheckedUpdateManyWithoutQuizNestedInput
+  allowMultipleAttempts?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  passingScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  timeLimitMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  chapterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   attempts?: Prisma.QuizAttemptUncheckedUpdateManyWithoutQuizNestedInput
+  questions?: Prisma.QuizQuestionUncheckedUpdateManyWithoutQuizNestedInput
 }
 
 export type QuizUncheckedUpdateManyWithoutCourseInput = {
@@ -824,11 +960,68 @@ export type QuizUncheckedUpdateManyWithoutCourseInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  passingScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  timeLimitMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  allowMultipleAttempts?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  allowMultipleAttempts?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  passingScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  timeLimitMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  chapterId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+}
+
+export type QuizCreateManyChapterInput = {
+  id?: string
+  title: string
+  description?: string | null
+  isPublished?: boolean
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  courseId: string
+  allowMultipleAttempts?: boolean
+  passingScore?: number | null
+  timeLimitMinutes?: number | null
+}
+
+export type QuizUpdateWithoutChapterInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  allowMultipleAttempts?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  passingScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  timeLimitMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  course?: Prisma.CourseUpdateOneRequiredWithoutQuizzesNestedInput
+  attempts?: Prisma.QuizAttemptUpdateManyWithoutQuizNestedInput
+  questions?: Prisma.QuizQuestionUpdateManyWithoutQuizNestedInput
+}
+
+export type QuizUncheckedUpdateWithoutChapterInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  courseId?: Prisma.StringFieldUpdateOperationsInput | string
+  allowMultipleAttempts?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  passingScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  timeLimitMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  attempts?: Prisma.QuizAttemptUncheckedUpdateManyWithoutQuizNestedInput
+  questions?: Prisma.QuizQuestionUncheckedUpdateManyWithoutQuizNestedInput
+}
+
+export type QuizUncheckedUpdateManyWithoutChapterInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  title?: Prisma.StringFieldUpdateOperationsInput | string
+  description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  courseId?: Prisma.StringFieldUpdateOperationsInput | string
+  allowMultipleAttempts?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  passingScore?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  timeLimitMinutes?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 
@@ -837,13 +1030,13 @@ export type QuizUncheckedUpdateManyWithoutCourseInput = {
  */
 
 export type QuizCountOutputType = {
-  questions: number
   attempts: number
+  questions: number
 }
 
 export type QuizCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  questions?: boolean | QuizCountOutputTypeCountQuestionsArgs
   attempts?: boolean | QuizCountOutputTypeCountAttemptsArgs
+  questions?: boolean | QuizCountOutputTypeCountQuestionsArgs
 }
 
 /**
@@ -859,15 +1052,15 @@ export type QuizCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensi
 /**
  * QuizCountOutputType without action
  */
-export type QuizCountOutputTypeCountQuestionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.QuizQuestionWhereInput
+export type QuizCountOutputTypeCountAttemptsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.QuizAttemptWhereInput
 }
 
 /**
  * QuizCountOutputType without action
  */
-export type QuizCountOutputTypeCountAttemptsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.QuizAttemptWhereInput
+export type QuizCountOutputTypeCountQuestionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.QuizQuestionWhereInput
 }
 
 
@@ -876,15 +1069,17 @@ export type QuizSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   title?: boolean
   description?: boolean
   isPublished?: boolean
-  passingScore?: boolean
-  timeLimitMinutes?: boolean
-  allowMultipleAttempts?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   courseId?: boolean
+  allowMultipleAttempts?: boolean
+  passingScore?: boolean
+  timeLimitMinutes?: boolean
+  chapterId?: boolean
+  chapter?: boolean | Prisma.Quiz$chapterArgs<ExtArgs>
   course?: boolean | Prisma.CourseDefaultArgs<ExtArgs>
-  questions?: boolean | Prisma.Quiz$questionsArgs<ExtArgs>
   attempts?: boolean | Prisma.Quiz$attemptsArgs<ExtArgs>
+  questions?: boolean | Prisma.Quiz$questionsArgs<ExtArgs>
   _count?: boolean | Prisma.QuizCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["quiz"]>
 
@@ -893,12 +1088,14 @@ export type QuizSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   title?: boolean
   description?: boolean
   isPublished?: boolean
-  passingScore?: boolean
-  timeLimitMinutes?: boolean
-  allowMultipleAttempts?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   courseId?: boolean
+  allowMultipleAttempts?: boolean
+  passingScore?: boolean
+  timeLimitMinutes?: boolean
+  chapterId?: boolean
+  chapter?: boolean | Prisma.Quiz$chapterArgs<ExtArgs>
   course?: boolean | Prisma.CourseDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["quiz"]>
 
@@ -907,12 +1104,14 @@ export type QuizSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   title?: boolean
   description?: boolean
   isPublished?: boolean
-  passingScore?: boolean
-  timeLimitMinutes?: boolean
-  allowMultipleAttempts?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   courseId?: boolean
+  allowMultipleAttempts?: boolean
+  passingScore?: boolean
+  timeLimitMinutes?: boolean
+  chapterId?: boolean
+  chapter?: boolean | Prisma.Quiz$chapterArgs<ExtArgs>
   course?: boolean | Prisma.CourseDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["quiz"]>
 
@@ -921,46 +1120,52 @@ export type QuizSelectScalar = {
   title?: boolean
   description?: boolean
   isPublished?: boolean
-  passingScore?: boolean
-  timeLimitMinutes?: boolean
-  allowMultipleAttempts?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   courseId?: boolean
+  allowMultipleAttempts?: boolean
+  passingScore?: boolean
+  timeLimitMinutes?: boolean
+  chapterId?: boolean
 }
 
-export type QuizOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "description" | "isPublished" | "passingScore" | "timeLimitMinutes" | "allowMultipleAttempts" | "createdAt" | "updatedAt" | "courseId", ExtArgs["result"]["quiz"]>
+export type QuizOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "description" | "isPublished" | "createdAt" | "updatedAt" | "courseId" | "allowMultipleAttempts" | "passingScore" | "timeLimitMinutes" | "chapterId", ExtArgs["result"]["quiz"]>
 export type QuizInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  chapter?: boolean | Prisma.Quiz$chapterArgs<ExtArgs>
   course?: boolean | Prisma.CourseDefaultArgs<ExtArgs>
-  questions?: boolean | Prisma.Quiz$questionsArgs<ExtArgs>
   attempts?: boolean | Prisma.Quiz$attemptsArgs<ExtArgs>
+  questions?: boolean | Prisma.Quiz$questionsArgs<ExtArgs>
   _count?: boolean | Prisma.QuizCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type QuizIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  chapter?: boolean | Prisma.Quiz$chapterArgs<ExtArgs>
   course?: boolean | Prisma.CourseDefaultArgs<ExtArgs>
 }
 export type QuizIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  chapter?: boolean | Prisma.Quiz$chapterArgs<ExtArgs>
   course?: boolean | Prisma.CourseDefaultArgs<ExtArgs>
 }
 
 export type $QuizPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Quiz"
   objects: {
+    chapter: Prisma.$ChapterPayload<ExtArgs> | null
     course: Prisma.$CoursePayload<ExtArgs>
-    questions: Prisma.$QuizQuestionPayload<ExtArgs>[]
     attempts: Prisma.$QuizAttemptPayload<ExtArgs>[]
+    questions: Prisma.$QuizQuestionPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
     title: string
     description: string | null
     isPublished: boolean
-    passingScore: number | null
-    timeLimitMinutes: number | null
-    allowMultipleAttempts: boolean
     createdAt: Date
     updatedAt: Date
     courseId: string
+    allowMultipleAttempts: boolean
+    passingScore: number | null
+    timeLimitMinutes: number | null
+    chapterId: string | null
   }, ExtArgs["result"]["quiz"]>
   composites: {}
 }
@@ -1355,9 +1560,10 @@ readonly fields: QuizFieldRefs;
  */
 export interface Prisma__QuizClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  chapter<T extends Prisma.Quiz$chapterArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Quiz$chapterArgs<ExtArgs>>): Prisma.Prisma__ChapterClient<runtime.Types.Result.GetResult<Prisma.$ChapterPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   course<T extends Prisma.CourseDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CourseDefaultArgs<ExtArgs>>): Prisma.Prisma__CourseClient<runtime.Types.Result.GetResult<Prisma.$CoursePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
-  questions<T extends Prisma.Quiz$questionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Quiz$questionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$QuizQuestionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   attempts<T extends Prisma.Quiz$attemptsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Quiz$attemptsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$QuizAttemptPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  questions<T extends Prisma.Quiz$questionsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Quiz$questionsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$QuizQuestionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1391,12 +1597,13 @@ export interface QuizFieldRefs {
   readonly title: Prisma.FieldRef<"Quiz", 'String'>
   readonly description: Prisma.FieldRef<"Quiz", 'String'>
   readonly isPublished: Prisma.FieldRef<"Quiz", 'Boolean'>
-  readonly passingScore: Prisma.FieldRef<"Quiz", 'Int'>
-  readonly timeLimitMinutes: Prisma.FieldRef<"Quiz", 'Int'>
-  readonly allowMultipleAttempts: Prisma.FieldRef<"Quiz", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"Quiz", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Quiz", 'DateTime'>
   readonly courseId: Prisma.FieldRef<"Quiz", 'String'>
+  readonly allowMultipleAttempts: Prisma.FieldRef<"Quiz", 'Boolean'>
+  readonly passingScore: Prisma.FieldRef<"Quiz", 'Int'>
+  readonly timeLimitMinutes: Prisma.FieldRef<"Quiz", 'Int'>
+  readonly chapterId: Prisma.FieldRef<"Quiz", 'String'>
 }
     
 
@@ -1793,27 +2000,22 @@ export type QuizDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Internal
 }
 
 /**
- * Quiz.questions
+ * Quiz.chapter
  */
-export type Quiz$questionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type Quiz$chapterArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the QuizQuestion
+   * Select specific fields to fetch from the Chapter
    */
-  select?: Prisma.QuizQuestionSelect<ExtArgs> | null
+  select?: Prisma.ChapterSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the QuizQuestion
+   * Omit specific fields from the Chapter
    */
-  omit?: Prisma.QuizQuestionOmit<ExtArgs> | null
+  omit?: Prisma.ChapterOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.QuizQuestionInclude<ExtArgs> | null
-  where?: Prisma.QuizQuestionWhereInput
-  orderBy?: Prisma.QuizQuestionOrderByWithRelationInput | Prisma.QuizQuestionOrderByWithRelationInput[]
-  cursor?: Prisma.QuizQuestionWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.QuizQuestionScalarFieldEnum | Prisma.QuizQuestionScalarFieldEnum[]
+  include?: Prisma.ChapterInclude<ExtArgs> | null
+  where?: Prisma.ChapterWhereInput
 }
 
 /**
@@ -1838,6 +2040,30 @@ export type Quiz$attemptsArgs<ExtArgs extends runtime.Types.Extensions.InternalA
   take?: number
   skip?: number
   distinct?: Prisma.QuizAttemptScalarFieldEnum | Prisma.QuizAttemptScalarFieldEnum[]
+}
+
+/**
+ * Quiz.questions
+ */
+export type Quiz$questionsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the QuizQuestion
+   */
+  select?: Prisma.QuizQuestionSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the QuizQuestion
+   */
+  omit?: Prisma.QuizQuestionOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.QuizQuestionInclude<ExtArgs> | null
+  where?: Prisma.QuizQuestionWhereInput
+  orderBy?: Prisma.QuizQuestionOrderByWithRelationInput | Prisma.QuizQuestionOrderByWithRelationInput[]
+  cursor?: Prisma.QuizQuestionWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.QuizQuestionScalarFieldEnum | Prisma.QuizQuestionScalarFieldEnum[]
 }
 
 /**

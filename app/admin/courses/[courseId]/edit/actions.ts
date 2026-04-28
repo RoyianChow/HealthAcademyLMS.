@@ -10,6 +10,8 @@ import {
   courseSchema,
   CourseSchemaType,
   lessonSchema,
+  type LessonSchemaType,
+  type LessonDocumentSchemaType,
 } from "@/lib/zodSchemas";
 import { request } from "@arcjet/next";
 import { revalidatePath } from "next/cache";
@@ -211,25 +213,29 @@ export async function createChapter(
     };
   }
 }
-
 export async function createLesson(
-  values: ChapterSchemaType
+  values: LessonSchemaType
 ): Promise<ApiResponse> {
   await requireAdmin();
+
   try {
     const result = lessonSchema.safeParse(values);
 
     if (!result.success) {
+      console.log(result.error.flatten());
+
       return {
         status: "error",
-        message: "Invalid Data",
+        message: "Invalid lesson data",
       };
     }
+
+    const data = result.data;
 
     await prisma.$transaction(async (tx) => {
       const maxPos = await tx.lesson.findFirst({
         where: {
-          chapterId: result.data.chapterId,
+          chapterId: data.chapterId,
         },
         select: {
           position: true,
@@ -239,29 +245,50 @@ export async function createLesson(
         },
       });
 
-      await tx.lesson.create({
+      const createdLesson = await tx.lesson.create({
         data: {
-          title: result.data.name,
-          description: result.data.description,
-          videoKey: result.data.videoKey,
-          youtubeUrl: result.data.youtubeUrl,
-          thumbnailKey: result.data.thumbnailKey,
-          chapterId: result.data.chapterId,
+          title: data.title,
+          description: data.description || null,
+          content: data.content || null,
+          videoKey: data.videoKey || null,
+          youtubeUrl: data.youtubeUrl || null,
+          thumbnailKey: data.thumbnailKey || null,
+          chapterId: data.chapterId,
           position: (maxPos?.position ?? 0) + 1,
+          isPublished: data.isPublished ?? false,
+          isFreePreview: data.isFreePreview ?? false,
         },
       });
+
+      const documents: LessonDocumentSchemaType[] = data.documents ?? [];
+
+      if (documents.length > 0) {
+        await tx.lessonDocument.createMany({
+          data: documents.map((doc) => ({
+            name: doc.name,
+            fileKey: doc.fileKey,
+            fileUrl: doc.fileUrl ?? null,
+            fileType: doc.fileType ?? null,
+            fileSize: doc.fileSize ?? null,
+            lessonId: createdLesson.id,
+          })),
+        });
+      }
     });
 
-    revalidatePath(`/admin/courses/${result.data.courseId}/edit`);
+    revalidatePath(`/admin/courses/${data.courseId}/edit`);
 
     return {
       status: "success",
       message: "Lesson created successfully",
     };
-  } catch {
+  } catch (error) {
+    console.error("CREATE_LESSON_ERROR", error);
+
     return {
       status: "error",
-      message: "Failed to create lesson",
+      message:
+        error instanceof Error ? error.message : "Failed to create lesson",
     };
   }
 }

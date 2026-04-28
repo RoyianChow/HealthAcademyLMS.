@@ -33,7 +33,6 @@ type QuizAttemptProps = {
   nextAttemptNumber: number;
   previousAttemptsCount: number;
 };
-
 type SubmissionResult = {
   status: "success" | "error";
   message: string;
@@ -43,10 +42,11 @@ type SubmissionResult = {
   feedback?: string | null;
   gradedAt?: string | null;
   answers?: {
+    attemptId?: string;
     questionId: string;
     selectedOptionId: string | null;
     isCorrect: boolean;
-    explanation: string | null;
+    explanation?: string | null;
   }[];
 };
 
@@ -350,14 +350,14 @@ export function QuizAttempt({
                     })}
                   </div>
 
-                  {answer?.explanation ? (
-                    <div className="mt-4 rounded-xl border border-border/60 bg-muted/40 p-4">
-                      <p className="text-sm font-medium">Explanation</p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {answer.explanation}
-                      </p>
-                    </div>
-                  ) : null}
+                 {(answer?.explanation ?? question.explanation) ? (
+  <div className="mt-4 rounded-xl border border-border/60 bg-muted/40 p-4">
+    <p className="text-sm font-medium">Explanation</p>
+    <p className="mt-1 text-sm text-muted-foreground">
+      {answer?.explanation ?? question.explanation}
+    </p>
+  </div>
+) : null}
                 </div>
               );
             })}

@@ -37,16 +37,16 @@ export type LessonMinAggregateOutputType = {
   id: string | null
   title: string | null
   description: string | null
-  content: string | null
   thumbnailKey: string | null
   videoKey: string | null
   youtubeUrl: string | null
   position: number | null
-  isPublished: boolean | null
-  isFreePreview: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
   chapterId: string | null
+  content: string | null
+  isFreePreview: boolean | null
+  isPublished: boolean | null
   lessonProgress: boolean | null
 }
 
@@ -54,16 +54,16 @@ export type LessonMaxAggregateOutputType = {
   id: string | null
   title: string | null
   description: string | null
-  content: string | null
   thumbnailKey: string | null
   videoKey: string | null
   youtubeUrl: string | null
   position: number | null
-  isPublished: boolean | null
-  isFreePreview: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
   chapterId: string | null
+  content: string | null
+  isFreePreview: boolean | null
+  isPublished: boolean | null
   lessonProgress: boolean | null
 }
 
@@ -71,16 +71,16 @@ export type LessonCountAggregateOutputType = {
   id: number
   title: number
   description: number
-  content: number
   thumbnailKey: number
   videoKey: number
   youtubeUrl: number
   position: number
-  isPublished: number
-  isFreePreview: number
   createdAt: number
   updatedAt: number
   chapterId: number
+  content: number
+  isFreePreview: number
+  isPublished: number
   lessonProgress: number
   _all: number
 }
@@ -98,16 +98,16 @@ export type LessonMinAggregateInputType = {
   id?: true
   title?: true
   description?: true
-  content?: true
   thumbnailKey?: true
   videoKey?: true
   youtubeUrl?: true
   position?: true
-  isPublished?: true
-  isFreePreview?: true
   createdAt?: true
   updatedAt?: true
   chapterId?: true
+  content?: true
+  isFreePreview?: true
+  isPublished?: true
   lessonProgress?: true
 }
 
@@ -115,16 +115,16 @@ export type LessonMaxAggregateInputType = {
   id?: true
   title?: true
   description?: true
-  content?: true
   thumbnailKey?: true
   videoKey?: true
   youtubeUrl?: true
   position?: true
-  isPublished?: true
-  isFreePreview?: true
   createdAt?: true
   updatedAt?: true
   chapterId?: true
+  content?: true
+  isFreePreview?: true
+  isPublished?: true
   lessonProgress?: true
 }
 
@@ -132,16 +132,16 @@ export type LessonCountAggregateInputType = {
   id?: true
   title?: true
   description?: true
-  content?: true
   thumbnailKey?: true
   videoKey?: true
   youtubeUrl?: true
   position?: true
-  isPublished?: true
-  isFreePreview?: true
   createdAt?: true
   updatedAt?: true
   chapterId?: true
+  content?: true
+  isFreePreview?: true
+  isPublished?: true
   lessonProgress?: true
   _all?: true
 }
@@ -236,16 +236,16 @@ export type LessonGroupByOutputType = {
   id: string
   title: string
   description: string | null
-  content: string | null
   thumbnailKey: string | null
   videoKey: string | null
   youtubeUrl: string | null
   position: number
-  isPublished: boolean
-  isFreePreview: boolean
   createdAt: Date
   updatedAt: Date
   chapterId: string
+  content: string | null
+  isFreePreview: boolean
+  isPublished: boolean
   lessonProgress: boolean
   _count: LessonCountAggregateOutputType | null
   _avg: LessonAvgAggregateOutputType | null
@@ -276,16 +276,16 @@ export type LessonWhereInput = {
   id?: Prisma.StringFilter<"Lesson"> | string
   title?: Prisma.StringFilter<"Lesson"> | string
   description?: Prisma.StringNullableFilter<"Lesson"> | string | null
-  content?: Prisma.StringNullableFilter<"Lesson"> | string | null
   thumbnailKey?: Prisma.StringNullableFilter<"Lesson"> | string | null
   videoKey?: Prisma.StringNullableFilter<"Lesson"> | string | null
   youtubeUrl?: Prisma.StringNullableFilter<"Lesson"> | string | null
   position?: Prisma.IntFilter<"Lesson"> | number
-  isPublished?: Prisma.BoolFilter<"Lesson"> | boolean
-  isFreePreview?: Prisma.BoolFilter<"Lesson"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Lesson"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Lesson"> | Date | string
   chapterId?: Prisma.StringFilter<"Lesson"> | string
+  content?: Prisma.StringNullableFilter<"Lesson"> | string | null
+  isFreePreview?: Prisma.BoolFilter<"Lesson"> | boolean
+  isPublished?: Prisma.BoolFilter<"Lesson"> | boolean
   lessonProgress?: Prisma.BoolFilter<"Lesson"> | boolean
   chapter?: Prisma.XOR<Prisma.ChapterScalarRelationFilter, Prisma.ChapterWhereInput>
   documents?: Prisma.LessonDocumentListRelationFilter
@@ -295,16 +295,16 @@ export type LessonOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   title?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
-  content?: Prisma.SortOrderInput | Prisma.SortOrder
   thumbnailKey?: Prisma.SortOrderInput | Prisma.SortOrder
   videoKey?: Prisma.SortOrderInput | Prisma.SortOrder
   youtubeUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   position?: Prisma.SortOrder
-  isPublished?: Prisma.SortOrder
-  isFreePreview?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   chapterId?: Prisma.SortOrder
+  content?: Prisma.SortOrderInput | Prisma.SortOrder
+  isFreePreview?: Prisma.SortOrder
+  isPublished?: Prisma.SortOrder
   lessonProgress?: Prisma.SortOrder
   chapter?: Prisma.ChapterOrderByWithRelationInput
   documents?: Prisma.LessonDocumentOrderByRelationAggregateInput
@@ -318,16 +318,16 @@ export type LessonWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.LessonWhereInput | Prisma.LessonWhereInput[]
   title?: Prisma.StringFilter<"Lesson"> | string
   description?: Prisma.StringNullableFilter<"Lesson"> | string | null
-  content?: Prisma.StringNullableFilter<"Lesson"> | string | null
   thumbnailKey?: Prisma.StringNullableFilter<"Lesson"> | string | null
   videoKey?: Prisma.StringNullableFilter<"Lesson"> | string | null
   youtubeUrl?: Prisma.StringNullableFilter<"Lesson"> | string | null
   position?: Prisma.IntFilter<"Lesson"> | number
-  isPublished?: Prisma.BoolFilter<"Lesson"> | boolean
-  isFreePreview?: Prisma.BoolFilter<"Lesson"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Lesson"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Lesson"> | Date | string
   chapterId?: Prisma.StringFilter<"Lesson"> | string
+  content?: Prisma.StringNullableFilter<"Lesson"> | string | null
+  isFreePreview?: Prisma.BoolFilter<"Lesson"> | boolean
+  isPublished?: Prisma.BoolFilter<"Lesson"> | boolean
   lessonProgress?: Prisma.BoolFilter<"Lesson"> | boolean
   chapter?: Prisma.XOR<Prisma.ChapterScalarRelationFilter, Prisma.ChapterWhereInput>
   documents?: Prisma.LessonDocumentListRelationFilter
@@ -337,16 +337,16 @@ export type LessonOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   title?: Prisma.SortOrder
   description?: Prisma.SortOrderInput | Prisma.SortOrder
-  content?: Prisma.SortOrderInput | Prisma.SortOrder
   thumbnailKey?: Prisma.SortOrderInput | Prisma.SortOrder
   videoKey?: Prisma.SortOrderInput | Prisma.SortOrder
   youtubeUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   position?: Prisma.SortOrder
-  isPublished?: Prisma.SortOrder
-  isFreePreview?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   chapterId?: Prisma.SortOrder
+  content?: Prisma.SortOrderInput | Prisma.SortOrder
+  isFreePreview?: Prisma.SortOrder
+  isPublished?: Prisma.SortOrder
   lessonProgress?: Prisma.SortOrder
   _count?: Prisma.LessonCountOrderByAggregateInput
   _avg?: Prisma.LessonAvgOrderByAggregateInput
@@ -362,16 +362,16 @@ export type LessonScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"Lesson"> | string
   title?: Prisma.StringWithAggregatesFilter<"Lesson"> | string
   description?: Prisma.StringNullableWithAggregatesFilter<"Lesson"> | string | null
-  content?: Prisma.StringNullableWithAggregatesFilter<"Lesson"> | string | null
   thumbnailKey?: Prisma.StringNullableWithAggregatesFilter<"Lesson"> | string | null
   videoKey?: Prisma.StringNullableWithAggregatesFilter<"Lesson"> | string | null
   youtubeUrl?: Prisma.StringNullableWithAggregatesFilter<"Lesson"> | string | null
   position?: Prisma.IntWithAggregatesFilter<"Lesson"> | number
-  isPublished?: Prisma.BoolWithAggregatesFilter<"Lesson"> | boolean
-  isFreePreview?: Prisma.BoolWithAggregatesFilter<"Lesson"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Lesson"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Lesson"> | Date | string
   chapterId?: Prisma.StringWithAggregatesFilter<"Lesson"> | string
+  content?: Prisma.StringNullableWithAggregatesFilter<"Lesson"> | string | null
+  isFreePreview?: Prisma.BoolWithAggregatesFilter<"Lesson"> | boolean
+  isPublished?: Prisma.BoolWithAggregatesFilter<"Lesson"> | boolean
   lessonProgress?: Prisma.BoolWithAggregatesFilter<"Lesson"> | boolean
 }
 
@@ -379,15 +379,15 @@ export type LessonCreateInput = {
   id?: string
   title: string
   description?: string | null
-  content?: string | null
   thumbnailKey?: string | null
   videoKey?: string | null
   youtubeUrl?: string | null
   position: number
-  isPublished?: boolean
-  isFreePreview?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  content?: string | null
+  isFreePreview?: boolean
+  isPublished?: boolean
   lessonProgress?: boolean
   chapter: Prisma.ChapterCreateNestedOneWithoutLessonsInput
   documents?: Prisma.LessonDocumentCreateNestedManyWithoutLessonInput
@@ -397,16 +397,16 @@ export type LessonUncheckedCreateInput = {
   id?: string
   title: string
   description?: string | null
-  content?: string | null
   thumbnailKey?: string | null
   videoKey?: string | null
   youtubeUrl?: string | null
   position: number
-  isPublished?: boolean
-  isFreePreview?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   chapterId: string
+  content?: string | null
+  isFreePreview?: boolean
+  isPublished?: boolean
   lessonProgress?: boolean
   documents?: Prisma.LessonDocumentUncheckedCreateNestedManyWithoutLessonInput
 }
@@ -415,15 +415,15 @@ export type LessonUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnailKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   videoKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   youtubeUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.IntFieldUpdateOperationsInput | number
-  isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lessonProgress?: Prisma.BoolFieldUpdateOperationsInput | boolean
   chapter?: Prisma.ChapterUpdateOneRequiredWithoutLessonsNestedInput
   documents?: Prisma.LessonDocumentUpdateManyWithoutLessonNestedInput
@@ -433,16 +433,16 @@ export type LessonUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnailKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   videoKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   youtubeUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.IntFieldUpdateOperationsInput | number
-  isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   chapterId?: Prisma.StringFieldUpdateOperationsInput | string
+  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lessonProgress?: Prisma.BoolFieldUpdateOperationsInput | boolean
   documents?: Prisma.LessonDocumentUncheckedUpdateManyWithoutLessonNestedInput
 }
@@ -451,16 +451,16 @@ export type LessonCreateManyInput = {
   id?: string
   title: string
   description?: string | null
-  content?: string | null
   thumbnailKey?: string | null
   videoKey?: string | null
   youtubeUrl?: string | null
   position: number
-  isPublished?: boolean
-  isFreePreview?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   chapterId: string
+  content?: string | null
+  isFreePreview?: boolean
+  isPublished?: boolean
   lessonProgress?: boolean
 }
 
@@ -468,15 +468,15 @@ export type LessonUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnailKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   videoKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   youtubeUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.IntFieldUpdateOperationsInput | number
-  isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lessonProgress?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
@@ -484,16 +484,16 @@ export type LessonUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnailKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   videoKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   youtubeUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.IntFieldUpdateOperationsInput | number
-  isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   chapterId?: Prisma.StringFieldUpdateOperationsInput | string
+  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lessonProgress?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
@@ -516,16 +516,16 @@ export type LessonCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
-  content?: Prisma.SortOrder
   thumbnailKey?: Prisma.SortOrder
   videoKey?: Prisma.SortOrder
   youtubeUrl?: Prisma.SortOrder
   position?: Prisma.SortOrder
-  isPublished?: Prisma.SortOrder
-  isFreePreview?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   chapterId?: Prisma.SortOrder
+  content?: Prisma.SortOrder
+  isFreePreview?: Prisma.SortOrder
+  isPublished?: Prisma.SortOrder
   lessonProgress?: Prisma.SortOrder
 }
 
@@ -537,16 +537,16 @@ export type LessonMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
-  content?: Prisma.SortOrder
   thumbnailKey?: Prisma.SortOrder
   videoKey?: Prisma.SortOrder
   youtubeUrl?: Prisma.SortOrder
   position?: Prisma.SortOrder
-  isPublished?: Prisma.SortOrder
-  isFreePreview?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   chapterId?: Prisma.SortOrder
+  content?: Prisma.SortOrder
+  isFreePreview?: Prisma.SortOrder
+  isPublished?: Prisma.SortOrder
   lessonProgress?: Prisma.SortOrder
 }
 
@@ -554,16 +554,16 @@ export type LessonMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   title?: Prisma.SortOrder
   description?: Prisma.SortOrder
-  content?: Prisma.SortOrder
   thumbnailKey?: Prisma.SortOrder
   videoKey?: Prisma.SortOrder
   youtubeUrl?: Prisma.SortOrder
   position?: Prisma.SortOrder
-  isPublished?: Prisma.SortOrder
-  isFreePreview?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   chapterId?: Prisma.SortOrder
+  content?: Prisma.SortOrder
+  isFreePreview?: Prisma.SortOrder
+  isPublished?: Prisma.SortOrder
   lessonProgress?: Prisma.SortOrder
 }
 
@@ -636,15 +636,15 @@ export type LessonCreateWithoutChapterInput = {
   id?: string
   title: string
   description?: string | null
-  content?: string | null
   thumbnailKey?: string | null
   videoKey?: string | null
   youtubeUrl?: string | null
   position: number
-  isPublished?: boolean
-  isFreePreview?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  content?: string | null
+  isFreePreview?: boolean
+  isPublished?: boolean
   lessonProgress?: boolean
   documents?: Prisma.LessonDocumentCreateNestedManyWithoutLessonInput
 }
@@ -653,15 +653,15 @@ export type LessonUncheckedCreateWithoutChapterInput = {
   id?: string
   title: string
   description?: string | null
-  content?: string | null
   thumbnailKey?: string | null
   videoKey?: string | null
   youtubeUrl?: string | null
   position: number
-  isPublished?: boolean
-  isFreePreview?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  content?: string | null
+  isFreePreview?: boolean
+  isPublished?: boolean
   lessonProgress?: boolean
   documents?: Prisma.LessonDocumentUncheckedCreateNestedManyWithoutLessonInput
 }
@@ -699,16 +699,16 @@ export type LessonScalarWhereInput = {
   id?: Prisma.StringFilter<"Lesson"> | string
   title?: Prisma.StringFilter<"Lesson"> | string
   description?: Prisma.StringNullableFilter<"Lesson"> | string | null
-  content?: Prisma.StringNullableFilter<"Lesson"> | string | null
   thumbnailKey?: Prisma.StringNullableFilter<"Lesson"> | string | null
   videoKey?: Prisma.StringNullableFilter<"Lesson"> | string | null
   youtubeUrl?: Prisma.StringNullableFilter<"Lesson"> | string | null
   position?: Prisma.IntFilter<"Lesson"> | number
-  isPublished?: Prisma.BoolFilter<"Lesson"> | boolean
-  isFreePreview?: Prisma.BoolFilter<"Lesson"> | boolean
   createdAt?: Prisma.DateTimeFilter<"Lesson"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Lesson"> | Date | string
   chapterId?: Prisma.StringFilter<"Lesson"> | string
+  content?: Prisma.StringNullableFilter<"Lesson"> | string | null
+  isFreePreview?: Prisma.BoolFilter<"Lesson"> | boolean
+  isPublished?: Prisma.BoolFilter<"Lesson"> | boolean
   lessonProgress?: Prisma.BoolFilter<"Lesson"> | boolean
 }
 
@@ -716,15 +716,15 @@ export type LessonCreateWithoutDocumentsInput = {
   id?: string
   title: string
   description?: string | null
-  content?: string | null
   thumbnailKey?: string | null
   videoKey?: string | null
   youtubeUrl?: string | null
   position: number
-  isPublished?: boolean
-  isFreePreview?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  content?: string | null
+  isFreePreview?: boolean
+  isPublished?: boolean
   lessonProgress?: boolean
   chapter: Prisma.ChapterCreateNestedOneWithoutLessonsInput
 }
@@ -733,16 +733,16 @@ export type LessonUncheckedCreateWithoutDocumentsInput = {
   id?: string
   title: string
   description?: string | null
-  content?: string | null
   thumbnailKey?: string | null
   videoKey?: string | null
   youtubeUrl?: string | null
   position: number
-  isPublished?: boolean
-  isFreePreview?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
   chapterId: string
+  content?: string | null
+  isFreePreview?: boolean
+  isPublished?: boolean
   lessonProgress?: boolean
 }
 
@@ -766,15 +766,15 @@ export type LessonUpdateWithoutDocumentsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnailKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   videoKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   youtubeUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.IntFieldUpdateOperationsInput | number
-  isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lessonProgress?: Prisma.BoolFieldUpdateOperationsInput | boolean
   chapter?: Prisma.ChapterUpdateOneRequiredWithoutLessonsNestedInput
 }
@@ -783,16 +783,16 @@ export type LessonUncheckedUpdateWithoutDocumentsInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnailKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   videoKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   youtubeUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.IntFieldUpdateOperationsInput | number
-  isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   chapterId?: Prisma.StringFieldUpdateOperationsInput | string
+  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lessonProgress?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
@@ -800,15 +800,15 @@ export type LessonCreateManyChapterInput = {
   id?: string
   title: string
   description?: string | null
-  content?: string | null
   thumbnailKey?: string | null
   videoKey?: string | null
   youtubeUrl?: string | null
   position: number
-  isPublished?: boolean
-  isFreePreview?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
+  content?: string | null
+  isFreePreview?: boolean
+  isPublished?: boolean
   lessonProgress?: boolean
 }
 
@@ -816,15 +816,15 @@ export type LessonUpdateWithoutChapterInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnailKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   videoKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   youtubeUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.IntFieldUpdateOperationsInput | number
-  isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lessonProgress?: Prisma.BoolFieldUpdateOperationsInput | boolean
   documents?: Prisma.LessonDocumentUpdateManyWithoutLessonNestedInput
 }
@@ -833,15 +833,15 @@ export type LessonUncheckedUpdateWithoutChapterInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnailKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   videoKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   youtubeUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.IntFieldUpdateOperationsInput | number
-  isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lessonProgress?: Prisma.BoolFieldUpdateOperationsInput | boolean
   documents?: Prisma.LessonDocumentUncheckedUpdateManyWithoutLessonNestedInput
 }
@@ -850,15 +850,15 @@ export type LessonUncheckedUpdateManyWithoutChapterInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   title?: Prisma.StringFieldUpdateOperationsInput | string
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   thumbnailKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   videoKey?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   youtubeUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   position?: Prisma.IntFieldUpdateOperationsInput | number
-  isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
-  isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
   lessonProgress?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
@@ -897,16 +897,16 @@ export type LessonSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   id?: boolean
   title?: boolean
   description?: boolean
-  content?: boolean
   thumbnailKey?: boolean
   videoKey?: boolean
   youtubeUrl?: boolean
   position?: boolean
-  isPublished?: boolean
-  isFreePreview?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   chapterId?: boolean
+  content?: boolean
+  isFreePreview?: boolean
+  isPublished?: boolean
   lessonProgress?: boolean
   chapter?: boolean | Prisma.ChapterDefaultArgs<ExtArgs>
   documents?: boolean | Prisma.Lesson$documentsArgs<ExtArgs>
@@ -917,16 +917,16 @@ export type LessonSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   id?: boolean
   title?: boolean
   description?: boolean
-  content?: boolean
   thumbnailKey?: boolean
   videoKey?: boolean
   youtubeUrl?: boolean
   position?: boolean
-  isPublished?: boolean
-  isFreePreview?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   chapterId?: boolean
+  content?: boolean
+  isFreePreview?: boolean
+  isPublished?: boolean
   lessonProgress?: boolean
   chapter?: boolean | Prisma.ChapterDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["lesson"]>
@@ -935,16 +935,16 @@ export type LessonSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   id?: boolean
   title?: boolean
   description?: boolean
-  content?: boolean
   thumbnailKey?: boolean
   videoKey?: boolean
   youtubeUrl?: boolean
   position?: boolean
-  isPublished?: boolean
-  isFreePreview?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   chapterId?: boolean
+  content?: boolean
+  isFreePreview?: boolean
+  isPublished?: boolean
   lessonProgress?: boolean
   chapter?: boolean | Prisma.ChapterDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["lesson"]>
@@ -953,20 +953,20 @@ export type LessonSelectScalar = {
   id?: boolean
   title?: boolean
   description?: boolean
-  content?: boolean
   thumbnailKey?: boolean
   videoKey?: boolean
   youtubeUrl?: boolean
   position?: boolean
-  isPublished?: boolean
-  isFreePreview?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   chapterId?: boolean
+  content?: boolean
+  isFreePreview?: boolean
+  isPublished?: boolean
   lessonProgress?: boolean
 }
 
-export type LessonOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "description" | "content" | "thumbnailKey" | "videoKey" | "youtubeUrl" | "position" | "isPublished" | "isFreePreview" | "createdAt" | "updatedAt" | "chapterId" | "lessonProgress", ExtArgs["result"]["lesson"]>
+export type LessonOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "description" | "thumbnailKey" | "videoKey" | "youtubeUrl" | "position" | "createdAt" | "updatedAt" | "chapterId" | "content" | "isFreePreview" | "isPublished" | "lessonProgress", ExtArgs["result"]["lesson"]>
 export type LessonInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   chapter?: boolean | Prisma.ChapterDefaultArgs<ExtArgs>
   documents?: boolean | Prisma.Lesson$documentsArgs<ExtArgs>
@@ -989,16 +989,16 @@ export type $LessonPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     id: string
     title: string
     description: string | null
-    content: string | null
     thumbnailKey: string | null
     videoKey: string | null
     youtubeUrl: string | null
     position: number
-    isPublished: boolean
-    isFreePreview: boolean
     createdAt: Date
     updatedAt: Date
     chapterId: string
+    content: string | null
+    isFreePreview: boolean
+    isPublished: boolean
     lessonProgress: boolean
   }, ExtArgs["result"]["lesson"]>
   composites: {}
@@ -1428,16 +1428,16 @@ export interface LessonFieldRefs {
   readonly id: Prisma.FieldRef<"Lesson", 'String'>
   readonly title: Prisma.FieldRef<"Lesson", 'String'>
   readonly description: Prisma.FieldRef<"Lesson", 'String'>
-  readonly content: Prisma.FieldRef<"Lesson", 'String'>
   readonly thumbnailKey: Prisma.FieldRef<"Lesson", 'String'>
   readonly videoKey: Prisma.FieldRef<"Lesson", 'String'>
   readonly youtubeUrl: Prisma.FieldRef<"Lesson", 'String'>
   readonly position: Prisma.FieldRef<"Lesson", 'Int'>
-  readonly isPublished: Prisma.FieldRef<"Lesson", 'Boolean'>
-  readonly isFreePreview: Prisma.FieldRef<"Lesson", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"Lesson", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Lesson", 'DateTime'>
   readonly chapterId: Prisma.FieldRef<"Lesson", 'String'>
+  readonly content: Prisma.FieldRef<"Lesson", 'String'>
+  readonly isFreePreview: Prisma.FieldRef<"Lesson", 'Boolean'>
+  readonly isPublished: Prisma.FieldRef<"Lesson", 'Boolean'>
   readonly lessonProgress: Prisma.FieldRef<"Lesson", 'Boolean'>
 }
     

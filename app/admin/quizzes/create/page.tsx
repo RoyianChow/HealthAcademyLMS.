@@ -6,6 +6,15 @@ export default async function CreateQuizPage() {
     select: {
       id: true,
       title: true,
+      chapters: {
+        select: {
+          id: true,
+          title: true,
+        },
+        orderBy: {
+          position: "asc",
+        },
+      },
     },
     orderBy: {
       createdAt: "desc",
@@ -17,7 +26,7 @@ export default async function CreateQuizPage() {
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">Create Quiz</h1>
         <p className="text-muted-foreground">
-          Create a new quiz and connect it to one of your courses.
+          Create a new quiz and connect it to one of your course chapters.
         </p>
       </div>
 
@@ -28,7 +37,13 @@ export default async function CreateQuizPage() {
           title: "",
           description: "",
           courseId: "",
-          courses, // ✅ THIS FIXES YOUR DROPDOWN
+          chapterId: "",
+          courses,
+          isPublished: false,
+          passingScore: null,
+          timeLimitMinutes: null,
+          allowMultipleAttempts: false,
+          questions: [],
         }}
       />
     </div>

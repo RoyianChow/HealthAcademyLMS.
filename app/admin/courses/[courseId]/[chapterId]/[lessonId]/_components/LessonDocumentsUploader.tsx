@@ -1,123 +1,120 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Upload, FileText, X, Loader2 } from "lucide-react";
+import type { LessonDocumentSchemaType } from "@/lib/zodSchemas";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-
-type LessonDocument = {
-  id: string;
-  name: string;
-  fileKey: string;
-  fileUrl?: string | null;
-  fileType?: string | null;
-  fileSize?: number | null;
-};
+import { FileText, Trash, UploadCloud, Loader2 } from "lucide-react";
+import { useRef, useState } from "react";
+import { toast } from "sonner";
 
 type LessonDocumentsUploaderProps = {
-  value: LessonDocument[];
-  onChange: (documents: LessonDocument[]) => void;
+  value: LessonDocumentSchemaType[];
+  onChange: (value: LessonDocumentSchemaType[]) => void;
 };
-
-const ACCEPTED_DOCUMENT_TYPES = [
-  "application/pdf",
-  "text/csv",
-  "text/plain",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/vnd.ms-powerpoint",
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  "application/vnd.ms-excel",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-];
 
 export function LessonDocumentsUploader({
   value,
   onChange,
 }: LessonDocumentsUploaderProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
-  async function uploadSingleFile(file: File): Promise<LessonDocument> {
-    const res = await fetch("/api/lesson-documents/upload", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        fileName: file.name,
-        contentType: file.type,
-        size: file.size,
-      }),
-    });
-
-    if (!res.ok) {
-      throw new Error("Failed to get upload URL");
-    }
-
-    const data = await res.json();
-
-    const uploadRes = await fetch(data.url, {
-      method: "PUT",
-      headers: {
-        "Content-Type": file.type,
-      },
-      body: file,
-    });
-
-    if (!uploadRes.ok) {
-      throw new Error(`Failed to upload ${file.name}`);
-    }
-
-    return {
-      id: crypto.randomUUID(),
-      name: file.name,
-      fileKey: data.fileKey,
-      fileUrl: data.fileUrl ?? null,
-      fileType: file.type,
-      fileSize: file.size,
-    };
-  }
-
-  async function handleFiles(files: FileList | File[]) {
+  async function uploadFiles(files: FileList | File[]) {
     const fileArray = Array.from(files);
 
-    const invalidFiles = fileArray.filter(
-      (file) => !ACCEPTED_DOCUMENT_TYPES.includes(file.type)
-    );
+    if (fileArray.length === 0) return;
 
-    if (invalidFiles.length > 0) {
-      alert("Some files are not supported. Please upload PDF, DOCX, CSV, PPTX, XLSX, or TXT files.");
-      return;
-    }
+    setIsUploading(true);
 
     try {
-      setIsUploading(true);
-
-      const uploadedDocuments: LessonDocument[] = [];
+      const uploadedDocs: LessonDocumentSchemaType[] = [];
 
       for (const file of fileArray) {
-        const uploaded = await uploadSingleFile(file);
-        uploadedDocuments.push(uploaded);
+        const res = await fetch("/api/s3/upload", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+         body: JSON.stringify({
+          fileName: file.name,
+          contentType: file.type || "application/octet-stream",
+          size: file.size,
+          fileType: "document",
+        }),
+        });
+
+        if (!res.ok) {
+          throw new Error("Failed to create upload URL");
+        }
+
+        const uploadData = await res.json();
+
+        const uploadUrl = uploadData.url;
+        const fileKey = uploadData.fileKey;
+        const fileUrl = uploadData.fileUrl ?? null;
+
+        const uploadRes = await fetch(uploadUrl, {
+          method: "PUT",
+          headers: {
+            "Content-Type": file.type,
+          },
+          body: file,
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error("Failed to upload file");
+        }
+
+        uploadedDocs.push({
+          id: crypto.randomUUID(),
+          name: file.name,
+          fileKey,
+          fileUrl,
+          fileType: file.type || null,
+          fileSize: file.size,
+        });
       }
 
-      onChange([...value, ...uploadedDocuments]);
+      onChange([...value, ...uploadedDocs]);
+      toast.success("Document uploaded successfully");
     } catch (error) {
       console.error(error);
-      alert("Failed to upload one or more files.");
+      toast.error("Failed to upload document");
     } finally {
       setIsUploading(false);
+      setIsDragging(false);
+
+      if (inputRef.current) {
+        inputRef.current.value = "";
+      }
     }
   }
 
-  function handleRemove(id: string) {
-    onChange(value.filter((doc) => doc.id !== id));
+  function handleRemove(index: number) {
+    const newDocs = [...value];
+    newDocs.splice(index, 1);
+    onChange(newDocs);
   }
 
   return (
     <div className="space-y-4">
-      <div
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        className="hidden"
+        accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv"
+        onChange={(e) => {
+          if (e.target.files) {
+            uploadFiles(e.target.files);
+          }
+        }}
+      />
+
+      <button
+        type="button"
+        disabled={isUploading}
+        onClick={() => inputRef.current?.click()}
         onDragOver={(e) => {
           e.preventDefault();
           setIsDragging(true);
@@ -126,78 +123,48 @@ export function LessonDocumentsUploader({
         onDrop={(e) => {
           e.preventDefault();
           setIsDragging(false);
-          if (e.dataTransfer.files?.length) {
-            void handleFiles(e.dataTransfer.files);
+
+          if (e.dataTransfer.files) {
+            uploadFiles(e.dataTransfer.files);
           }
         }}
-        className={cn(
-          "rounded-2xl border border-dashed p-8 text-center transition",
+        className={`flex w-full flex-col items-center justify-center rounded-xl border border-dashed p-8 text-center transition ${
           isDragging
             ? "border-primary bg-primary/5"
-            : "border-border bg-muted/20"
-        )}
+            : "border-muted-foreground/25 hover:bg-muted/50"
+        }`}
       >
-        <div className="mx-auto flex max-w-md flex-col items-center gap-3">
-          <div className="flex size-12 items-center justify-center rounded-full bg-background shadow-sm">
-            {isUploading ? (
-              <Loader2 className="size-5 animate-spin" />
-            ) : (
-              <Upload className="size-5" />
-            )}
-          </div>
+        {isUploading ? (
+          <Loader2 className="mb-3 size-8 animate-spin text-muted-foreground" />
+        ) : (
+          <UploadCloud className="mb-3 size-8 text-muted-foreground" />
+        )}
 
-          <div className="space-y-1">
-            <h3 className="font-medium">Upload lesson documents</h3>
-            <p className="text-sm text-muted-foreground">
-              Drag and drop files here, or click below to browse.
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Supports PDF, DOC, DOCX, CSV, TXT, PPT, PPTX, XLS, XLSX
-            </p>
-          </div>
+        <p className="font-medium">
+          {isUploading ? "Uploading..." : "Click to upload or drag files here"}
+        </p>
 
-          <Button
-            type="button"
-            variant="outline"
-            className="rounded-full"
-            disabled={isUploading}
-            onClick={() => inputRef.current?.click()}
-          >
-            Choose Files
-          </Button>
-
-          <input
-            ref={inputRef}
-            type="file"
-            multiple
-            className="hidden"
-            accept=".pdf,.csv,.txt,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
-            onChange={(e) => {
-              if (e.target.files?.length) {
-                void handleFiles(e.target.files);
-              }
-            }}
-          />
-        </div>
-      </div>
+        <p className="mt-1 text-sm text-muted-foreground">
+          PDF, Word, PowerPoint, Excel, TXT, or CSV files
+        </p>
+      </button>
 
       {value.length > 0 && (
         <div className="space-y-3">
-          {value.map((doc) => (
+          {value.map((doc, index) => (
             <div
-              key={doc.id}
-              className="flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3"
+              key={doc.id ?? doc.fileKey ?? index}
+              className="flex items-center justify-between rounded-lg border p-3"
             >
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-lg bg-muted">
-                  <FileText className="size-4" />
-                </div>
+                <FileText className="size-5 shrink-0 text-muted-foreground" />
 
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{doc.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {doc.fileType || "Unknown type"}
-                    {doc.fileSize ? ` • ${formatBytes(doc.fileSize)}` : ""}
+                    {doc.fileSize
+                      ? `${(doc.fileSize / 1024 / 1024).toFixed(2)} MB`
+                      : "Uploaded document"}
                   </p>
                 </div>
               </div>
@@ -206,9 +173,9 @@ export function LessonDocumentsUploader({
                 type="button"
                 variant="ghost"
                 size="icon"
-                onClick={() => handleRemove(doc.id)}
+                onClick={() => handleRemove(index)}
               >
-                <X className="size-4" />
+                <Trash className="size-4 text-destructive" />
               </Button>
             </div>
           ))}
@@ -216,10 +183,4 @@ export function LessonDocumentsUploader({
       )}
     </div>
   );
-}
-
-function formatBytes(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

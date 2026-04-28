@@ -1,13 +1,16 @@
+import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { format } from "date-fns";
-
 import { EnrollmentStatus } from "@/src/generated/prisma";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 
 export default async function ProfilePage() {
   const session = await auth.api.getSession({
@@ -23,16 +26,67 @@ export default async function ProfilePage() {
       id: session.user.id,
     },
     include: {
-      accounts: true,
-      courses: true,
-      enrollments: {
+      courses: {
         include: {
-          course: true,
+          _count: {
+            select: {
+              chapters: true,
+              quizzes: true,
+              enrollments: true,
+            },
+          },
         },
       },
-      courseProgress: {
+
+      enrollments: {
+        orderBy: {
+          createdAt: "desc",
+        },
         include: {
-          course: true,
+          course: {
+            include: {
+              chapters: {
+                orderBy: {
+                  position: "asc",
+                },
+                include: {
+                  lessons: {
+                    orderBy: {
+                      position: "asc",
+                    },
+                    select: {
+                      id: true,
+                      lessonProgress: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+
+      quizAttempts: {
+        orderBy: {
+          createdAt: "desc",
+        },
+        include: {
+          quiz: {
+            include: {
+              course: {
+                select: {
+                  title: true,
+                  slug: true,
+                },
+              },
+              chapter: {
+                select: {
+                  title: true,
+                  position: true,
+                },
+              },
+            },
+          },
         },
       },
     },
@@ -42,29 +96,43 @@ export default async function ProfilePage() {
     redirect("/login");
   }
 
-  const coursesCreatedCount = user.courses.length;
-  const totalEnrollmentsCount = user.enrollments.length;
-
-  const activeEnrollmentsCount = user.enrollments.filter(
+  const activeEnrollments = user.enrollments.filter(
     (enrollment) => enrollment.status === EnrollmentStatus.Active
+  );
+
+  const enrolledCoursesWithProgress = user.enrollments.map((enrollment) => {
+    const progress = getCourseProgress(enrollment.course);
+
+    return {
+      enrollment,
+      ...progress,
+    };
+  });
+
+  const completedCoursesCount = enrolledCoursesWithProgress.filter(
+    (item) => item.progressPercentage === 100 && item.totalLessons > 0
   ).length;
 
-  const pendingEnrollmentsCount = user.enrollments.filter(
-    (enrollment) => enrollment.status === EnrollmentStatus.Pending
-  ).length;
+  const completedQuizAttempts = user.quizAttempts.filter(
+    (attempt) => attempt.isComplete
+  );
 
-  const cancelledEnrollmentsCount = user.enrollments.filter(
-    (enrollment) => enrollment.status === EnrollmentStatus.Cancelled
-  ).length;
+  const gradedAttempts = completedQuizAttempts.filter(
+    (attempt) => attempt.score !== null
+  );
 
-  const totalCourseProgressCount = user.courseProgress.length;
-
-  const completedCoursesCount = user.courseProgress.filter(
-    (progress) => progress.completed
-  ).length;
+  const averageQuizScore =
+    gradedAttempts.length > 0
+      ? Math.round(
+          gradedAttempts.reduce(
+            (total, attempt) => total + (attempt.score ?? 0),
+            0
+          ) / gradedAttempts.length
+        )
+      : null;
 
   return (
-    <div className="container mx-auto max-w-5xl px-4 py-10">
+    <div className="container mx-auto max-w-6xl px-4 py-10">
       <div className="space-y-6">
         <Card>
           <CardHeader>
@@ -108,178 +176,162 @@ export default async function ProfilePage() {
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <div className="rounded-xl border p-4">
-                <p className="text-muted-foreground text-sm">Full Name</p>
-                <p className="font-medium">{user.name}</p>
-              </div>
-
-              <div className="rounded-xl border p-4">
-                <p className="text-muted-foreground text-sm">Email Address</p>
-                <p className="font-medium break-all">{user.email}</p>
-              </div>
-
-              <div className="rounded-xl border p-4">
-                <p className="text-muted-foreground text-sm">Role</p>
-                <p className="font-medium capitalize">
-                  {user.role ?? "student"}
-                </p>
-              </div>
-
-              <div className="rounded-xl border p-4">
-                <p className="text-muted-foreground text-sm">
-                  Stripe Customer ID
-                </p>
-                <p className="font-medium break-all">
-                  {user.stripeCustomerId ?? "Not connected"}
-                </p>
-              </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Stat label="Active Courses" value={activeEnrollments.length} />
+              <Stat label="Completed Courses" value={completedCoursesCount} />
+              <Stat label="Quiz Attempts" value={completedQuizAttempts.length} />
+              <Stat
+                label="Average Quiz Score"
+                value={
+                  averageQuizScore !== null ? `${averageQuizScore}%` : "N/A"
+                }
+              />
             </div>
           </CardContent>
         </Card>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Learning Stats</CardTitle>
-            </CardHeader>
+        <Card>
+          <CardHeader>
+            <CardTitle>My Enrolled Courses</CardTitle>
+          </CardHeader>
 
-            <CardContent>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="rounded-xl border p-4">
-                  <p className="text-muted-foreground text-sm">
-                    Total Enrollments
-                  </p>
-                  <p className="text-2xl font-semibold">
-                    {totalEnrollmentsCount}
-                  </p>
-                </div>
-
-                <div className="rounded-xl border p-4">
-                  <p className="text-muted-foreground text-sm">
-                    Active Enrollments
-                  </p>
-                  <p className="text-2xl font-semibold">
-                    {activeEnrollmentsCount}
-                  </p>
-                </div>
-
-                <div className="rounded-xl border p-4">
-                  <p className="text-muted-foreground text-sm">
-                    Pending Enrollments
-                  </p>
-                  <p className="text-2xl font-semibold">
-                    {pendingEnrollmentsCount}
-                  </p>
-                </div>
-
-                <div className="rounded-xl border p-4">
-                  <p className="text-muted-foreground text-sm">
-                    Cancelled Enrollments
-                  </p>
-                  <p className="text-2xl font-semibold">
-                    {cancelledEnrollmentsCount}
-                  </p>
-                </div>
-
-                <div className="rounded-xl border p-4">
-                  <p className="text-muted-foreground text-sm">
-                    Course Progress Records
-                  </p>
-                  <p className="text-2xl font-semibold">
-                    {totalCourseProgressCount}
-                  </p>
-                </div>
-
-                <div className="rounded-xl border p-4">
-                  <p className="text-muted-foreground text-sm">
-                    Completed Courses
-                  </p>
-                  <p className="text-2xl font-semibold">
-                    {completedCoursesCount}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Creator Stats</CardTitle>
-            </CardHeader>
-
-            <CardContent>
-              <div className="grid gap-4">
-                <div className="rounded-xl border p-4">
-                  <p className="text-muted-foreground text-sm">
-                    Courses Created
-                  </p>
-                  <p className="text-2xl font-semibold">
-                    {coursesCreatedCount}
-                  </p>
-                </div>
-
-                <div className="rounded-xl border p-4">
-                  <p className="text-muted-foreground text-sm">
-                    Connected Providers
-                  </p>
-
-                  {user.accounts.length > 0 ? (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {user.accounts.map((account) => (
-                        <Badge key={account.id} variant="outline">
-                          {account.providerId}
-                        </Badge>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="font-medium">No connected providers</p>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>My Enrolled Courses</CardTitle>
-            </CardHeader>
-
-            <CardContent>
-              {user.enrollments.length > 0 ? (
-                <div className="space-y-3">
-                  {user.enrollments.map((enrollment) => (
+          <CardContent>
+            {enrolledCoursesWithProgress.length > 0 ? (
+              <div className="space-y-3">
+                {enrolledCoursesWithProgress.map(
+                  ({
+                    enrollment,
+                    totalLessons,
+                    completedLessons,
+                    progressPercentage,
+                  }) => (
                     <div
                       key={enrollment.id}
-                      className="flex items-center justify-between rounded-xl border p-4"
+                      className="space-y-3 rounded-xl border p-4"
                     >
-                      <div className="min-w-0">
-                        <p className="truncate font-medium">
-                          {enrollment.course.title}
-                        </p>
-                        <p className="text-muted-foreground text-sm">
-                          Enrolled on{" "}
-                          {format(new Date(enrollment.createdAt), "PPP")}
-                        </p>
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">
+                            {enrollment.course.title}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Enrolled on{" "}
+                            {format(new Date(enrollment.createdAt), "PPP")}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary">
+                            {enrollment.status}
+                          </Badge>
+
+                          {enrollment.status === EnrollmentStatus.Active ? (
+                            <Button asChild size="sm" variant="outline">
+                              <Link href={`/dashboard/${enrollment.course.slug}`}>
+                                Continue
+                              </Link>
+                            </Button>
+                          ) : null}
+                        </div>
                       </div>
 
-                      <Badge variant="secondary">{enrollment.status}</Badge>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-muted-foreground">
-                  You are not enrolled in any courses yet.
-                </p>
-              )}
-            </CardContent>
-          </Card>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            Course Progress
+                          </span>
+                          <span className="font-medium">
+                            {progressPercentage}%
+                          </span>
+                        </div>
 
+                        <Progress value={progressPercentage} className="h-2" />
+
+                        <p className="text-sm text-muted-foreground">
+                          {completedLessons} of {totalLessons} lessons completed
+                        </p>
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
+            ) : (
+              <p className="text-muted-foreground">
+                You are not enrolled in any courses yet.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Quiz History</CardTitle>
+          </CardHeader>
+
+          <CardContent>
+            {user.quizAttempts.length > 0 ? (
+              <div className="space-y-3">
+                {user.quizAttempts.map((attempt) => (
+                  <div
+                    key={attempt.id}
+                    className="grid gap-3 rounded-xl border p-4 md:grid-cols-[1fr_auto]"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-medium">
+                        {attempt.quiz.title}
+                      </p>
+
+                      <p className="text-sm text-muted-foreground">
+                        {attempt.quiz.course.title}
+                        {attempt.quiz.chapter
+                          ? ` • Chapter ${attempt.quiz.chapter.position}: ${attempt.quiz.chapter.title}`
+                          : ""}
+                      </p>
+
+                      {attempt.feedback ? (
+                        <p className="mt-2 text-sm text-muted-foreground">
+                          Feedback: {attempt.feedback}
+                        </p>
+                      ) : null}
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2 md:justify-end">
+                      <Badge variant="outline">
+                        Attempt #{attempt.attemptNumber}
+                      </Badge>
+
+                      <Badge
+                        variant={attempt.isComplete ? "default" : "secondary"}
+                      >
+                        {attempt.isComplete ? "Completed" : "In Progress"}
+                      </Badge>
+
+                      <Badge
+                        variant={attempt.isGraded ? "default" : "secondary"}
+                      >
+                        {attempt.isGraded ? "Graded" : "Pending"}
+                      </Badge>
+
+                      <Badge variant="outline">
+                        Score:{" "}
+                        {attempt.score !== null ? `${attempt.score}%` : "N/A"}
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-muted-foreground">
+                You have not attempted any quizzes yet.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {user.role === "admin" ? (
           <Card>
             <CardHeader>
-              <CardTitle>My Created Courses</CardTitle>
+              <CardTitle>Instructor Overview</CardTitle>
             </CardHeader>
 
             <CardContent>
@@ -288,12 +340,14 @@ export default async function ProfilePage() {
                   {user.courses.map((course) => (
                     <div
                       key={course.id}
-                      className="flex items-center justify-between rounded-xl border p-4"
+                      className="flex items-center justify-between gap-4 rounded-xl border p-4"
                     >
                       <div className="min-w-0">
                         <p className="truncate font-medium">{course.title}</p>
-                        <p className="text-muted-foreground text-sm">
-                          Created on {format(new Date(course.createdAt), "PPP")}
+                        <p className="text-sm text-muted-foreground">
+                          {course._count.chapters} chapters •{" "}
+                          {course._count.quizzes} quizzes •{" "}
+                          {course._count.enrollments} enrollments
                         </p>
                       </div>
 
@@ -308,8 +362,49 @@ export default async function ProfilePage() {
               )}
             </CardContent>
           </Card>
-        </div>
+        ) : null}
       </div>
+    </div>
+  );
+}
+
+function getCourseProgress(course: {
+  chapters: {
+    lessons: {
+      lessonProgress: boolean;
+    }[];
+  }[];
+}) {
+  let totalLessons = 0;
+  let completedLessons = 0;
+
+  course.chapters.forEach((chapter) => {
+    chapter.lessons.forEach((lesson) => {
+      totalLessons++;
+
+      if (lesson.lessonProgress) {
+        completedLessons++;
+      }
+    });
+  });
+
+  const progressPercentage =
+    totalLessons === 0
+      ? 0
+      : Math.round((completedLessons / totalLessons) * 100);
+
+  return {
+    totalLessons,
+    completedLessons,
+    progressPercentage,
+  };
+}
+
+function Stat({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded-xl border p-4">
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className="mt-1 text-2xl font-semibold">{value}</p>
     </div>
   );
 }

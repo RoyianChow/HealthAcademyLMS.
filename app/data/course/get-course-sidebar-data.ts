@@ -1,14 +1,14 @@
-import "server-only";
-import { requireUser } from "../user/require-user";
 import { prisma } from "@/lib/db";
+import { requireUser } from "../user/require-user";
 import { notFound } from "next/navigation";
+import { EnrollmentStatus } from "@/src/generated/prisma";
 
 export async function getCourseSidebarData(slug: string) {
   const session = await requireUser();
 
   const course = await prisma.course.findUnique({
     where: {
-      slug: slug,
+      slug,
     },
     select: {
       id: true,
@@ -18,7 +18,7 @@ export async function getCourseSidebarData(slug: string) {
       level: true,
       category: true,
       slug: true,
-      chapter: {
+      chapters: {
         orderBy: {
           position: "asc",
         },
@@ -35,16 +35,24 @@ export async function getCourseSidebarData(slug: string) {
               title: true,
               position: true,
               description: true,
-              lessonProgress: {
-                where: {
-                  userId: session.id,
-                },
-                select: {
-                  completed: true,
-                  lessonId: true,
-                  id: true,
-                },
-              },
+              isPublished: true,
+              isFreePreview: true,
+              lessonProgress: true,
+            },
+          },
+          quizzes: {
+            where: {
+              isPublished: true,
+            },
+            orderBy: {
+              createdAt: "asc",
+            },
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              isPublished: true,
+              chapterId: true,
             },
           },
         },
@@ -55,6 +63,7 @@ export async function getCourseSidebarData(slug: string) {
   if (!course) {
     return notFound();
   }
+
   const enrollment = await prisma.enrollment.findUnique({
     where: {
       userId_courseId: {
@@ -64,7 +73,7 @@ export async function getCourseSidebarData(slug: string) {
     },
   });
 
-  if (!enrollment || enrollment.status !== "Active") {
+  if (!enrollment || enrollment.status !== EnrollmentStatus.Active) {
     return notFound();
   }
 

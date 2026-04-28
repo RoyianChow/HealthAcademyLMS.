@@ -9,27 +9,20 @@ export async function markLessonComplete(
   lessonId: string,
   slug: string
 ): Promise<ApiResponse> {
-  const session = await requireUser();
+  await requireUser();
 
   try {
-    await prisma.lessonProgress.upsert({
+    await prisma.lesson.update({
       where: {
-        userId_lessonId: {
-          userId: session.id,
-          lessonId: lessonId,
-        },
+        id: lessonId,
       },
-      update: {
-        completed: true,
-      },
-      create: {
-        lessonId: lessonId,
-        userId: session.id,
-        completed: true,
+      data: {
+        lessonProgress: true,
       },
     });
 
     revalidatePath(`/dashboard/${slug}`);
+    revalidatePath(`/dashboard/${slug}/${lessonId}`);
 
     return {
       status: "success",

@@ -5,9 +5,18 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    const { title, description, courseId, questions } = body;
+    const {
+      title,
+      description,
+      courseId,
+      chapterId,
+      isPublished,
+      passingScore,
+      timeLimitMinutes,
+      allowMultipleAttempts,
+      questions,
+    } = body;
 
-    // 🔒 Validation
     if (!title?.trim()) {
       return NextResponse.json(
         { error: "Quiz title is required" },
@@ -18,6 +27,30 @@ export async function POST(req: Request) {
     if (!courseId) {
       return NextResponse.json(
         { error: "Course is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!chapterId) {
+      return NextResponse.json(
+        { error: "Chapter is required" },
+        { status: 400 }
+      );
+    }
+
+    const chapter = await prisma.chapter.findFirst({
+      where: {
+        id: chapterId,
+        courseId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!chapter) {
+      return NextResponse.json(
+        { error: "Selected chapter does not belong to this course" },
         { status: 400 }
       );
     }
@@ -65,22 +98,28 @@ export async function POST(req: Request) {
       }
     }
 
-    // 🧠 Create quiz with nested questions + options
     const quiz = await prisma.quiz.create({
       data: {
-        title,
-        description: description || null,
+        title: title.trim(),
+        description: description?.trim() || null,
         courseId,
+        chapterId,
+        isPublished: Boolean(isPublished),
+        passingScore: passingScore ?? null,
+        timeLimitMinutes: timeLimitMinutes ?? null,
+        allowMultipleAttempts: Boolean(allowMultipleAttempts),
         questions: {
           create: questions.map(
             (
               question: {
                 question: string;
+                explanation?: string | null;
                 options: { text: string; isCorrect: boolean }[];
               },
               questionIndex: number
             ) => ({
-              question: question.question,
+              question: question.question.trim(),
+              explanation: question.explanation?.trim() || null,
               position: questionIndex + 1,
               options: {
                 create: question.options.map(
@@ -88,8 +127,8 @@ export async function POST(req: Request) {
                     option: { text: string; isCorrect: boolean },
                     optionIndex: number
                   ) => ({
-                    text: option.text,
-                    isCorrect: option.isCorrect,
+                    text: option.text.trim(),
+                    isCorrect: Boolean(option.isCorrect),
                     position: optionIndex + 1,
                   })
                 ),

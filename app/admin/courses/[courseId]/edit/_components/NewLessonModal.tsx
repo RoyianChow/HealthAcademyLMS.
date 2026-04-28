@@ -39,7 +39,7 @@ export function NewLessonModal({
   const form = useForm<LessonSchemaType>({
     resolver: zodResolver(lessonSchema),
     defaultValues: {
-      name: "",
+      title: "",
       courseId: courseId,
       chapterId: chapterId,
     },
@@ -83,19 +83,19 @@ export function NewLessonModal({
         <DialogHeader>
           <DialogTitle>Create new lesson</DialogTitle>
           <DialogDescription>
-            What would you like to name your lesson?
+            What would you like to title your lesson?
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form className="space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
             <FormField
               control={form.control}
-              name="name"
+              name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel>Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="Lesson Name" {...field} />
+                    <Input placeholder="Lesson Title" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -1,11 +1,12 @@
-import { notFound } from "next/navigation";
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { CheckCircle2, Clock3, FileQuestion, RotateCcw } from "lucide-react";
 import { getQuiz } from "@/app/data/quiz/get-quiz";
 import { getOrCreateQuizAttempt } from "@/app/data/quiz/get-or-create-quiz-attempt";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { QuizAttempt } from "./_components/QuizAttempt";
-
+import { QuizBackButton } from "./_components/QuizBackButton";
 type PageProps = {
   params: Promise<{
     quizId: string;
@@ -26,136 +27,147 @@ export default async function QuizDetailsPage({ params }: PageProps) {
 
   const totalQuestions = quiz.questions.length;
   const canAttempt = !attempt.blocked;
+  const previousAttempts = Math.max(0, attempt.attemptNumber - 1);
 
   return (
-    <div className="w-full space-y-6 pb-12">
-      <section className="w-full overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
-        <div className="w-full px-6 py-8 md:px-8 md:py-10 xl:px-10">
-          <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:justify-between">
-            <div className="min-w-0 flex-1 space-y-5">
-              <div className="flex flex-wrap items-center gap-3">
-                <Badge
-                  variant="outline"
-                  className="rounded-full border-border px-4 py-1.5 text-xs uppercase tracking-[0.18em] text-foreground"
-                >
-                  Assessment
-                </Badge>
+    <main className="min-h-[calc(100vh-5rem)] bg-muted/20 px-4 py-6 md:px-8">
+      <div className="mx-auto w-full max-w-6xl space-y-6">
+        <div className="flex items-center justify-between gap-4">
+         <QuizBackButton
+  href={`/dashboard/${quiz.course.slug}`}
+  label={`Back to ${quiz.course.title}`}
+  shouldWarn={canAttempt && quiz.timeLimitMinutes !== null}
+/>
 
-                {quiz.course?.title ? (
-                  <Badge
-                    variant="secondary"
-                    className="rounded-full px-4 py-1.5"
-                  >
-                    {quiz.course.title}
-                  </Badge>
-                ) : null}
-
-                {quiz.passingScore !== null ? (
-                  <Badge
-                    variant="outline"
-                    className="rounded-full px-4 py-1.5"
-                  >
-                    Pass: {quiz.passingScore}%
-                  </Badge>
-                ) : null}
-
-                {quiz.allowMultipleAttempts ? (
-                  <Badge
-                    variant="outline"
-                    className="rounded-full px-4 py-1.5"
-                  >
-                    Multiple Attempts
-                  </Badge>
-                ) : (
-                  <Badge
-                    variant="outline"
-                    className="rounded-full px-4 py-1.5"
-                  >
-                    Single Attempt
-                  </Badge>
-                )}
-              </div>
-
-              <div className="space-y-3">
-                <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-                  {quiz.title}
-                </h1>
-
-                <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
-                  {quiz.description ??
-                    "Test your understanding and strengthen your learning with this quiz."}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-3 xl:max-w-[720px]">
-              <div className="rounded-2xl border border-border bg-background p-5 shadow-sm">
-                <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                  Questions
-                </p>
-                <p className="mt-2 text-3xl font-bold tracking-tight text-foreground">
-                  {totalQuestions}
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-border bg-background p-5 shadow-sm">
-                <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                  Format
-                </p>
-                <p className="mt-2 text-lg font-semibold tracking-tight text-foreground">
-                  Multiple Choice
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-border bg-background p-5 shadow-sm">
-                <p className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                  Time Limit
-                </p>
-                <p className="mt-2 text-lg font-semibold tracking-tight text-foreground">
-                  {quiz.timeLimitMinutes !== null
-                    ? `${quiz.timeLimitMinutes} min`
-                    : "No limit"}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-8 flex flex-col gap-4 border-t border-border pt-6 md:flex-row md:items-center md:justify-between">
-            <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
-              <span>
-                {totalQuestions} question{totalQuestions !== 1 ? "s" : ""}
-              </span>
-              <span>Choose one answer per question</span>
-              <span>Attempt #{attempt.attemptNumber}</span>
-              <span>
-                Previous attempts: {Math.max(0, attempt.attemptNumber - 1)}
-              </span>
-              {!canAttempt ? <span>No more attempts available</span> : null}
-            </div>
-
-            <Link
-              href="/quizzes"
-              className={buttonVariants({
-                variant: "outline",
-                className: "rounded-full px-5",
-              })}
-            >
-              Back to Quizzes
-            </Link>
-          </div>
+          <Badge variant={canAttempt ? "default" : "secondary"}>
+            {canAttempt ? "Available" : "Attempt Locked"}
+          </Badge>
         </div>
-      </section>
 
-      <section className="w-full rounded-3xl border border-border bg-card p-4 shadow-sm md:p-6">
-        <QuizAttempt
-          quiz={quiz}
-          attemptId={attempt.attemptId ?? ""}
-          startedAt={attempt.startedAt ? attempt.startedAt.toISOString() : ""}
-          canAttempt={canAttempt}
-          nextAttemptNumber={attempt.attemptNumber}
-          previousAttemptsCount={Math.max(0, attempt.attemptNumber)}
-        />
-      </section>
+        <section className="overflow-hidden rounded-3xl border bg-background shadow-sm">
+          <div className="border-b bg-gradient-to-br from-primary/10 via-background to-background p-6 md:p-8">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+              <div className="max-w-3xl space-y-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" className="rounded-full">
+                    Assessment
+                  </Badge>
+
+                  {quiz.chapter ? (
+                    <Badge variant="secondary" className="rounded-full">
+                      Chapter {quiz.chapter.position}: {quiz.chapter.title}
+                    </Badge>
+                  ) : null}
+
+                  <Badge variant="outline" className="rounded-full">
+                    {quiz.allowMultipleAttempts
+                      ? "Multiple attempts"
+                      : "Single attempt"}
+                  </Badge>
+                </div>
+
+                <div className="space-y-3">
+                  <h1 className="text-3xl font-bold tracking-tight md:text-5xl">
+                    {quiz.title}
+                  </h1>
+
+                  <p className="max-w-2xl text-sm leading-7 text-muted-foreground md:text-base">
+                    {quiz.description ??
+                      "Complete this quiz to check your understanding before moving forward in the course."}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 lg:w-[360px]">
+                <InfoCard
+                  icon={<FileQuestion className="size-5" />}
+                  label="Questions"
+                  value={String(totalQuestions)}
+                />
+
+                <InfoCard
+                  icon={<Clock3 className="size-5" />}
+                  label="Time Limit"
+                  value={
+                    quiz.timeLimitMinutes !== null
+                      ? `${quiz.timeLimitMinutes} min`
+                      : "No limit"
+                  }
+                />
+
+                <InfoCard
+                  icon={<CheckCircle2 className="size-5" />}
+                  label="Passing Score"
+                  value={
+                    quiz.passingScore !== null
+                      ? `${quiz.passingScore}%`
+                      : "Not set"
+                  }
+                />
+
+                <InfoCard
+                  icon={<RotateCcw className="size-5" />}
+                  label="Attempt"
+                  value={`#${attempt.attemptNumber}`}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between md:p-8">
+            <div className="space-y-1">
+              <p className="font-medium">
+                {canAttempt
+                  ? "Ready to start your quiz"
+                  : "You have already completed this quiz"}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {totalQuestions} question{totalQuestions !== 1 ? "s" : ""} ·
+                Choose the best answer for each question · Previous attempts:{" "}
+                {previousAttempts}
+              </p>
+            </div>
+
+            <Button asChild variant="outline" className="rounded-full">
+              <Link href="/quizzes">View All Quizzes</Link>
+            </Button>
+          </div>
+        </section>
+
+        <section className="rounded-3xl border bg-background p-4 shadow-sm md:p-6">
+          <QuizAttempt
+            quiz={quiz}
+            attemptId={attempt.attemptId ?? ""}
+            startedAt={attempt.startedAt ? attempt.startedAt.toISOString() : ""}
+            canAttempt={canAttempt}
+            nextAttemptNumber={attempt.attemptNumber}
+            previousAttemptsCount={previousAttempts}
+          />
+        </section>
+      </div>
+    </main>
+  );
+}
+
+function InfoCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-2xl border bg-background/80 p-4 shadow-sm backdrop-blur">
+      <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        {icon}
+      </div>
+
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </p>
+      <p className="mt-1 text-xl font-semibold tracking-tight">{value}</p>
     </div>
   );
 }

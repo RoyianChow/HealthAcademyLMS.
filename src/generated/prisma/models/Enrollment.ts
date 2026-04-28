@@ -37,39 +37,39 @@ export type EnrollmentMinAggregateOutputType = {
   id: string | null
   amount: number | null
   status: $Enums.EnrollmentStatus | null
-  stripeSessionId: string | null
-  stripePaymentId: string | null
-  purchasedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
   courseId: string | null
   userId: string | null
+  purchasedAt: Date | null
+  stripePaymentId: string | null
+  stripeSessionId: string | null
 }
 
 export type EnrollmentMaxAggregateOutputType = {
   id: string | null
   amount: number | null
   status: $Enums.EnrollmentStatus | null
-  stripeSessionId: string | null
-  stripePaymentId: string | null
-  purchasedAt: Date | null
   createdAt: Date | null
   updatedAt: Date | null
   courseId: string | null
   userId: string | null
+  purchasedAt: Date | null
+  stripePaymentId: string | null
+  stripeSessionId: string | null
 }
 
 export type EnrollmentCountAggregateOutputType = {
   id: number
   amount: number
   status: number
-  stripeSessionId: number
-  stripePaymentId: number
-  purchasedAt: number
   createdAt: number
   updatedAt: number
   courseId: number
   userId: number
+  purchasedAt: number
+  stripePaymentId: number
+  stripeSessionId: number
   _all: number
 }
 
@@ -86,39 +86,39 @@ export type EnrollmentMinAggregateInputType = {
   id?: true
   amount?: true
   status?: true
-  stripeSessionId?: true
-  stripePaymentId?: true
-  purchasedAt?: true
   createdAt?: true
   updatedAt?: true
   courseId?: true
   userId?: true
+  purchasedAt?: true
+  stripePaymentId?: true
+  stripeSessionId?: true
 }
 
 export type EnrollmentMaxAggregateInputType = {
   id?: true
   amount?: true
   status?: true
-  stripeSessionId?: true
-  stripePaymentId?: true
-  purchasedAt?: true
   createdAt?: true
   updatedAt?: true
   courseId?: true
   userId?: true
+  purchasedAt?: true
+  stripePaymentId?: true
+  stripeSessionId?: true
 }
 
 export type EnrollmentCountAggregateInputType = {
   id?: true
   amount?: true
   status?: true
-  stripeSessionId?: true
-  stripePaymentId?: true
-  purchasedAt?: true
   createdAt?: true
   updatedAt?: true
   courseId?: true
   userId?: true
+  purchasedAt?: true
+  stripePaymentId?: true
+  stripeSessionId?: true
   _all?: true
 }
 
@@ -212,13 +212,13 @@ export type EnrollmentGroupByOutputType = {
   id: string
   amount: number
   status: $Enums.EnrollmentStatus
-  stripeSessionId: string | null
-  stripePaymentId: string | null
-  purchasedAt: Date | null
   createdAt: Date
   updatedAt: Date
   courseId: string
   userId: string
+  purchasedAt: Date | null
+  stripePaymentId: string | null
+  stripeSessionId: string | null
   _count: EnrollmentCountAggregateOutputType | null
   _avg: EnrollmentAvgAggregateOutputType | null
   _sum: EnrollmentSumAggregateOutputType | null
@@ -248,13 +248,13 @@ export type EnrollmentWhereInput = {
   id?: Prisma.StringFilter<"Enrollment"> | string
   amount?: Prisma.IntFilter<"Enrollment"> | number
   status?: Prisma.EnumEnrollmentStatusFilter<"Enrollment"> | $Enums.EnrollmentStatus
-  stripeSessionId?: Prisma.StringNullableFilter<"Enrollment"> | string | null
-  stripePaymentId?: Prisma.StringNullableFilter<"Enrollment"> | string | null
-  purchasedAt?: Prisma.DateTimeNullableFilter<"Enrollment"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Enrollment"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Enrollment"> | Date | string
   courseId?: Prisma.StringFilter<"Enrollment"> | string
   userId?: Prisma.StringFilter<"Enrollment"> | string
+  purchasedAt?: Prisma.DateTimeNullableFilter<"Enrollment"> | Date | string | null
+  stripePaymentId?: Prisma.StringNullableFilter<"Enrollment"> | string | null
+  stripeSessionId?: Prisma.StringNullableFilter<"Enrollment"> | string | null
   course?: Prisma.XOR<Prisma.CourseScalarRelationFilter, Prisma.CourseWhereInput>
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
 }
@@ -263,13 +263,13 @@ export type EnrollmentOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   status?: Prisma.SortOrder
-  stripeSessionId?: Prisma.SortOrderInput | Prisma.SortOrder
-  stripePaymentId?: Prisma.SortOrderInput | Prisma.SortOrder
-  purchasedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   courseId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  purchasedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  stripePaymentId?: Prisma.SortOrderInput | Prisma.SortOrder
+  stripeSessionId?: Prisma.SortOrderInput | Prisma.SortOrder
   course?: Prisma.CourseOrderByWithRelationInput
   user?: Prisma.UserOrderByWithRelationInput
 }
@@ -282,13 +282,13 @@ export type EnrollmentWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.EnrollmentWhereInput | Prisma.EnrollmentWhereInput[]
   amount?: Prisma.IntFilter<"Enrollment"> | number
   status?: Prisma.EnumEnrollmentStatusFilter<"Enrollment"> | $Enums.EnrollmentStatus
-  stripeSessionId?: Prisma.StringNullableFilter<"Enrollment"> | string | null
-  stripePaymentId?: Prisma.StringNullableFilter<"Enrollment"> | string | null
-  purchasedAt?: Prisma.DateTimeNullableFilter<"Enrollment"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Enrollment"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Enrollment"> | Date | string
   courseId?: Prisma.StringFilter<"Enrollment"> | string
   userId?: Prisma.StringFilter<"Enrollment"> | string
+  purchasedAt?: Prisma.DateTimeNullableFilter<"Enrollment"> | Date | string | null
+  stripePaymentId?: Prisma.StringNullableFilter<"Enrollment"> | string | null
+  stripeSessionId?: Prisma.StringNullableFilter<"Enrollment"> | string | null
   course?: Prisma.XOR<Prisma.CourseScalarRelationFilter, Prisma.CourseWhereInput>
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
 }, "id" | "userId_courseId">
@@ -297,13 +297,13 @@ export type EnrollmentOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   status?: Prisma.SortOrder
-  stripeSessionId?: Prisma.SortOrderInput | Prisma.SortOrder
-  stripePaymentId?: Prisma.SortOrderInput | Prisma.SortOrder
-  purchasedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   courseId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  purchasedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  stripePaymentId?: Prisma.SortOrderInput | Prisma.SortOrder
+  stripeSessionId?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.EnrollmentCountOrderByAggregateInput
   _avg?: Prisma.EnrollmentAvgOrderByAggregateInput
   _max?: Prisma.EnrollmentMaxOrderByAggregateInput
@@ -318,24 +318,24 @@ export type EnrollmentScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"Enrollment"> | string
   amount?: Prisma.IntWithAggregatesFilter<"Enrollment"> | number
   status?: Prisma.EnumEnrollmentStatusWithAggregatesFilter<"Enrollment"> | $Enums.EnrollmentStatus
-  stripeSessionId?: Prisma.StringNullableWithAggregatesFilter<"Enrollment"> | string | null
-  stripePaymentId?: Prisma.StringNullableWithAggregatesFilter<"Enrollment"> | string | null
-  purchasedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Enrollment"> | Date | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Enrollment"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Enrollment"> | Date | string
   courseId?: Prisma.StringWithAggregatesFilter<"Enrollment"> | string
   userId?: Prisma.StringWithAggregatesFilter<"Enrollment"> | string
+  purchasedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Enrollment"> | Date | string | null
+  stripePaymentId?: Prisma.StringNullableWithAggregatesFilter<"Enrollment"> | string | null
+  stripeSessionId?: Prisma.StringNullableWithAggregatesFilter<"Enrollment"> | string | null
 }
 
 export type EnrollmentCreateInput = {
   id?: string
   amount: number
   status?: $Enums.EnrollmentStatus
-  stripeSessionId?: string | null
-  stripePaymentId?: string | null
-  purchasedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  purchasedAt?: Date | string | null
+  stripePaymentId?: string | null
+  stripeSessionId?: string | null
   course: Prisma.CourseCreateNestedOneWithoutEnrollmentsInput
   user: Prisma.UserCreateNestedOneWithoutEnrollmentsInput
 }
@@ -344,24 +344,24 @@ export type EnrollmentUncheckedCreateInput = {
   id?: string
   amount: number
   status?: $Enums.EnrollmentStatus
-  stripeSessionId?: string | null
-  stripePaymentId?: string | null
-  purchasedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   courseId: string
   userId: string
+  purchasedAt?: Date | string | null
+  stripePaymentId?: string | null
+  stripeSessionId?: string | null
 }
 
 export type EnrollmentUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumEnrollmentStatusFieldUpdateOperationsInput | $Enums.EnrollmentStatus
-  stripeSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  stripePaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  purchasedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  purchasedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  stripePaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  stripeSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   course?: Prisma.CourseUpdateOneRequiredWithoutEnrollmentsNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutEnrollmentsNestedInput
 }
@@ -370,50 +370,50 @@ export type EnrollmentUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumEnrollmentStatusFieldUpdateOperationsInput | $Enums.EnrollmentStatus
-  stripeSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  stripePaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  purchasedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   courseId?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
+  purchasedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  stripePaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  stripeSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type EnrollmentCreateManyInput = {
   id?: string
   amount: number
   status?: $Enums.EnrollmentStatus
-  stripeSessionId?: string | null
-  stripePaymentId?: string | null
-  purchasedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   courseId: string
   userId: string
+  purchasedAt?: Date | string | null
+  stripePaymentId?: string | null
+  stripeSessionId?: string | null
 }
 
 export type EnrollmentUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumEnrollmentStatusFieldUpdateOperationsInput | $Enums.EnrollmentStatus
-  stripeSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  stripePaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  purchasedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  purchasedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  stripePaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  stripeSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type EnrollmentUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumEnrollmentStatusFieldUpdateOperationsInput | $Enums.EnrollmentStatus
-  stripeSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  stripePaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  purchasedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   courseId?: Prisma.StringFieldUpdateOperationsInput | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
+  purchasedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  stripePaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  stripeSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type EnrollmentListRelationFilter = {
@@ -435,13 +435,13 @@ export type EnrollmentCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   status?: Prisma.SortOrder
-  stripeSessionId?: Prisma.SortOrder
-  stripePaymentId?: Prisma.SortOrder
-  purchasedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   courseId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  purchasedAt?: Prisma.SortOrder
+  stripePaymentId?: Prisma.SortOrder
+  stripeSessionId?: Prisma.SortOrder
 }
 
 export type EnrollmentAvgOrderByAggregateInput = {
@@ -452,26 +452,26 @@ export type EnrollmentMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   status?: Prisma.SortOrder
-  stripeSessionId?: Prisma.SortOrder
-  stripePaymentId?: Prisma.SortOrder
-  purchasedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   courseId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  purchasedAt?: Prisma.SortOrder
+  stripePaymentId?: Prisma.SortOrder
+  stripeSessionId?: Prisma.SortOrder
 }
 
 export type EnrollmentMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   amount?: Prisma.SortOrder
   status?: Prisma.SortOrder
-  stripeSessionId?: Prisma.SortOrder
-  stripePaymentId?: Prisma.SortOrder
-  purchasedAt?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   courseId?: Prisma.SortOrder
   userId?: Prisma.SortOrder
+  purchasedAt?: Prisma.SortOrder
+  stripePaymentId?: Prisma.SortOrder
+  stripeSessionId?: Prisma.SortOrder
 }
 
 export type EnrollmentSumOrderByAggregateInput = {
@@ -570,11 +570,11 @@ export type EnrollmentCreateWithoutUserInput = {
   id?: string
   amount: number
   status?: $Enums.EnrollmentStatus
-  stripeSessionId?: string | null
-  stripePaymentId?: string | null
-  purchasedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  purchasedAt?: Date | string | null
+  stripePaymentId?: string | null
+  stripeSessionId?: string | null
   course: Prisma.CourseCreateNestedOneWithoutEnrollmentsInput
 }
 
@@ -582,12 +582,12 @@ export type EnrollmentUncheckedCreateWithoutUserInput = {
   id?: string
   amount: number
   status?: $Enums.EnrollmentStatus
-  stripeSessionId?: string | null
-  stripePaymentId?: string | null
-  purchasedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   courseId: string
+  purchasedAt?: Date | string | null
+  stripePaymentId?: string | null
+  stripeSessionId?: string | null
 }
 
 export type EnrollmentCreateOrConnectWithoutUserInput = {
@@ -623,24 +623,24 @@ export type EnrollmentScalarWhereInput = {
   id?: Prisma.StringFilter<"Enrollment"> | string
   amount?: Prisma.IntFilter<"Enrollment"> | number
   status?: Prisma.EnumEnrollmentStatusFilter<"Enrollment"> | $Enums.EnrollmentStatus
-  stripeSessionId?: Prisma.StringNullableFilter<"Enrollment"> | string | null
-  stripePaymentId?: Prisma.StringNullableFilter<"Enrollment"> | string | null
-  purchasedAt?: Prisma.DateTimeNullableFilter<"Enrollment"> | Date | string | null
   createdAt?: Prisma.DateTimeFilter<"Enrollment"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Enrollment"> | Date | string
   courseId?: Prisma.StringFilter<"Enrollment"> | string
   userId?: Prisma.StringFilter<"Enrollment"> | string
+  purchasedAt?: Prisma.DateTimeNullableFilter<"Enrollment"> | Date | string | null
+  stripePaymentId?: Prisma.StringNullableFilter<"Enrollment"> | string | null
+  stripeSessionId?: Prisma.StringNullableFilter<"Enrollment"> | string | null
 }
 
 export type EnrollmentCreateWithoutCourseInput = {
   id?: string
   amount: number
   status?: $Enums.EnrollmentStatus
-  stripeSessionId?: string | null
-  stripePaymentId?: string | null
-  purchasedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  purchasedAt?: Date | string | null
+  stripePaymentId?: string | null
+  stripeSessionId?: string | null
   user: Prisma.UserCreateNestedOneWithoutEnrollmentsInput
 }
 
@@ -648,12 +648,12 @@ export type EnrollmentUncheckedCreateWithoutCourseInput = {
   id?: string
   amount: number
   status?: $Enums.EnrollmentStatus
-  stripeSessionId?: string | null
-  stripePaymentId?: string | null
-  purchasedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   userId: string
+  purchasedAt?: Date | string | null
+  stripePaymentId?: string | null
+  stripeSessionId?: string | null
 }
 
 export type EnrollmentCreateOrConnectWithoutCourseInput = {
@@ -686,23 +686,23 @@ export type EnrollmentCreateManyUserInput = {
   id?: string
   amount: number
   status?: $Enums.EnrollmentStatus
-  stripeSessionId?: string | null
-  stripePaymentId?: string | null
-  purchasedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   courseId: string
+  purchasedAt?: Date | string | null
+  stripePaymentId?: string | null
+  stripeSessionId?: string | null
 }
 
 export type EnrollmentUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumEnrollmentStatusFieldUpdateOperationsInput | $Enums.EnrollmentStatus
-  stripeSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  stripePaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  purchasedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  purchasedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  stripePaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  stripeSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   course?: Prisma.CourseUpdateOneRequiredWithoutEnrollmentsNestedInput
 }
 
@@ -710,47 +710,47 @@ export type EnrollmentUncheckedUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumEnrollmentStatusFieldUpdateOperationsInput | $Enums.EnrollmentStatus
-  stripeSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  stripePaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  purchasedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   courseId?: Prisma.StringFieldUpdateOperationsInput | string
+  purchasedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  stripePaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  stripeSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type EnrollmentUncheckedUpdateManyWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumEnrollmentStatusFieldUpdateOperationsInput | $Enums.EnrollmentStatus
-  stripeSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  stripePaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  purchasedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   courseId?: Prisma.StringFieldUpdateOperationsInput | string
+  purchasedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  stripePaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  stripeSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type EnrollmentCreateManyCourseInput = {
   id?: string
   amount: number
   status?: $Enums.EnrollmentStatus
-  stripeSessionId?: string | null
-  stripePaymentId?: string | null
-  purchasedAt?: Date | string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   userId: string
+  purchasedAt?: Date | string | null
+  stripePaymentId?: string | null
+  stripeSessionId?: string | null
 }
 
 export type EnrollmentUpdateWithoutCourseInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumEnrollmentStatusFieldUpdateOperationsInput | $Enums.EnrollmentStatus
-  stripeSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  stripePaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  purchasedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  purchasedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  stripePaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  stripeSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   user?: Prisma.UserUpdateOneRequiredWithoutEnrollmentsNestedInput
 }
 
@@ -758,24 +758,24 @@ export type EnrollmentUncheckedUpdateWithoutCourseInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumEnrollmentStatusFieldUpdateOperationsInput | $Enums.EnrollmentStatus
-  stripeSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  stripePaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  purchasedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
+  purchasedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  stripePaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  stripeSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type EnrollmentUncheckedUpdateManyWithoutCourseInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   amount?: Prisma.IntFieldUpdateOperationsInput | number
   status?: Prisma.EnumEnrollmentStatusFieldUpdateOperationsInput | $Enums.EnrollmentStatus
-  stripeSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  stripePaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  purchasedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   userId?: Prisma.StringFieldUpdateOperationsInput | string
+  purchasedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  stripePaymentId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  stripeSessionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -784,13 +784,13 @@ export type EnrollmentSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   id?: boolean
   amount?: boolean
   status?: boolean
-  stripeSessionId?: boolean
-  stripePaymentId?: boolean
-  purchasedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   courseId?: boolean
   userId?: boolean
+  purchasedAt?: boolean
+  stripePaymentId?: boolean
+  stripeSessionId?: boolean
   course?: boolean | Prisma.CourseDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["enrollment"]>
@@ -799,13 +799,13 @@ export type EnrollmentSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   id?: boolean
   amount?: boolean
   status?: boolean
-  stripeSessionId?: boolean
-  stripePaymentId?: boolean
-  purchasedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   courseId?: boolean
   userId?: boolean
+  purchasedAt?: boolean
+  stripePaymentId?: boolean
+  stripeSessionId?: boolean
   course?: boolean | Prisma.CourseDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["enrollment"]>
@@ -814,13 +814,13 @@ export type EnrollmentSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   id?: boolean
   amount?: boolean
   status?: boolean
-  stripeSessionId?: boolean
-  stripePaymentId?: boolean
-  purchasedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   courseId?: boolean
   userId?: boolean
+  purchasedAt?: boolean
+  stripePaymentId?: boolean
+  stripeSessionId?: boolean
   course?: boolean | Prisma.CourseDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["enrollment"]>
@@ -829,16 +829,16 @@ export type EnrollmentSelectScalar = {
   id?: boolean
   amount?: boolean
   status?: boolean
-  stripeSessionId?: boolean
-  stripePaymentId?: boolean
-  purchasedAt?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   courseId?: boolean
   userId?: boolean
+  purchasedAt?: boolean
+  stripePaymentId?: boolean
+  stripeSessionId?: boolean
 }
 
-export type EnrollmentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "amount" | "status" | "stripeSessionId" | "stripePaymentId" | "purchasedAt" | "createdAt" | "updatedAt" | "courseId" | "userId", ExtArgs["result"]["enrollment"]>
+export type EnrollmentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "amount" | "status" | "createdAt" | "updatedAt" | "courseId" | "userId" | "purchasedAt" | "stripePaymentId" | "stripeSessionId", ExtArgs["result"]["enrollment"]>
 export type EnrollmentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   course?: boolean | Prisma.CourseDefaultArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -862,13 +862,13 @@ export type $EnrollmentPayload<ExtArgs extends runtime.Types.Extensions.Internal
     id: string
     amount: number
     status: $Enums.EnrollmentStatus
-    stripeSessionId: string | null
-    stripePaymentId: string | null
-    purchasedAt: Date | null
     createdAt: Date
     updatedAt: Date
     courseId: string
     userId: string
+    purchasedAt: Date | null
+    stripePaymentId: string | null
+    stripeSessionId: string | null
   }, ExtArgs["result"]["enrollment"]>
   composites: {}
 }
@@ -1297,13 +1297,13 @@ export interface EnrollmentFieldRefs {
   readonly id: Prisma.FieldRef<"Enrollment", 'String'>
   readonly amount: Prisma.FieldRef<"Enrollment", 'Int'>
   readonly status: Prisma.FieldRef<"Enrollment", 'EnrollmentStatus'>
-  readonly stripeSessionId: Prisma.FieldRef<"Enrollment", 'String'>
-  readonly stripePaymentId: Prisma.FieldRef<"Enrollment", 'String'>
-  readonly purchasedAt: Prisma.FieldRef<"Enrollment", 'DateTime'>
   readonly createdAt: Prisma.FieldRef<"Enrollment", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Enrollment", 'DateTime'>
   readonly courseId: Prisma.FieldRef<"Enrollment", 'String'>
   readonly userId: Prisma.FieldRef<"Enrollment", 'String'>
+  readonly purchasedAt: Prisma.FieldRef<"Enrollment", 'DateTime'>
+  readonly stripePaymentId: Prisma.FieldRef<"Enrollment", 'String'>
+  readonly stripeSessionId: Prisma.FieldRef<"Enrollment", 'String'>
 }
     
 

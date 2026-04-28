@@ -1,7 +1,6 @@
-import "server-only";
-
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/app/data/user/require-user";
+import { CourseStatus, EnrollmentStatus } from "@/src/generated/prisma";
 
 export async function getQuizAttemptAccess(quizId: string) {
   const user = await requireUser();
@@ -10,9 +9,24 @@ export async function getQuizAttemptAccess(quizId: string) {
     where: {
       id: quizId,
       isPublished: true,
+      chapterId: {
+        not: null,
+      },
+      course: {
+        is: {
+          status: CourseStatus.Published,
+          enrollments: {
+            some: {
+              userId: user.id,
+              status: EnrollmentStatus.Active,
+            },
+          },
+        },
+      },
     },
     select: {
       id: true,
+      chapterId: true,
       allowMultipleAttempts: true,
       attempts: {
         where: {
@@ -39,6 +53,7 @@ export async function getQuizAttemptAccess(quizId: string) {
   }
 
   const previousAttemptsCount = quiz.attempts.length;
+
   const nextAttemptNumber =
     previousAttemptsCount > 0 ? quiz.attempts[0].attemptNumber + 1 : 1;
 

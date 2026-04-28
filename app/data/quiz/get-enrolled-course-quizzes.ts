@@ -15,6 +15,9 @@ export async function getEnrolledCourseQuizzes() {
   return prisma.quiz.findMany({
     where: {
       isPublished: true,
+      chapterId: {
+        not: null,
+      },
       course: {
         is: {
           status: CourseStatus.Published,
@@ -37,6 +40,14 @@ export async function getEnrolledCourseQuizzes() {
       isPublished: true,
       passingScore: true,
       timeLimitMinutes: true,
+      chapterId: true,
+      chapter: {
+        select: {
+          id: true,
+          title: true,
+          position: true,
+        },
+      },
       course: {
         select: {
           id: true,
@@ -45,6 +56,9 @@ export async function getEnrolledCourseQuizzes() {
         },
       },
       questions: {
+        orderBy: {
+          position: "asc",
+        },
         select: {
           id: true,
           question: true,
@@ -60,37 +74,34 @@ export async function getEnrolledCourseQuizzes() {
             },
           },
         },
-        orderBy: {
-          position: "asc",
-        },
       },
       attempts: {
-        where: {
-          userId: session.user.id,
-          isComplete: true,
-        },
-        orderBy: {
-          attemptNumber: "desc",
-        },
-        take: 1,
-        select: {
-          id: true,
-          score: true,
-          attemptNumber: true,
-          submittedAt: true,
-          isComplete: true,
-          isGraded: true,
-          feedback: true,
-          answers: {
-            select: {
-              id: true,
-              questionId: true,
-              selectedOptionId: true,
-              isCorrect: true,
-            },
-          },
-        },
+  where: {
+    userId: session.user.id,
+    isComplete: true,
+  },
+  orderBy: {
+    submittedAt: "desc",
+  },
+  take: 1,
+  select: {
+    id: true,
+    score: true,
+    attemptNumber: true,
+    submittedAt: true,
+    isComplete: true,
+    isGraded: true,
+    feedback: true,
+    answers: {
+      select: {
+        id: true,
+        questionId: true,
+        selectedOptionId: true,
+        isCorrect: true,
       },
+    },
+  },
+},
     },
   });
 }

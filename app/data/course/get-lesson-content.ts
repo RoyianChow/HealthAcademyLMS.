@@ -1,7 +1,8 @@
-import "server-only";
-import { requireUser } from "../user/require-user";
+
 import { prisma } from "@/lib/db";
+import { requireUser } from "../user/require-user";
 import { notFound } from "next/navigation";
+import { EnrollmentStatus } from "@/src/generated/prisma";
 
 export async function getLessonContent(lessonId: string) {
   const session = await requireUser();
@@ -14,24 +15,19 @@ export async function getLessonContent(lessonId: string) {
       id: true,
       title: true,
       description: true,
+      content: true,
       thumbnailKey: true,
       videoKey: true,
-      youtubeUrl:true,
+      youtubeUrl: true,
       documents: true,
       position: true,
-      lessonProgress: {
-        where: {
-          userId: session.id,
-        },
-        select: {
-          completed: true,
-          lessonId: true,
-        },
-      },
-      Chapter: {
+      isPublished: true,
+      isFreePreview: true,
+      lessonProgress: true,
+      chapter: {
         select: {
           courseId: true,
-          Course: {
+          course: {
             select: {
               slug: true,
             },
@@ -49,7 +45,7 @@ export async function getLessonContent(lessonId: string) {
     where: {
       userId_courseId: {
         userId: session.id,
-        courseId: lesson.Chapter.courseId,
+        courseId: lesson.chapter.courseId,
       },
     },
     select: {
@@ -57,9 +53,10 @@ export async function getLessonContent(lessonId: string) {
     },
   });
 
-  if (!enrollment || enrollment.status !== "Active") {
+  if (!enrollment || enrollment.status !== EnrollmentStatus.Active) {
     return notFound();
   }
+
   return lesson;
 }
 

@@ -79,12 +79,20 @@ async function RenderQuizzes() {
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
         {quizzes.map((quiz) => {
           const latestAttempt = quiz.attempts?.[0];
-          const isCompleted = !!latestAttempt?.isComplete;
+
+          // ✅ safer completion check
+          const isCompleted =
+            !!latestAttempt &&
+            latestAttempt.isComplete === true &&
+            latestAttempt.score !== null &&
+            latestAttempt.score !== undefined;
+
+          // ✅ safer passed logic
           const passed =
             isCompleted &&
+            quiz.passingScore !== null &&
             latestAttempt.score !== null &&
-            latestAttempt.score !== undefined &&
-            (quiz.passingScore ?? 0) <= latestAttempt.score;
+            latestAttempt.score >= quiz.passingScore;
 
           return (
             <Card
@@ -123,21 +131,21 @@ async function RenderQuizzes() {
                     </span>
                   </div>
 
-                  {quiz.timeLimitMinutes !== null ? (
+                  {quiz.timeLimitMinutes !== null && (
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Time Limit</span>
                       <span className="font-medium">
                         {quiz.timeLimitMinutes} min
                       </span>
                     </div>
-                  ) : null}
+                  )}
 
                   {isCompleted ? (
                     <>
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Score</span>
                         <span className="font-semibold">
-                          {latestAttempt.score ?? 0}%
+                          {latestAttempt.score}%
                         </span>
                       </div>
 
@@ -148,7 +156,7 @@ async function RenderQuizzes() {
                         </span>
                       </div>
 
-                      {quiz.passingScore !== null ? (
+                      {quiz.passingScore !== null && (
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-muted-foreground">Result</span>
                           <span
@@ -159,7 +167,7 @@ async function RenderQuizzes() {
                             {passed ? "Passed" : "Failed"}
                           </span>
                         </div>
-                      ) : null}
+                      )}
                     </>
                   ) : (
                     <div className="text-sm text-muted-foreground">
