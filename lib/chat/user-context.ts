@@ -1,6 +1,6 @@
 import "server-only";
 
-import { mockUsers } from "@/data/mock-chat-data";
+import { mockUsers } from "@/app/data/mock-chat-data";
 import { getChatConfig } from "@/lib/chat/config";
 import type { ChatUserContext } from "@/lib/chat/types";
 

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 const configSchema = z.object({
-  OPENAI_API_KEY: z.string().min(1).optional(),
+  OPENAI_API_KEY: z.string().optional(),
   OPENAI_MODEL: z.string().min(1).default("gpt-4o-mini"),
   CHATBOT_DEFAULT_USER_ID: z.string().min(1).default("user-alex"),
 });

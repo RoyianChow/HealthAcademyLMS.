@@ -1,6 +1,6 @@
 import "server-only";
 
-import { mockCourses } from "@/data/mock-chat-data";
+import { mockCourses } from "@/app/data/mock-chat-data";
 import type {
   ChatBootstrapCourseSummary,
   ChatCourse,
