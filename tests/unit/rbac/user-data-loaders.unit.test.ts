@@ -3,6 +3,9 @@
  *
  * Verifies unauthenticated callers are redirected to /login before Prisma runs,
  * and enrollment / access rules for course + quiz loaders.
+ *
+ * Some getQuizAttemptAccess cases also appear in quiz-data-loaders.unit.test.ts;
+ * both files keep overlapping assertions near their respective loader suites.
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -74,36 +77,50 @@ describe("User data loaders — unauthenticated", () => {
     mockGetSession.mockResolvedValue(null);
   });
 
+  /** requireUser() inside getEnrolledCourses redirects to /login before the
+   *  enrollment list query; no enrollment data is returned to anonymous callers. */
   it("getEnrolledCourses redirects to /login before prisma.enrollment.findMany", async () => {
     await expectLoginRedirect(() => getEnrolledCourses());
     expect(prisma.enrollment.findMany).not.toHaveBeenCalled();
   });
 
+  /** requireUser() inside getCourseSidebarData redirects to /login before the
+   *  course lookup; the sidebar data (chapters, lessons) is never fetched. */
   it("getCourseSidebarData redirects to /login before prisma.course.findUnique", async () => {
     await expectLoginRedirect(() => getCourseSidebarData("my-course"));
     expect(prisma.course.findUnique).not.toHaveBeenCalled();
   });
 
+  /** requireUser() inside getLessonContent redirects to /login before the
+   *  lesson lookup; lesson content and video keys are never returned. */
   it("getLessonContent redirects to /login before prisma.lesson.findUnique", async () => {
     await expectLoginRedirect(() => getLessonContent("lesson-1"));
     expect(prisma.lesson.findUnique).not.toHaveBeenCalled();
   });
 
+  /** requireUser() inside getQuiz redirects to /login before the quiz query;
+   *  quiz questions are never exposed to unauthenticated callers. */
   it("getQuiz redirects to /login before prisma.quiz.findFirst", async () => {
     await expectLoginRedirect(() => getQuiz("quiz-1"));
     expect(prisma.quiz.findFirst).not.toHaveBeenCalled();
   });
 
+  /** requireUser() inside getOrCreateQuizAttempt redirects to /login before
+   *  any Prisma call; no attempt is created or read for anonymous callers. */
   it("getOrCreateQuizAttempt redirects to /login before prisma.quiz.findFirst", async () => {
     await expectLoginRedirect(() => getOrCreateQuizAttempt("quiz-1"));
     expect(prisma.quiz.findFirst).not.toHaveBeenCalled();
   });
 
+  /** requireUser() inside getQuizAttemptAccess redirects to /login before the
+   *  quiz access check; canAttempt is never evaluated for anonymous callers. */
   it("getQuizAttemptAccess redirects to /login before prisma.quiz.findFirst", async () => {
     await expectLoginRedirect(() => getQuizAttemptAccess("quiz-1"));
     expect(prisma.quiz.findFirst).not.toHaveBeenCalled();
   });
 
+  /** requireUser() inside getEnrolledCourseQuizzes redirects to /login before
+   *  the quiz list query; enrolled-quiz data is never returned. */
   it("getEnrolledCourseQuizzes redirects to /login before prisma.quiz.findMany", async () => {
     await expectLoginRedirect(() => getEnrolledCourseQuizzes());
     expect(prisma.quiz.findMany).not.toHaveBeenCalled();
@@ -116,7 +133,43 @@ describe("User data loaders — authenticated enrollment rules", () => {
     mockGetSession.mockResolvedValue(USER_SESSION);
   });
 
+  describe("getEnrolledCourses", () => {
+    /** Logged-in users receive their Active enrollments mapped to course objects;
+     *  verifies findMany is scoped to session user id and EnrollmentStatus.Active. */
+    it("returns courses for authenticated user with Active enrollments only", async () => {
+      const coursePayload = {
+        id: "course-1",
+        title: "My course",
+        smallDescription: "Short",
+        fileKey: "k",
+        thumbnailKey: null,
+        level: "beginner",
+        slug: "my-course",
+        duration: "2h",
+        courseProgress: [],
+        chapters: [],
+      };
+      vi.mocked(prisma.enrollment.findMany).mockResolvedValue([
+        { course: coursePayload },
+      ] as never);
+
+      const result = await getEnrolledCourses();
+
+      expect(prisma.enrollment.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            userId: "user-123",
+            status: "Active",
+          },
+        })
+      );
+      expect(result).toEqual([coursePayload]);
+    });
+  });
+
   describe("getCourseSidebarData", () => {
+    /** An unknown slug means the course does not exist; notFound() is thrown
+     *  and the enrollment check is skipped since there is nothing to enroll in. */
     it("calls notFound when course slug does not exist", async () => {
       vi.mocked(prisma.course.findUnique).mockResolvedValue(null);
 
@@ -126,6 +179,8 @@ describe("User data loaders — authenticated enrollment rules", () => {
       expect(prisma.enrollment.findUnique).not.toHaveBeenCalled();
     });
 
+    /** Course exists but the user has no enrollment row for it; notFound() is
+     *  thrown to prevent unenrolled users from accessing the course sidebar. */
     it("calls notFound when user has no enrollment for the course", async () => {
       vi.mocked(prisma.course.findUnique).mockResolvedValue({
         id: "course-1",
@@ -145,6 +200,8 @@ describe("User data loaders — authenticated enrollment rules", () => {
       expect(prisma.enrollment.findUnique).toHaveBeenCalled();
     });
 
+    /** An Inactive enrollment means the user's access has been revoked; the
+     *  sidebar should be inaccessible even though an enrollment row exists. */
     it("calls notFound when enrollment status is Inactive", async () => {
       vi.mocked(prisma.course.findUnique).mockResolvedValue({
         id: "course-1",
@@ -164,6 +221,8 @@ describe("User data loaders — authenticated enrollment rules", () => {
       await expect(getCourseSidebarData("c1")).rejects.toThrow("NEXT_NOT_FOUND");
     });
 
+    /** Happy path: an Active enrollment confirms the user has paid and their
+     *  access is current; the full sidebar data object is returned. */
     it("returns course data when enrollment is Active", async () => {
       const coursePayload = {
         id: "course-1",
@@ -206,6 +265,8 @@ describe("User data loaders — authenticated enrollment rules", () => {
       },
     };
 
+    /** Lesson exists but user has no enrollment for its course; notFound() is
+     *  thrown to block unenrolled access to lesson content. */
     it("calls notFound when user is not enrolled", async () => {
       vi.mocked(prisma.lesson.findUnique).mockResolvedValue(baseLesson as never);
       vi.mocked(prisma.enrollment.findUnique).mockResolvedValue(null);
@@ -213,6 +274,8 @@ describe("User data loaders — authenticated enrollment rules", () => {
       await expect(getLessonContent("lesson-1")).rejects.toThrow("NEXT_NOT_FOUND");
     });
 
+    /** User is enrolled but the lesson is not published and is not a free
+     *  preview; notFound() prevents access to unreleased content. */
     it("calls notFound when lesson is unpublished and not free preview", async () => {
       vi.mocked(prisma.lesson.findUnique).mockResolvedValue(baseLesson as never);
       vi.mocked(prisma.enrollment.findUnique).mockResolvedValue({
@@ -222,6 +285,8 @@ describe("User data loaders — authenticated enrollment rules", () => {
       await expect(getLessonContent("lesson-1")).rejects.toThrow("NEXT_NOT_FOUND");
     });
 
+    /** Happy path: enrolled user requests a published lesson; the full lesson
+     *  object is returned so the page can render video and content. */
     it("returns lesson when enrolled and lesson is published", async () => {
       const published = {
         ...baseLesson,
@@ -237,6 +302,8 @@ describe("User data loaders — authenticated enrollment rules", () => {
       expect(result).toEqual(published);
     });
 
+    /** An unknown lesson ID short-circuits before the enrollment lookup since
+     *  there is no courseId to scope the enrollment query. */
     it("calls notFound when lesson id does not exist", async () => {
       vi.mocked(prisma.lesson.findUnique).mockResolvedValue(null);
 
@@ -246,6 +313,8 @@ describe("User data loaders — authenticated enrollment rules", () => {
       expect(prisma.enrollment.findUnique).not.toHaveBeenCalled();
     });
 
+    /** isFreePreview=true overrides isPublished=false, allowing enrolled users to
+     *  access a lesson before it is officially published as a course preview. */
     it("returns unpublished lesson when enrolled and isFreePreview is true", async () => {
       const freePreview = {
         ...baseLesson,
@@ -261,9 +330,23 @@ describe("User data loaders — authenticated enrollment rules", () => {
 
       expect(result).toEqual(freePreview);
     });
+
+    /** getLessonContent requires enrollment.status === Active; Inactive revokes
+     *  access to even published lessons, matching the course sidebar contract. */
+    it("calls notFound when enrollment status is Inactive", async () => {
+      const published = { ...baseLesson, isPublished: true };
+      vi.mocked(prisma.lesson.findUnique).mockResolvedValue(published as never);
+      vi.mocked(prisma.enrollment.findUnique).mockResolvedValue({
+        status: "Inactive",
+      } as never);
+
+      await expect(getLessonContent("lesson-1")).rejects.toThrow("NEXT_NOT_FOUND");
+    });
   });
 
   describe("getQuizAttemptAccess", () => {
+    /** findFirst returns null when the user is not enrolled or the quiz is
+     *  inaccessible; the function returns safe defaults rather than throwing. */
     it("returns canAttempt false when quiz is not accessible (e.g. not enrolled)", async () => {
       vi.mocked(prisma.quiz.findFirst).mockResolvedValue(null);
 
@@ -276,6 +359,9 @@ describe("User data loaders — authenticated enrollment rules", () => {
       });
     });
 
+    /** allowMultipleAttempts=true with a prior completed attempt means the user
+     *  can start another attempt; nextAttemptNumber is incremented accordingly.
+     *  NOTE: overlaps with a similar case in quiz-data-loaders.unit.test.ts. */
     it("returns canAttempt true when allowMultipleAttempts and prior completed attempt", async () => {
       vi.mocked(prisma.quiz.findFirst).mockResolvedValue({
         id: "q1",
@@ -291,6 +377,9 @@ describe("User data loaders — authenticated enrollment rules", () => {
       });
     });
 
+    /** allowMultipleAttempts=false with a prior completed attempt means the user
+     *  has exhausted their single attempt; canAttempt must be false.
+     *  NOTE: overlaps with a similar case in quiz-data-loaders.unit.test.ts. */
     it("returns canAttempt false when single attempt and prior completed attempt", async () => {
       vi.mocked(prisma.quiz.findFirst).mockResolvedValue({
         id: "q1",
@@ -308,6 +397,8 @@ describe("User data loaders — authenticated enrollment rules", () => {
   });
 
   describe("getEnrolledCourseQuizzes", () => {
+    /** Happy path: a valid session is present and the Prisma query executes;
+     *  verifies the loader actually delegates to prisma.quiz.findMany. */
     it("calls prisma.quiz.findMany when session exists", async () => {
       vi.mocked(prisma.quiz.findMany).mockResolvedValue([]);
 

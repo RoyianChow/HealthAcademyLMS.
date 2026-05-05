@@ -2,6 +2,7 @@
  * Integration tests — community server actions RBAC
  *
  * Covers owner vs other user vs admin for deletes, and enrollment for writes.
+ * Admins follow the same enrollment rules as students for create/write actions.
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -84,6 +85,8 @@ describe("createPost — enrollment", () => {
     mockGetSession.mockResolvedValue(USER_A);
   });
 
+  /** Enrollment check via findFirst returns null; createPost is blocked before
+   *  communityPost.create is called, protecting courses from non-enrolled spam. */
   it("blocks when user is not actively enrolled", async () => {
     vi.mocked(prisma.enrollment.findFirst).mockResolvedValue(null);
 
@@ -99,6 +102,8 @@ describe("createPost — enrollment", () => {
     expect(prisma.communityPost.create).not.toHaveBeenCalled();
   });
 
+  /** Happy path: enrolled user creates a post; communityPost.create is called
+   *  exactly once and a success response is returned. */
   it("succeeds when user has active enrollment", async () => {
     vi.mocked(prisma.enrollment.findFirst).mockResolvedValue({ id: "e1" } as never);
     vi.mocked(prisma.communityPost.create).mockResolvedValue({} as never);
@@ -119,6 +124,8 @@ describe("createComment — enrollment", () => {
     mockGetSession.mockResolvedValue(USER_A);
   });
 
+  /** The post lookup runs first; a null result short-circuits before the
+   *  enrollment check to avoid a spurious DB query. */
   it("blocks when post not found", async () => {
     vi.mocked(prisma.communityPost.findUnique).mockResolvedValue(null);
 
@@ -128,6 +135,8 @@ describe("createComment — enrollment", () => {
     expect(prisma.communityComment.create).not.toHaveBeenCalled();
   });
 
+  /** Post exists but the user is not enrolled in the associated course;
+   *  commenting is blocked to keep discussions within the enrolled community. */
   it("blocks when not enrolled in post course", async () => {
     vi.mocked(prisma.communityPost.findUnique).mockResolvedValue({
       courseId: "course-1",
@@ -142,6 +151,8 @@ describe("createComment — enrollment", () => {
     expect(prisma.communityComment.create).not.toHaveBeenCalled();
   });
 
+  /** Happy path: post exists and user is enrolled; comment is created and
+   *  a success response is returned. */
   it("succeeds when enrolled", async () => {
     vi.mocked(prisma.communityPost.findUnique).mockResolvedValue({
       courseId: "course-1",
@@ -160,6 +171,8 @@ describe("toggleLike — enrollment", () => {
     mockGetSession.mockResolvedValue(USER_A);
   });
 
+  /** User is not enrolled in the course the post belongs to; the like table
+   *  is never consulted to prevent non-enrolled engagement. */
   it("blocks when not enrolled", async () => {
     vi.mocked(prisma.communityPost.findUnique).mockResolvedValue({
       courseId: "course-1",
@@ -176,6 +189,8 @@ describe("toggleLike — enrollment", () => {
 });
 
 describe("deleteCommunityPost", () => {
+  /** Non-owner regular user attempts to delete someone else's post; the userId
+   *  mismatch is detected and a permission error is returned without a transaction. */
   it("user cannot delete another user's post", async () => {
     mockGetSession.mockResolvedValue(USER_A);
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ role: "user" } as never);
@@ -193,6 +208,8 @@ describe("deleteCommunityPost", () => {
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
+  /** Ownership check passes (userId matches); a transaction cascades the
+   *  deletion of likes, comments, and the post itself. */
   it("user can delete own post", async () => {
     mockGetSession.mockResolvedValue(USER_A);
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ role: "user" } as never);
@@ -211,6 +228,8 @@ describe("deleteCommunityPost", () => {
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 
+  /** Admin bypasses the ownership check via a role lookup and can delete any
+   *  user's post to facilitate content moderation. */
   it("admin (role admin) can delete any post", async () => {
     mockGetSession.mockResolvedValue(ADMIN_SESSION);
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ role: "admin" } as never);
@@ -226,6 +245,8 @@ describe("deleteCommunityPost", () => {
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 
+  /** The community delete action uses a case-insensitive admin check; "Admin"
+   *  (capital A) must also bypass the ownership check. */
   it("admin (role Admin casing) can delete any post — community uses case-insensitive check", async () => {
     mockGetSession.mockResolvedValue(ADMIN_UPPER_SESSION);
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ role: "Admin" } as never);
@@ -243,6 +264,8 @@ describe("deleteCommunityPost", () => {
 });
 
 describe("deleteCommunityComment", () => {
+  /** Non-owner regular user attempts to delete someone else's comment; a
+   *  permission error is returned and the delete call is never made. */
   it("user cannot delete another user's comment", async () => {
     mockGetSession.mockResolvedValue(USER_A);
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ role: "user" } as never);
@@ -261,6 +284,8 @@ describe("deleteCommunityComment", () => {
     expect(prisma.communityComment.delete).not.toHaveBeenCalled();
   });
 
+  /** Ownership check passes (userId matches); the comment is deleted and a
+   *  success response is returned. */
   it("user can delete own comment", async () => {
     mockGetSession.mockResolvedValue(USER_A);
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ role: "user" } as never);
@@ -277,6 +302,8 @@ describe("deleteCommunityComment", () => {
     expect(prisma.communityComment.delete).toHaveBeenCalledTimes(1);
   });
 
+  /** Admin bypasses the ownership check via a role lookup and can delete any
+   *  user's comment to facilitate content moderation. */
   it("admin can delete any comment", async () => {
     mockGetSession.mockResolvedValue(ADMIN_SESSION);
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ role: "admin" } as never);
@@ -294,6 +321,8 @@ describe("deleteCommunityComment", () => {
 });
 
 describe("deleteCommunityPost — post not found", () => {
+  /** Missing post short-circuits before the transaction; no side-effecting DB
+   *  work is attempted when the target resource does not exist. */
   it("returns error and does not run transaction", async () => {
     mockGetSession.mockResolvedValue(USER_A);
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ role: "user" } as never);
@@ -310,6 +339,8 @@ describe("deleteCommunityPost — post not found", () => {
 });
 
 describe("deleteCommunityComment — comment not found", () => {
+  /** Missing comment short-circuits before the delete call; no side-effecting
+   *  DB work is attempted when the target resource does not exist. */
   it("returns error and does not delete", async () => {
     mockGetSession.mockResolvedValue(USER_A);
     vi.mocked(prisma.user.findUnique).mockResolvedValue({ role: "user" } as never);
@@ -330,6 +361,8 @@ describe("toggleLike — post not found and success paths", () => {
     mockGetSession.mockResolvedValue(USER_A);
   });
 
+  /** Post lookup returns null; the like table is never queried and an error
+   *  is returned to prevent orphaned like operations. */
   it("returns error when post does not exist", async () => {
     vi.mocked(prisma.communityPost.findUnique).mockResolvedValue(null);
 
@@ -339,6 +372,8 @@ describe("toggleLike — post not found and success paths", () => {
     expect(prisma.communityLike.findUnique).not.toHaveBeenCalled();
   });
 
+  /** Enrolled user likes a post for the first time (no existing like row);
+   *  communityLike.create is called once and a success response is returned. */
   it("creates like when enrolled and no existing like", async () => {
     vi.mocked(prisma.communityPost.findUnique).mockResolvedValue({
       courseId: "course-1",
@@ -353,6 +388,8 @@ describe("toggleLike — post not found and success paths", () => {
     expect(prisma.communityLike.create).toHaveBeenCalledTimes(1);
   });
 
+  /** Enrolled user unlikes a previously liked post (existing like row found);
+   *  communityLike.delete is called once and a success response is returned. */
   it("deletes like when enrolled and like exists", async () => {
     vi.mocked(prisma.communityPost.findUnique).mockResolvedValue({
       courseId: "course-1",
@@ -371,6 +408,9 @@ describe("toggleLike — post not found and success paths", () => {
 });
 
 describe("createPost — admin still requires active enrollment", () => {
+  /** Admins are not exempt from the enrollment requirement for creating posts;
+   *  the rule is applied uniformly to keep community discussions within the
+   *  enrolled user group even for administrators. */
   it("blocks admin when not enrolled in course", async () => {
     mockGetSession.mockResolvedValue(ADMIN_SESSION);
     vi.mocked(prisma.enrollment.findFirst).mockResolvedValue(null);
@@ -385,5 +425,43 @@ describe("createPost — admin still requires active enrollment", () => {
       error: "You must be enrolled in this course to create a post.",
     });
     expect(prisma.communityPost.create).not.toHaveBeenCalled();
+  });
+});
+
+describe("createComment — admin still requires active enrollment", () => {
+  /** Same enrollment gate as createPost: admins without an Active enrollment in the
+   *  post's course cannot comment, keeping moderation aligned with student rules. */
+  it("blocks admin when not enrolled in post course", async () => {
+    mockGetSession.mockResolvedValue(ADMIN_SESSION);
+    vi.mocked(prisma.communityPost.findUnique).mockResolvedValue({
+      courseId: "course-1",
+    } as never);
+    vi.mocked(prisma.enrollment.findFirst).mockResolvedValue(null);
+
+    const result = await createComment({ postId: "p1", content: "hi" });
+
+    expect(result).toEqual({
+      error: "You must be enrolled in this course to comment.",
+    });
+    expect(prisma.communityComment.create).not.toHaveBeenCalled();
+  });
+});
+
+describe("toggleLike — admin still requires active enrollment", () => {
+  /** Admins cannot toggle likes on courses they are not enrolled in — prevents
+   *  silent moderation shortcuts from bypassing the enrollment contract. */
+  it("blocks admin when not enrolled", async () => {
+    mockGetSession.mockResolvedValue(ADMIN_SESSION);
+    vi.mocked(prisma.communityPost.findUnique).mockResolvedValue({
+      courseId: "course-1",
+    } as never);
+    vi.mocked(prisma.enrollment.findFirst).mockResolvedValue(null);
+
+    const result = await toggleLike("p1");
+
+    expect(result).toEqual({
+      error: "You must be enrolled in this course to like posts.",
+    });
+    expect(prisma.communityLike.findUnique).not.toHaveBeenCalled();
   });
 });

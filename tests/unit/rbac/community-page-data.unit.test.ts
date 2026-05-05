@@ -1,5 +1,12 @@
 /**
  * Unit tests — getCommunityPageData RBAC (extracted from dashboard community page)
+ *
+ * getCommunityPageData enforces two layers of access control:
+ *   1. Authentication — unauthenticated callers are redirected to /login.
+ *   2. Enrollment / admin override — enrolled users or admins may access the page;
+ *      non-enrolled non-admins and non-published courses (for non-admins) hit notFound().
+ *
+ * Archived courses behave like Draft for non-admins (status !== Published).
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -75,6 +82,8 @@ beforeEach(() => {
 });
 
 describe("getCommunityPageData — authentication", () => {
+  /** Unauthenticated callers must be redirected to /login before Prisma is
+   *  consulted; no course data should be leaked to anonymous users. */
   it("redirects to /login when there is no session", async () => {
     mockGetSession.mockResolvedValue(null);
 
@@ -83,6 +92,8 @@ describe("getCommunityPageData — authentication", () => {
     expect(prisma.course.findUnique).not.toHaveBeenCalled();
   });
 
+  /** An empty or whitespace-only slug is a malformed URL parameter; notFound()
+   *  is the correct response and Prisma should never be called. */
   it("calls notFound when slug is empty/whitespace", async () => {
     mockGetSession.mockResolvedValue(USER_SESSION);
 
@@ -90,6 +101,8 @@ describe("getCommunityPageData — authentication", () => {
     expect(prisma.course.findUnique).not.toHaveBeenCalled();
   });
 
+  /** A slug that does not match any course must return notFound() to avoid
+   *  leaking information about which course IDs exist in the system. */
   it("calls notFound when course does not exist", async () => {
     mockGetSession.mockResolvedValue(USER_SESSION);
     vi.mocked(prisma.course.findUnique).mockResolvedValue(null);
@@ -103,6 +116,8 @@ describe("getCommunityPageData — draft and enrollment gates", () => {
     mockGetSession.mockResolvedValue(USER_SESSION);
   });
 
+  /** Draft courses are hidden from regular users; the enrollment status is
+   *  irrelevant when the course itself has not been published. */
   it("notFound for draft course when user is not admin", async () => {
     vi.mocked(prisma.course.findUnique).mockResolvedValue(
       baseCourse({ status: "Draft", enrollments: [{ id: "e1" }] }) as never
@@ -111,6 +126,8 @@ describe("getCommunityPageData — draft and enrollment gates", () => {
     await expect(getCommunityPageData("c-slug")).rejects.toThrow("NEXT_NOT_FOUND");
   });
 
+  /** Admins can access draft courses even without enrollment to facilitate
+   *  content review and QA before a course goes live. */
   it("returns data for draft course when user is admin (even unenrolled)", async () => {
     mockGetSession.mockResolvedValue(ADMIN_SESSION);
     const course = baseCourse({
@@ -125,6 +142,10 @@ describe("getCommunityPageData — draft and enrollment gates", () => {
     expect(result.course).toEqual(course);
   });
 
+  /** A published course is still not accessible to a non-enrolled non-admin;
+   *  enrollment is required to participate in the community.  The loader query
+   *  returns only Active enrollments, so a user with exclusively Pending enrollment
+   *  sees an empty `enrollments` array and hits the same notFound path. */
   it("notFound for published course when user is not enrolled and not admin", async () => {
     vi.mocked(prisma.course.findUnique).mockResolvedValue(
       baseCourse({ status: "Published", enrollments: [] }) as never
@@ -133,6 +154,8 @@ describe("getCommunityPageData — draft and enrollment gates", () => {
     await expect(getCommunityPageData("c-slug")).rejects.toThrow("NEXT_NOT_FOUND");
   });
 
+  /** Admins bypass enrollment gates on published courses to allow moderation
+   *  and support without needing to purchase the course. */
   it("returns data for published course when user is admin but not enrolled", async () => {
     mockGetSession.mockResolvedValue(ADMIN_SESSION);
     const course = baseCourse({ status: "Published", enrollments: [] });
@@ -143,6 +166,8 @@ describe("getCommunityPageData — draft and enrollment gates", () => {
     expect(result.course.slug).toBe("c-slug");
   });
 
+  /** Standard access path: an enrolled user on a published course should
+   *  receive the full page data including their user record. */
   it("returns data for published course when user has active enrollment", async () => {
     const course = baseCourse({
       status: "Published",
@@ -154,5 +179,29 @@ describe("getCommunityPageData — draft and enrollment gates", () => {
 
     expect(result.user.id).toBe("user-123");
     expect(result.course.enrollments).toHaveLength(1);
+  });
+
+  /** Archived is not Published; regular users cannot access even if enrolled. */
+  it("notFound for archived course when user is not admin", async () => {
+    vi.mocked(prisma.course.findUnique).mockResolvedValue(
+      baseCourse({ status: "Archived", enrollments: [{ id: "e1" }] }) as never
+    );
+
+    await expect(getCommunityPageData("c-slug")).rejects.toThrow("NEXT_NOT_FOUND");
+  });
+
+  /** Admins may open archived community pages for moderation without enrollment. */
+  it("returns data for archived course when user is admin", async () => {
+    mockGetSession.mockResolvedValue(ADMIN_SESSION);
+    const course = baseCourse({
+      status: "Archived",
+      enrollments: [],
+    });
+    vi.mocked(prisma.course.findUnique).mockResolvedValue(course as never);
+
+    const result = await getCommunityPageData("c-slug");
+
+    expect(result.course.status).toBe("Archived");
+    expect(result.user.id).toBe("admin-1");
   });
 });

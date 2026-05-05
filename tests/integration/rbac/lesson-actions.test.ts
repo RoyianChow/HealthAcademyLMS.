@@ -1,5 +1,10 @@
 /**
  * Integration tests — markLessonComplete RBAC
+ *
+ * Tests the full call chain: action → requireUser() → auth.api.getSession →
+ * session check → Prisma enrollment guard → lesson update.
+ *
+ * Unauthenticated redirect is also asserted in user-actions-unauthenticated.test.ts.
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -54,6 +59,9 @@ describe("markLessonComplete", () => {
     vi.clearAllMocks();
   });
 
+  /** requireUser() is called first; a null session triggers NEXT_REDIRECT to /login
+   *  before any Prisma query executes.
+   *  NOTE: the same assertion is also present in user-actions-unauthenticated.test.ts. */
   it("redirects unauthenticated callers to /login", async () => {
     mockGetSession.mockResolvedValue(null);
 
@@ -65,6 +73,9 @@ describe("markLessonComplete", () => {
     expect(prisma.lesson.findFirst).not.toHaveBeenCalled();
   });
 
+  /** findFirst is scoped to the user's id and the course slug, implicitly
+   *  checking enrollment.  A null result means the user is not enrolled (or
+   *  the lesson does not belong to the course), so access is denied. */
   it("returns error when user is not enrolled in the course for this slug", async () => {
     mockGetSession.mockResolvedValue(USER_SESSION);
     vi.mocked(prisma.lesson.findFirst).mockResolvedValue(null);
@@ -76,6 +87,8 @@ describe("markLessonComplete", () => {
     expect(prisma.lesson.update).not.toHaveBeenCalled();
   });
 
+  /** Happy path: enrolled user marks their lesson complete; prisma.lesson.update
+   *  is called with lessonProgress=true and a success status is returned. */
   it("marks complete when lesson exists under slug with active enrollment", async () => {
     mockGetSession.mockResolvedValue(USER_SESSION);
     vi.mocked(prisma.lesson.findFirst).mockResolvedValue({ id: "lesson-1" } as never);
@@ -88,5 +101,44 @@ describe("markLessonComplete", () => {
       where: { id: "lesson-1" },
       data: { lessonProgress: true },
     });
+  });
+});
+
+describe("markLessonComplete — admin with Active enrollment", () => {
+  /** requireUser() treats admins as normal users; with a mocked enrolled-lesson
+   *  row the progress update succeeds the same as for a student account. */
+  it("updates lesson progress when admin session passes enrollment guard", async () => {
+    mockGetSession.mockResolvedValue({
+      ...USER_SESSION,
+      user: { ...USER_SESSION.user, id: "admin-1", role: "admin" },
+    });
+    vi.mocked(prisma.lesson.findFirst).mockResolvedValue({ id: "lesson-1" } as never);
+    vi.mocked(prisma.lesson.update).mockResolvedValue({} as never);
+
+    const result = await markLessonComplete("lesson-1", "course-slug");
+
+    expect(result.status).toBe("success");
+    expect(prisma.lesson.update).toHaveBeenCalledWith({
+      where: { id: "lesson-1" },
+      data: { lessonProgress: true },
+    });
+  });
+});
+
+describe("markLessonComplete — idempotency", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetSession.mockResolvedValue(USER_SESSION);
+    vi.mocked(prisma.lesson.findFirst).mockResolvedValue({ id: "lesson-1" } as never);
+    vi.mocked(prisma.lesson.update).mockResolvedValue({} as never);
+  });
+
+  /** Calling mark complete twice still performs update both times; handler does not
+   *  short-circuit on lessonProgress already true — documents current behaviour. */
+  it("calls lesson.update again when lesson already marked complete in DB", async () => {
+    await markLessonComplete("lesson-1", "course-slug");
+    await markLessonComplete("lesson-1", "course-slug");
+
+    expect(prisma.lesson.update).toHaveBeenCalledTimes(2);
   });
 });

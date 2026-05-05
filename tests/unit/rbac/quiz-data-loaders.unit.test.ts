@@ -1,5 +1,12 @@
 /**
  * Unit tests — quiz loaders beyond unauthenticated (getQuiz, getOrCreateQuizAttempt, getQuizAttemptAccess)
+ *
+ * These tests focus on the business logic of quiz access and attempt management
+ * for an already-authenticated user.  Unauthenticated path coverage lives in
+ * user-data-loaders.unit.test.ts.
+ *
+ * getQuizAttemptAccess & enrolment-null cases are also partially covered in
+ * user-data-loaders.unit.test.ts; this file keeps the quiz-focused behavioural tests together.
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -69,6 +76,8 @@ beforeEach(() => {
 });
 
 describe("getQuiz — enrolled vs gated", () => {
+  /** findFirst applies enrollment and publication filters at the DB level;
+   *  a non-null result means the user is enrolled in a published course. */
   it("returns quiz when findFirst returns a row (enrolled + published)", async () => {
     vi.mocked(prisma.quiz.findFirst).mockResolvedValue({
       ...minimalQuiz,
@@ -81,6 +90,8 @@ describe("getQuiz — enrolled vs gated", () => {
     expect(result?.id).toBe("quiz-1");
   });
 
+  /** findFirst returns null when the quiz does not exist or when the user is not
+   *  enrolled / the course is unpublished; the loader returns null instead of throwing. */
   it("returns null when quiz is not accessible", async () => {
     vi.mocked(prisma.quiz.findFirst).mockResolvedValue(null);
 
@@ -89,12 +100,16 @@ describe("getQuiz — enrolled vs gated", () => {
 });
 
 describe("getOrCreateQuizAttempt", () => {
+  /** Quiz is not accessible (not enrolled or unpublished); the function returns
+   *  null early without creating an attempt record. */
   it("returns null when quiz is not accessible", async () => {
     vi.mocked(prisma.quiz.findFirst).mockResolvedValue(null);
 
     expect(await getOrCreateQuizAttempt("quiz-x")).toBeNull();
   });
 
+  /** An in-progress (isComplete=false) attempt already exists; the function
+   *  returns it so the user can resume rather than starting a new attempt. */
   it("returns in-progress attempt when latest attempt is incomplete", async () => {
     const started = new Date("2025-01-01");
     vi.mocked(prisma.quiz.findFirst).mockResolvedValue({
@@ -120,6 +135,8 @@ describe("getOrCreateQuizAttempt", () => {
     expect(prisma.quizAttempt.create).not.toHaveBeenCalled();
   });
 
+  /** allowMultipleAttempts=false with a completed attempt means the user has
+   *  used their single attempt; a blocked result is returned and no new attempt is created. */
   it("returns blocked when single attempt already completed", async () => {
     vi.mocked(prisma.quiz.findFirst).mockResolvedValue({
       ...minimalQuiz,
@@ -144,6 +161,32 @@ describe("getOrCreateQuizAttempt", () => {
     expect(prisma.quizAttempt.create).not.toHaveBeenCalled();
   });
 
+  /** First attempt on a single-attempt quiz: allowMultipleAttempts=false with an
+   *  empty attempts array must still create attempt #1 (not blocked). */
+  it("creates first attempt on single-attempt quiz when no prior attempts exist", async () => {
+    vi.mocked(prisma.quiz.findFirst).mockResolvedValue({
+      ...minimalQuiz,
+      allowMultipleAttempts: false,
+      attempts: [],
+    } as never);
+    vi.mocked(prisma.quizAttempt.create).mockResolvedValue({
+      id: "first-att",
+      attemptNumber: 1,
+      createdAt: new Date("2025-06-01"),
+    } as never);
+
+    const result = await getOrCreateQuizAttempt("quiz-1");
+
+    expect(result).toMatchObject({
+      blocked: false,
+      attemptId: "first-att",
+      attemptNumber: 1,
+    });
+    expect(prisma.quizAttempt.create).toHaveBeenCalledTimes(1);
+  });
+
+  /** No prior attempts exist; a new attempt record is created with attemptNumber=1
+   *  so the user can begin the quiz for the first time. */
   it("creates first attempt when none exist", async () => {
     vi.mocked(prisma.quiz.findFirst).mockResolvedValue({
       ...minimalQuiz,
@@ -166,6 +209,8 @@ describe("getOrCreateQuizAttempt", () => {
     expect(prisma.quizAttempt.create).toHaveBeenCalledTimes(1);
   });
 
+  /** allowMultipleAttempts=true with a prior completed attempt; a new attempt
+   *  is created with an incremented attemptNumber so the user can retry. */
   it("creates next attempt when multiple attempts allowed and prior completed", async () => {
     vi.mocked(prisma.quiz.findFirst).mockResolvedValue({
       ...minimalQuiz,
@@ -197,6 +242,20 @@ describe("getOrCreateQuizAttempt", () => {
 });
 
 describe("getQuizAttemptAccess — allowMultipleAttempts branching", () => {
+  /** prisma.quiz.findFirst applies enrollment + publication filters; null means the
+   *  caller cannot access the quiz — same default shape as user-data-loaders coverage. */
+  it("returns safe defaults when quiz is inaccessible (findFirst null)", async () => {
+    vi.mocked(prisma.quiz.findFirst).mockResolvedValue(null);
+
+    expect(await getQuizAttemptAccess("quiz-missing")).toEqual({
+      canAttempt: false,
+      nextAttemptNumber: 1,
+      previousAttemptsCount: 0,
+    });
+  });
+
+  /** No prior attempts on any quiz; the user can attempt it and the next
+   *  attempt number defaults to 1. */
   it("returns canAttempt true with nextAttemptNumber 1 when quiz found and no prior completed attempts", async () => {
     vi.mocked(prisma.quiz.findFirst).mockResolvedValue({
       id: "quiz-1",
@@ -212,6 +271,8 @@ describe("getQuizAttemptAccess — allowMultipleAttempts branching", () => {
     });
   });
 
+  /** allowMultipleAttempts=false with one existing attempt; the user is blocked
+   *  from retrying and nextAttemptNumber reflects what a new attempt would be. */
   it("returns canAttempt false when single attempt and one completed attempt exists", async () => {
     vi.mocked(prisma.quiz.findFirst).mockResolvedValue({
       id: "quiz-1",
@@ -227,6 +288,8 @@ describe("getQuizAttemptAccess — allowMultipleAttempts branching", () => {
     });
   });
 
+  /** allowMultipleAttempts=true with one completed attempt; the user can start
+   *  another attempt and nextAttemptNumber is incremented. */
   it("returns canAttempt true with incremented nextAttemptNumber when multiple attempts allowed", async () => {
     vi.mocked(prisma.quiz.findFirst).mockResolvedValue({
       id: "quiz-1",

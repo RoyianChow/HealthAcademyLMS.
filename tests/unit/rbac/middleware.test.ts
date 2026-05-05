@@ -14,6 +14,9 @@
  *   Role enforcement is delegated entirely to requireAdmin(), which every admin
  *   page and server action must call explicitly.  The integration tests in
  *   tests/integration/rbac/ confirm that this second layer is in place.
+ *
+ * Path matching uses `startsWith("/admin")`, so suffix-only paths such as
+ * `/adminxyz` are treated as admin routes — tests below document that behaviour.
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -77,6 +80,8 @@ describe("middleware", () => {
   // ── Non-admin routes ───────────────────────────────────────────────────────
 
   describe("non-admin routes", () => {
+    /** Non-/admin paths are never gated by the middleware; the session cookie is
+     *  not consulted and NextResponse.next() is called unconditionally. */
     it.each([
       ["/"],
       ["/login"],
@@ -102,6 +107,8 @@ describe("middleware", () => {
       mockGetSessionCookie.mockReturnValue(null);
     });
 
+    /** Any /admin path accessed without a session cookie must immediately
+     *  redirect to /login so unauthenticated users cannot reach admin pages. */
     it.each([
       ["/admin"],
       ["/admin/courses"],
@@ -123,6 +130,8 @@ describe("middleware", () => {
       }
     );
 
+    /** Confirms NextResponse.next() is never invoked when redirecting, preventing
+     *  a conflicting "continue" response from being sent alongside the redirect. */
     it("does not call NextResponse.next() for an unauthenticated /admin request", async () => {
       await middleware(buildRequest("/admin/courses"));
 
@@ -137,6 +146,8 @@ describe("middleware", () => {
       mockGetSessionCookie.mockReturnValue("valid-session-cookie-value");
     });
 
+    /** The middleware only checks cookie *presence*; a valid session cookie on any
+     *  /admin path causes NextResponse.next() to be called regardless of user role. */
     it.each([
       ["/admin"],
       ["/admin/courses"],
@@ -152,6 +163,9 @@ describe("middleware", () => {
       }
     );
 
+    /** Documents the intentional design: the middleware cannot distinguish a
+     *  "user"-role cookie from an "admin"-role cookie — role enforcement is
+     *  fully delegated to requireAdmin() inside each page and server action. */
     it(
       "does NOT check the role — a regular user's session cookie passes through " +
         "(role enforcement is the responsibility of requireAdmin() in each page/action)",
@@ -166,5 +180,40 @@ describe("middleware", () => {
         expect(mockRedirect).not.toHaveBeenCalled();
       }
     );
+  });
+
+  /** `pathname.startsWith("/admin")` matches any suffix; there is no `/admin`
+   *  segment boundary check.  These tests document real routing behaviour. */
+  describe("/admin pathname prefix (suffix paths)", () => {
+    describe("no session cookie", () => {
+      beforeEach(() => {
+        mockGetSessionCookie.mockReturnValue(null);
+      });
+
+      /** A path like `/adminxyz` still begins with `/admin`, so it is gated the
+       *  same way as `/admin/courses` — unauthenticated users go to /login. */
+      it("redirects /adminxyz to /login when no session cookie exists", async () => {
+        await middleware(buildRequest("/adminxyz"));
+
+        expect(mockRedirect).toHaveBeenCalledOnce();
+        const redirectArg = mockRedirect.mock.calls[0][0] as URL;
+        expect(redirectArg.pathname).toBe("/login");
+      });
+    });
+
+    describe("session cookie present", () => {
+      beforeEach(() => {
+        mockGetSessionCookie.mockReturnValue("valid-session-cookie-value");
+      });
+
+      /** With any session cookie present, `/adminxyz` passes through — same as
+       *  legitimate `/admin` children; role is still unchecked here. */
+      it("allows /adminxyz through when a session cookie is present", async () => {
+        await middleware(buildRequest("/adminxyz"));
+
+        expect(mockNext).toHaveBeenCalledTimes(1);
+        expect(mockRedirect).not.toHaveBeenCalled();
+      });
+    });
   });
 });

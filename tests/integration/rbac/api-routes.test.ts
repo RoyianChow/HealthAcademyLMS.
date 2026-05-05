@@ -18,6 +18,9 @@
  *   - POST /api/quizzes          — was missing entirely
  *   - PATCH /api/quizzes/[quizId] — was missing entirely
  *   - POST /api/s3/upload        — was inside try (redirect silently swallowed → 500)
+ *
+ * The S3 upload regression test duplicates the NEXT_REDIRECT assertion intentionally
+ * as a documented guard against moving requireAdmin() back inside try/catch.
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -149,11 +152,15 @@ describe("API routes — unauthenticated (null session)", () => {
     mockGetSession.mockResolvedValue(null);
   });
 
+  /** Null session triggers requireAdmin() to redirect to /login before any DB
+   *  call; no chapter or quiz lookup is performed. */
   it("POST /api/quizzes redirects to /login", async () => {
     await expectLoginRedirect(() => createQuizHandler(makeRequest("POST", {})));
     expect(prisma.chapter.findFirst).not.toHaveBeenCalled();
   });
 
+  /** Null session triggers requireAdmin() to redirect to /login before the
+   *  quiz update handler reads the request body or queries Prisma. */
   it("PATCH /api/quizzes/[quizId] redirects to /login", async () => {
     await expectLoginRedirect(() =>
       updateQuizHandler(makeRequest("PATCH", {}), {
@@ -162,6 +169,8 @@ describe("API routes — unauthenticated (null session)", () => {
     );
   });
 
+  /** Null session triggers requireAdmin() to redirect to /login before the
+   *  S3 presigned-URL generation; S3.send is never called. */
   it("POST /api/s3/upload redirects to /login", async () => {
     await expectLoginRedirect(() =>
       s3UploadHandler(
@@ -171,6 +180,8 @@ describe("API routes — unauthenticated (null session)", () => {
     expect(mockS3Send).not.toHaveBeenCalled();
   });
 
+  /** Null session triggers requireAdmin() to redirect to /login before the
+   *  S3 object deletion; S3.send is never called. */
   it("DELETE /api/s3/delete redirects to /login", async () => {
     await expectLoginRedirect(() =>
       s3DeleteHandler(makeRequest("DELETE", { key: "k" }))
@@ -178,6 +189,8 @@ describe("API routes — unauthenticated (null session)", () => {
     expect(mockS3Send).not.toHaveBeenCalled();
   });
 
+  /** Null session triggers requireAdmin() to redirect to /login before the
+   *  lesson-document presigned-URL generation. */
   it("POST /api/lesson-documents/upload redirects to /login", async () => {
     await expectLoginRedirect(() =>
       lessonDocUploadHandler(
@@ -196,10 +209,14 @@ describe("API routes — user role RBAC (integration)", () => {
   // ── POST /api/quizzes ──────────────────────────────────────────────────────
 
   describe("POST /api/quizzes — create quiz", () => {
+    /** Authenticated non-admin triggers requireAdmin() to redirect to /not-admin
+     *  before the quiz creation handler processes the request. */
     it('throws NEXT_REDIRECT to /not-admin for role "user"', async () => {
       await expectBlocked(() => createQuizHandler(makeRequest("POST", {})));
     });
 
+    /** requireAdmin() exits before any DB call; neither chapter nor quiz tables
+     *  are touched when the caller lacks admin privileges. */
     it("does not touch the database when blocked", async () => {
       await expect(
         createQuizHandler(makeRequest("POST", {}))
@@ -212,6 +229,8 @@ describe("API routes — user role RBAC (integration)", () => {
   // ── PATCH /api/quizzes/[quizId] ───────────────────────────────────────────
 
   describe("PATCH /api/quizzes/[quizId] — update quiz", () => {
+    /** Authenticated non-admin triggers requireAdmin() to redirect to /not-admin
+     *  before the quiz update handler runs. */
     it('throws NEXT_REDIRECT to /not-admin for role "user"', async () => {
       await expectBlocked(() =>
         updateQuizHandler(makeRequest("PATCH", {}), {
@@ -220,6 +239,8 @@ describe("API routes — user role RBAC (integration)", () => {
       );
     });
 
+    /** requireAdmin() exits before the transaction that replaces quiz questions;
+     *  no chapter or quiz data is read or modified. */
     it("does not touch the database when blocked", async () => {
       await expect(
         updateQuizHandler(makeRequest("PATCH", {}), {
@@ -234,12 +255,16 @@ describe("API routes — user role RBAC (integration)", () => {
   // ── POST /api/s3/upload ───────────────────────────────────────────────────
 
   describe("POST /api/s3/upload — generate presigned upload URL", () => {
+    /** Authenticated non-admin triggers requireAdmin() to redirect to /not-admin
+     *  before the presigned-URL generation runs. */
     it('throws NEXT_REDIRECT to /not-admin for role "user"', async () => {
       await expectBlocked(() =>
         s3UploadHandler(makeRequest("POST", { fileName: "f.png", contentType: "image/png", size: 1024 }))
       );
     });
 
+    /** requireAdmin() exits before S3.send is called; no presigned URL is
+     *  generated and no S3 operation is initiated. */
     it("does not call S3 when blocked", async () => {
       await expect(
         s3UploadHandler(makeRequest("POST", {}))
@@ -247,6 +272,11 @@ describe("API routes — user role RBAC (integration)", () => {
       expect(mockS3Send).not.toHaveBeenCalled();
     });
 
+    /** Regression test: requireAdmin() used to be placed inside a try block,
+     *  which caused the NEXT_REDIRECT throw to be caught and returned as a 500.
+     *  The fix moves requireAdmin() before the try block so the throw propagates.
+     *  NOTE: this assertion is functionally identical to the "throws NEXT_REDIRECT"
+     *  test above — its value is purely documentary as a regression marker. */
     it(
       "previously: requireAdmin was inside try so a redirect was caught " +
         "and returned as a 500 — this is now fixed",
@@ -263,10 +293,14 @@ describe("API routes — user role RBAC (integration)", () => {
   // ── DELETE /api/s3/delete ─────────────────────────────────────────────────
 
   describe("DELETE /api/s3/delete — delete S3 object", () => {
+    /** Authenticated non-admin triggers requireAdmin() to redirect to /not-admin
+     *  before the S3 object deletion runs. */
     it('throws NEXT_REDIRECT to /not-admin for role "user"', async () => {
       await expectBlocked(() => s3DeleteHandler(makeRequest("DELETE", { key: "some/key" })));
     });
 
+    /** requireAdmin() exits before S3.send is called; no object is deleted from
+     *  storage when the caller lacks admin privileges. */
     it("does not call S3.send when blocked", async () => {
       await expect(
         s3DeleteHandler(makeRequest("DELETE", { key: "some/key" }))
@@ -278,6 +312,8 @@ describe("API routes — user role RBAC (integration)", () => {
   // ── POST /api/lesson-documents/upload ─────────────────────────────────────
 
   describe("POST /api/lesson-documents/upload — generate presigned lesson-doc URL", () => {
+    /** Authenticated non-admin triggers requireAdmin() to redirect to /not-admin
+     *  before the presigned-URL generation for lesson documents runs. */
     it('throws NEXT_REDIRECT to /not-admin for role "user"', async () => {
       await expectBlocked(() =>
         lessonDocUploadHandler(
@@ -286,6 +322,8 @@ describe("API routes — user role RBAC (integration)", () => {
       );
     });
 
+    /** requireAdmin() exits before getSignedUrl is called; no presigned URL is
+     *  generated for lesson documents when the caller lacks admin privileges. */
     it("does not generate a presigned URL when blocked", async () => {
       const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner");
       await expect(
@@ -298,6 +336,8 @@ describe("API routes — user role RBAC (integration)", () => {
   // ── Admin role allowed (sanity check) ─────────────────────────────────────
 
   describe("baseline — admin role IS allowed", () => {
+    /** Sanity check: role "admin" passes requireAdmin(); the handler proceeds to
+     *  the chapter lookup and returns a 400 (missing chapter) rather than a redirect. */
     it("POST /api/quizzes: does not redirect for role \"admin\"", async () => {
       mockGetSession.mockResolvedValue({
         ...USER_SESSION,
@@ -315,6 +355,8 @@ describe("API routes — user role RBAC (integration)", () => {
       expect(result.status).toBe(400);
     });
 
+    /** Sanity check: role "admin" passes requireAdmin(); the handler proceeds to
+     *  validation and returns a 400 (invalid body) rather than a redirect. */
     it("PATCH /api/quizzes/[quizId]: does not redirect for role \"admin\"", async () => {
       mockGetSession.mockResolvedValue({
         ...USER_SESSION,
@@ -331,6 +373,62 @@ describe("API routes — user role RBAC (integration)", () => {
       expect(result.status).toBe(400);
     });
 
+    /** Valid admin PATCH flows past validation, verifies chapter ownership,
+     *  runs the transactional quiz rewrite, and returns 200 JSON success. */
+    it("PATCH /api/quizzes/[quizId]: admin succeeds with valid body", async () => {
+      mockGetSession.mockResolvedValue({
+        ...USER_SESSION,
+        user: { ...USER_SESSION.user, role: "admin" },
+      });
+
+      const courseId = "00000000-0000-4000-8000-000000000001";
+      const chapterId = "00000000-0000-4000-8000-000000000002";
+
+      vi.mocked(prisma.chapter.findFirst).mockResolvedValue({
+        id: chapterId,
+      } as never);
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn) => {
+        const tx = {
+          quizQuestion: {
+            deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+          },
+          quiz: {
+            update: vi.fn().mockResolvedValue({}),
+          },
+        };
+        return (fn as (t: typeof tx) => Promise<unknown>)(tx);
+      });
+
+      const body = {
+        title: "Updated quiz",
+        courseId,
+        chapterId,
+        questions: [
+          {
+            question: "What is 2+2?",
+            options: [
+              { text: "4", isCorrect: true },
+              { text: "5", isCorrect: false },
+            ],
+          },
+        ],
+      };
+
+      const result = await updateQuizHandler(makeRequest("PATCH", body), {
+        params: Promise.resolve({ quizId: "00000000-0000-4000-8000-000000000099" }),
+      });
+
+      expect(mockRedirect).not.toHaveBeenCalled();
+      expect(result.status).toBe(200);
+      const json = await result.json();
+      expect(json).toEqual({
+        status: "success",
+        message: "Quiz updated successfully",
+      });
+    });
+
+    /** Admin success path: the presigned-URL handler returns 200 with a URL
+     *  containing "presigned.example.com" from the mocked getSignedUrl. */
     it("POST /api/s3/upload: admin receives presigned URL JSON", async () => {
       mockGetSession.mockResolvedValue({
         ...USER_SESSION,
@@ -352,6 +450,8 @@ describe("API routes — user role RBAC (integration)", () => {
       expect(json.url).toContain("presigned.example.com");
     });
 
+    /** Admin success path: the S3 delete handler calls S3.send once and returns
+     *  200; no redirect is issued. */
     it("DELETE /api/s3/delete: admin succeeds and calls S3.send", async () => {
       mockGetSession.mockResolvedValue({
         ...USER_SESSION,
@@ -368,6 +468,8 @@ describe("API routes — user role RBAC (integration)", () => {
       expect(mockS3Send).toHaveBeenCalled();
     });
 
+    /** Admin success path: handler returns presigned URL + public file URL + key
+     *  from mocked getSignedUrl and env-based CDN prefix. */
     it("POST /api/lesson-documents/upload: admin receives presigned URL", async () => {
       mockGetSession.mockResolvedValue({
         ...USER_SESSION,
@@ -383,6 +485,10 @@ describe("API routes — user role RBAC (integration)", () => {
 
       expect(mockRedirect).not.toHaveBeenCalled();
       expect(result.status).toBe(200);
+      const json = await result.json();
+      expect(json.url).toContain("presigned.example.com");
+      expect(json.fileKey).toMatch(/^lesson-documents\/.+-doc\.pdf$/);
+      expect(json.fileUrl).toMatch(/^https:\/\/cdn\.example\.com\/lesson-documents\//);
     });
   });
 });
