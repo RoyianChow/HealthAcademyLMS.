@@ -1,10 +1,7 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { MessageCircle, Users } from "lucide-react";
 
-import { requireUser } from "@/app/data/user/require-user";
-import { prisma } from "@/lib/db";
-import { CourseStatus, EnrollmentStatus } from "@/src/generated/prisma/client";
+import { getCommunityPageData } from "@/app/data/community/get-community-page-data";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
@@ -17,103 +14,9 @@ type PageProps = {
   }>;
 };
 
-const POSTS_LIMIT = 50;
-
 export default async function CommunityPage({ params }: PageProps) {
-  const user = await requireUser();
   const { slug } = await params;
-
-  if (!slug) {
-    return notFound();
-  }
-
-  const course = await prisma.course.findUnique({
-    where: {
-      slug,
-    },
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      status: true,
-      enrollments: {
-        where: {
-          userId: user.id,
-          status: EnrollmentStatus.Active,
-        },
-        take: 1,
-        select: {
-          id: true,
-        },
-      },
-      communityPosts: {
-        take: POSTS_LIMIT,
-        orderBy: [
-          {
-            isPinned: "desc",
-          },
-          {
-            createdAt: "desc",
-          },
-        ],
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
-            },
-          },
-          comments: {
-            orderBy: {
-              createdAt: "asc",
-            },
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  image: true,
-                },
-              },
-            },
-          },
-          likes: {
-            select: {
-              id: true,
-              userId: true,
-            },
-          },
-        },
-      },
-      _count: {
-        select: {
-          enrollments: {
-            where: {
-              status: EnrollmentStatus.Active,
-            },
-          },
-          communityPosts: true,
-        },
-      },
-    },
-  });
-
-  if (!course) {
-    return notFound();
-  }
-
-  const isAdmin = user.role?.toLowerCase() === "admin";
-  const isEnrolled = course.enrollments.length > 0;
-
-  if (course.status !== CourseStatus.Published && !isAdmin) {
-    return notFound();
-  }
-
-  if (!isEnrolled && !isAdmin) {
-    return notFound();
-  }
+  const { user, course } = await getCommunityPageData(slug);
 
   return (
     <main className="min-h-screen bg-muted/30">
@@ -208,12 +111,13 @@ export default async function CommunityPage({ params }: PageProps) {
 
           {course.communityPosts.length > 0 ? (
             course.communityPosts.map((post) => (
-<CommunityPostCard
-  key={post.id}
-  post={post}
-  userId={user.id}
-  isAdmin={user.role === "admin"}
-/>            ))
+              <CommunityPostCard
+                key={post.id}
+                post={post}
+                userId={user.id}
+                isAdmin={user.role === "admin"}
+              />
+            ))
           ) : (
             <Card className="border-dashed shadow-sm">
               <CardContent className="flex flex-col items-center justify-center py-14 text-center">

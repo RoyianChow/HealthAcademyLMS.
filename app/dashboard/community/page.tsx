@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { BookOpen, MessageCircle, ArrowRight, Users } from "lucide-react";
 
-import { prisma } from "@/lib/db";
-import { requireUser } from "@/app/data/user/require-user";
+import { getDashboardCommunityCourses } from "@/app/data/dashboard/community/get-dashboard-community-courses";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,39 +15,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function DashboardCommunityPage() {
-  const user = await requireUser();
-
-  const courses = await prisma.course.findMany({
-    where: {
-      status: "Published",
-      enrollments: {
-        some: {
-          userId: user.id,
-          status: "Active",
-        },
-      },
-    },
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      smallDescription: true,
-      description: true,
-      level: true,
-      category: true,
-      enrollments: {
-        where: {
-          status: "Active",
-        },
-        select: {
-          id: true,
-        },
-      },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+  const courses = await getDashboardCommunityCourses();
 
   return (
     <main className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-8 md:px-6">

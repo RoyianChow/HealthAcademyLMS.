@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { format } from "date-fns";
 import { EnrollmentStatus } from "@/src/generated/prisma/client";
+
+import { getProfilePageUser } from "@/app/data/profile/get-profile-page-user";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,76 +22,7 @@ export default async function ProfilePage() {
     redirect("/login");
   }
 
-  const user = await prisma.user.findUnique({
-    where: {
-      id: session.user.id,
-    },
-    include: {
-      courses: {
-        include: {
-          _count: {
-            select: {
-              chapters: true,
-              quizzes: true,
-              enrollments: true,
-            },
-          },
-        },
-      },
-
-      enrollments: {
-        orderBy: {
-          createdAt: "desc",
-        },
-        include: {
-          course: {
-            include: {
-              chapters: {
-                orderBy: {
-                  position: "asc",
-                },
-                include: {
-                  lessons: {
-                    orderBy: {
-                      position: "asc",
-                    },
-                    select: {
-                      id: true,
-                      lessonProgress: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-
-      quizAttempts: {
-        orderBy: {
-          createdAt: "desc",
-        },
-        include: {
-          quiz: {
-            include: {
-              course: {
-                select: {
-                  title: true,
-                  slug: true,
-                },
-              },
-              chapter: {
-                select: {
-                  title: true,
-                  position: true,
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
+  const user = await getProfilePageUser(session.user.id);
 
   if (!user) {
     redirect("/login");
