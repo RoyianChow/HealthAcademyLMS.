@@ -1,25 +1,8 @@
 import { QuizForm } from "../_components/QuizForm";
-import { prisma } from "../../../../lib/db";
+import { adminGetCoursesForQuizForm } from "@/app/data/admin/admin-get-courses-for-quiz-form";
 
 export default async function CreateQuizPage() {
-  const courses = await prisma.course.findMany({
-    select: {
-      id: true,
-      title: true,
-      chapters: {
-        select: {
-          id: true,
-          title: true,
-        },
-        orderBy: {
-          position: "asc",
-        },
-      },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+  const courses = await adminGetCoursesForQuizForm();
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">

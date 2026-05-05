@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { prisma } from "@/lib/db";
-
+import { adminGetQuizList } from "@/app/data/admin/admin-get-quiz-list";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Plus } from "lucide-react";
@@ -8,46 +7,7 @@ import { DeleteQuizAttemptButton } from "./_components/DeleteQuizAttemptButton";
 import { DeleteQuizButton } from "./_components/DeleteQuizButton";
 
 export default async function AdminQuizzesPage() {
-  const quizzes = await prisma.quiz.findMany({
-    orderBy: {
-      createdAt: "desc",
-    },
-    include: {
-      course: {
-        select: {
-          id: true,
-          title: true,
-        },
-      },
-      chapter: {
-        select: {
-          id: true,
-          title: true,
-          position: true,
-        },
-      },
-      _count: {
-        select: {
-          questions: true,
-          attempts: true,
-        },
-      },
-      attempts: {
-        orderBy: {
-          createdAt: "desc",
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-        },
-      },
-    },
-  });
+  const quizzes = await adminGetQuizList();
 
   return (
     <div className="min-h-[calc(100vh-8rem)] space-y-6">
