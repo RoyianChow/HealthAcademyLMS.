@@ -1,0 +1,570 @@
+/**
+ * Integration tests — admin server actions RBAC enforcement
+ *
+ * These tests verify that every admin server action rejects a request made by
+ * a regular user (role: "user") by redirecting to /not-admin BEFORE executing
+ * any business logic (database writes, Stripe calls, etc.).
+ *
+ * Integration scope: the full call chain is exercised —
+ *   action → requireAdmin() → auth.api.getSession → role check → redirect
+ *
+ * Includes course mutations, admin self-enroll, and quiz deletion
+ * (`deleteQuiz` from app/actions/quiz).
+ * Only the external I/O boundaries (auth, database, Stripe, Arcjet) are mocked.
+ *
+ * User schema context:
+ *   model User { role String? }  — role "user" means a regular user.
+ */
+
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { redirect } from "next/navigation";
+
+// ── Mock declarations (hoisted) ───────────────────────────────────────────────
+
+vi.mock("@/lib/auth", () => ({
+  auth: { api: { getSession: vi.fn() } },
+}));
+
+vi.mock("@/lib/db", () => ({
+  prisma: {
+    course: {
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      findUnique: vi.fn(),
+      findMany: vi.fn(),
+    },
+    chapter: {
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+    },
+    lesson: {
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      findFirst: vi.fn(),
+    },
+    lessonDocument: {
+      createMany: vi.fn(),
+      deleteMany: vi.fn(),
+    },
+    enrollment: {
+      upsert: vi.fn(),
+    },
+    quiz: {
+      findUnique: vi.fn(),
+    },
+    quizAnswer: {
+      deleteMany: vi.fn(),
+    },
+    quizAttempt: {
+      deleteMany: vi.fn(),
+    },
+    quizOption: {
+      deleteMany: vi.fn(),
+    },
+    quizQuestion: {
+      deleteMany: vi.fn(),
+    },
+    $transaction: vi.fn(),
+  },
+}));
+
+vi.mock("@/lib/stripe", () => ({
+  stripe: {
+    products: { create: vi.fn() },
+  },
+}));
+
+vi.mock("@/lib/arcjet", () => ({
+  default: {
+    withRule: vi.fn().mockReturnValue({
+      protect: vi.fn().mockResolvedValue({
+        isDenied: () => false,
+        reason: { isRateLimit: () => false },
+      }),
+    }),
+  },
+  fixedWindow: vi.fn(() => ({})),
+}));
+
+vi.mock("@arcjet/next", () => ({
+  default: vi.fn(() => ({})),
+  request: vi.fn().mockResolvedValue({}),
+  createMiddleware: vi.fn((_aj: unknown, h: unknown) => h),
+  detectBot: vi.fn(() => ({})),
+}));
+
+vi.mock("@/src/generated/prisma/client", () => ({
+  EnrollmentStatus: { Active: "Active", Inactive: "Inactive" },
+}));
+
+// ── Imports under test ────────────────────────────────────────────────────────
+
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/db";
+import { stripe } from "@/lib/stripe";
+
+// Courses — create
+import { CreateCourse } from "@/app/admin/courses/create/actions";
+
+// Courses — delete
+import { deleteCourse } from "@/app/admin/courses/[courseId]/delete/actions";
+
+// Courses — edit (multiple actions in one file)
+import {
+  editCourse,
+  reorderLessons,
+  reorderChapters,
+  createChapter,
+  createLesson,
+  deleteLesson,
+  deleteChapter,
+} from "@/app/admin/courses/[courseId]/edit/actions";
+
+// Lessons — update
+import { updateLesson } from "@/app/admin/courses/[courseId]/[chapterId]/[lessonId]/actions";
+
+// Admin self-enroll
+import { adminSelfEnrollCourse } from "@/app/data/admin/admin-self-enroll-course";
+
+// Quiz — delete (invoked from /admin/quizzes UI)
+import { deleteQuiz } from "@/app/actions/quiz/delete-quiz";
+
+const mockGetSession = vi.mocked(auth.api.getSession);
+const mockRedirect = vi.mocked(redirect);
+
+// ── Shared fixtures ───────────────────────────────────────────────────────────
+
+const USER_SESSION = {
+  user: {
+    id: "user-123",
+    name: "Regular User",
+    email: "user@example.com",
+    emailVerified: true,
+    image: null,
+    createdAt: new Date("2024-01-01"),
+    updatedAt: new Date("2024-01-01"),
+    role: "user",
+    banned: false,
+    banReason: null,
+    banExpires: null,
+  },
+  session: {
+    id: "session-abc",
+    userId: "user-123",
+    expiresAt: new Date(Date.now() + 3600 * 1000),
+    token: "tok",
+    createdAt: new Date("2024-01-01"),
+    updatedAt: new Date("2024-01-01"),
+  },
+};
+
+// Minimal course/lesson/chapter input shapes (validation is never reached
+// because requireAdmin() throws before any input parsing occurs)
+const COURSE_INPUT = {
+  title: "Test Course",
+  smallDescription: "Desc",
+  description: "Full desc",
+  price: 99,
+  duration: "2h",
+  level: "beginner",
+  status: "draft",
+  category: "tech",
+  fileKey: "key",
+  slug: "test-course",
+};
+
+const LESSON_INPUT = {
+  title: "Test Lesson",
+  chapterId: "chapter-1",
+  courseId: "course-1",
+  description: null,
+  content: null,
+  videoKey: null,
+  youtubeUrl: null,
+  thumbnailKey: null,
+  isPublished: false,
+  isFreePreview: false,
+  documents: [],
+};
+
+const CHAPTER_INPUT = { name: "Chapter 1", courseId: "course-1" };
+
+/** Valid `courseSchema` payload for success-path admin tests */
+const VALID_COURSE = {
+  title: "A valid course title",
+  smallDescription: "Short description for the course card goes here",
+  description: "A full course description that is at least three characters long",
+  slug: "valid-course-slug",
+  category: "Development" as const,
+  price: 99,
+  duration: 10,
+  level: "Beginner" as const,
+  status: "Draft" as const,
+  fileKey: "file-key-1",
+};
+
+// ── Helper ────────────────────────────────────────────────────────────────────
+
+/**
+ * Runs an action that is expected to throw NEXT_REDIRECT for a "user" role
+ * and verifies that:
+ *   1. A NEXT_REDIRECT error is thrown (execution is stopped).
+ *   2. redirect() was called with "/not-admin".
+ */
+async function expectUserRoleToBeRejected(
+  action: () => Promise<unknown>
+): Promise<void> {
+  await expect(action()).rejects.toThrow("NEXT_REDIRECT");
+  expect(mockRedirect).toHaveBeenCalledWith("/not-admin");
+}
+
+async function expectLoginRedirectForAction(
+  action: () => Promise<unknown>
+): Promise<void> {
+  await expect(action()).rejects.toThrow("NEXT_REDIRECT");
+  expect(mockRedirect).toHaveBeenCalledWith("/login");
+}
+
+// ── Tests ─────────────────────────────────────────────────────────────────────
+
+describe("Admin server actions — unauthenticated (null session)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetSession.mockResolvedValue(null);
+  });
+
+  it("CreateCourse redirects to /login", async () => {
+    await expectLoginRedirectForAction(() =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      CreateCourse(VALID_COURSE as any)
+    );
+    expect(stripe.products.create).not.toHaveBeenCalled();
+  });
+
+  it("deleteCourse redirects to /login", async () => {
+    await expectLoginRedirectForAction(() => deleteCourse("course-1"));
+    expect(prisma.course.delete).not.toHaveBeenCalled();
+  });
+
+  it("deleteQuiz redirects to /login", async () => {
+    await expectLoginRedirectForAction(() => deleteQuiz("quiz-1"));
+    expect(prisma.quiz.findUnique).not.toHaveBeenCalled();
+  });
+});
+
+describe("Admin server actions — user role access (integration)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockGetSession.mockResolvedValue(USER_SESSION);
+  });
+
+  // ── courses/create/actions.ts ─────────────────────────────────────────────
+
+  describe("CreateCourse", () => {
+    it('redirects a "user" role to /not-admin', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await expectUserRoleToBeRejected(() => CreateCourse(COURSE_INPUT as any));
+    });
+
+    it("does not call stripe.products.create when blocked", async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await expect(CreateCourse(COURSE_INPUT as any)).rejects.toThrow();
+      expect(stripe.products.create).not.toHaveBeenCalled();
+    });
+
+    it("does not create a course record in the database when blocked", async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await expect(CreateCourse(COURSE_INPUT as any)).rejects.toThrow();
+      expect(prisma.course.create).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── courses/[courseId]/delete/actions.ts ──────────────────────────────────
+
+  describe("deleteCourse", () => {
+    it('redirects a "user" role to /not-admin', async () => {
+      await expectUserRoleToBeRejected(() => deleteCourse("course-1"));
+    });
+
+    it("does not delete the course record when blocked", async () => {
+      await expect(deleteCourse("course-1")).rejects.toThrow();
+      expect(prisma.course.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── courses/[courseId]/edit/actions.ts ────────────────────────────────────
+
+  describe("editCourse", () => {
+    it('redirects a "user" role to /not-admin', async () => {
+      await expectUserRoleToBeRejected(() =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        editCourse(COURSE_INPUT as any, "course-1")
+      );
+    });
+
+    it("does not update the course record when blocked", async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await expect(editCourse(COURSE_INPUT as any, "course-1")).rejects.toThrow();
+      expect(prisma.course.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("reorderLessons", () => {
+    it('redirects a "user" role to /not-admin', async () => {
+      await expectUserRoleToBeRejected(() =>
+        reorderLessons(
+          "chapter-1",
+          [{ id: "lesson-1", position: 1 }],
+          "course-1"
+        )
+      );
+    });
+
+    it("does not call prisma.$transaction when blocked", async () => {
+      await expect(
+        reorderLessons("chapter-1", [{ id: "lesson-1", position: 1 }], "course-1")
+      ).rejects.toThrow();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("reorderChapters", () => {
+    it('redirects a "user" role to /not-admin', async () => {
+      await expectUserRoleToBeRejected(() =>
+        reorderChapters("course-1", [{ id: "chapter-1", position: 1 }])
+      );
+    });
+  });
+
+  describe("createChapter", () => {
+    it('redirects a "user" role to /not-admin', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await expectUserRoleToBeRejected(() => createChapter(CHAPTER_INPUT as any));
+    });
+
+    it("does not create a chapter record when blocked", async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await expect(createChapter(CHAPTER_INPUT as any)).rejects.toThrow();
+      expect(prisma.chapter.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("createLesson", () => {
+    it('redirects a "user" role to /not-admin', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await expectUserRoleToBeRejected(() => createLesson(LESSON_INPUT as any));
+    });
+
+    it("does not create a lesson record when blocked", async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await expect(createLesson(LESSON_INPUT as any)).rejects.toThrow();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("deleteLesson", () => {
+    it('redirects a "user" role to /not-admin', async () => {
+      await expectUserRoleToBeRejected(() =>
+        deleteLesson({
+          chapterId: "chapter-1",
+          courseId: "course-1",
+          lessonId: "lesson-1",
+        })
+      );
+    });
+
+    it("does not query or delete lesson records when blocked", async () => {
+      await expect(
+        deleteLesson({
+          chapterId: "chapter-1",
+          courseId: "course-1",
+          lessonId: "lesson-1",
+        })
+      ).rejects.toThrow();
+      expect(prisma.chapter.findUnique).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("deleteChapter", () => {
+    it('redirects a "user" role to /not-admin', async () => {
+      await expectUserRoleToBeRejected(() =>
+        deleteChapter({ chapterId: "chapter-1", courseId: "course-1" })
+      );
+    });
+
+    it("does not query or delete chapter records when blocked", async () => {
+      await expect(
+        deleteChapter({ chapterId: "chapter-1", courseId: "course-1" })
+      ).rejects.toThrow();
+      expect(prisma.course.findUnique).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── courses/[courseId]/[chapterId]/[lessonId]/actions.ts ──────────────────
+
+  describe("updateLesson", () => {
+    it('redirects a "user" role to /not-admin', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await expectUserRoleToBeRejected(() => updateLesson(LESSON_INPUT as any, "lesson-1"));
+    });
+
+    it("does not perform any database writes when blocked", async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await expect(updateLesson(LESSON_INPUT as any, "lesson-1")).rejects.toThrow();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── actions/quiz/delete-quiz.ts (used from /admin/quizzes) ───────────────────
+
+  describe("deleteQuiz", () => {
+    it('redirects a "user" role to /not-admin', async () => {
+      await expectUserRoleToBeRejected(() => deleteQuiz("quiz-1"));
+    });
+
+    it("does not query prisma.quiz when blocked", async () => {
+      await expect(deleteQuiz("quiz-1")).rejects.toThrow();
+      expect(prisma.quiz.findUnique).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── data/admin/admin-self-enroll-course.ts ────────────────────────────────
+
+  describe("adminSelfEnrollCourse", () => {
+    it('redirects a "user" role to /not-admin', async () => {
+      await expectUserRoleToBeRejected(() => adminSelfEnrollCourse("course-1"));
+    });
+
+    it("does not upsert an enrollment record when blocked", async () => {
+      await expect(adminSelfEnrollCourse("course-1")).rejects.toThrow();
+      expect(prisma.enrollment.upsert).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── Baseline: admin role is allowed ───────────────────────────────────────
+
+  describe("baseline — admin role IS allowed", () => {
+    it('does NOT throw for a user with role "admin" (sanity check)', async () => {
+      const adminSession = {
+        ...USER_SESSION,
+        user: { ...USER_SESSION.user, id: "admin-1", role: "admin" },
+      };
+      mockGetSession.mockResolvedValue(adminSession);
+
+      // deleteCourse is lightweight — it doesn't hit Stripe, just DB.
+      // Mock the DB call so it doesn't throw.
+      vi.mocked(prisma.course.delete).mockResolvedValue({} as never);
+
+      // Mock the arcjet protect call so deleteCourse can proceed without error
+      const { default: arcjet } = await import("@/lib/arcjet");
+      vi.mocked(arcjet.withRule).mockReturnValue({
+        protect: vi.fn().mockResolvedValue({
+          isDenied: () => false,
+          reason: { isRateLimit: () => false },
+        }),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
+
+      // The action should succeed (not throw a redirect)
+      await expect(deleteCourse("course-1")).resolves.not.toThrow();
+      expect(mockRedirect).not.toHaveBeenCalled();
+    });
+
+    it("CreateCourse succeeds for admin with valid payload (mocked Stripe + Prisma)", async () => {
+      const adminSession = {
+        ...USER_SESSION,
+        user: { ...USER_SESSION.user, id: "admin-1", role: "admin" },
+      };
+      mockGetSession.mockResolvedValue(adminSession);
+
+      const { default: arcjet } = await import("@/lib/arcjet");
+      vi.mocked(arcjet.withRule).mockReturnValue({
+        protect: vi.fn().mockResolvedValue({
+          isDenied: () => false,
+          reason: { isRateLimit: () => false },
+        }),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
+
+      vi.mocked(stripe.products.create).mockResolvedValue({
+        default_price: "price_test",
+      } as never);
+      vi.mocked(prisma.course.create).mockResolvedValue({} as never);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await CreateCourse(VALID_COURSE as any);
+
+      expect(mockRedirect).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        status: "success",
+        message: "Course created succesfully",
+      });
+      expect(prisma.course.create).toHaveBeenCalled();
+    });
+
+    it("editCourse succeeds for admin when update resolves", async () => {
+      const adminSession = {
+        ...USER_SESSION,
+        user: { ...USER_SESSION.user, id: "admin-1", role: "admin" },
+      };
+      mockGetSession.mockResolvedValue(adminSession);
+
+      const { default: arcjet } = await import("@/lib/arcjet");
+      vi.mocked(arcjet.withRule).mockReturnValue({
+        protect: vi.fn().mockResolvedValue({
+          isDenied: () => false,
+          reason: { isRateLimit: () => false },
+        }),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
+
+      vi.mocked(prisma.course.update).mockResolvedValue({} as never);
+
+      const courseId = "00000000-0000-4000-8000-000000000001";
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await editCourse(VALID_COURSE as any, courseId);
+
+      expect(mockRedirect).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        status: "success",
+        message: "Course updated successfully",
+      });
+    });
+
+    it("createChapter succeeds for admin when transaction resolves", async () => {
+      const adminSession = {
+        ...USER_SESSION,
+        user: { ...USER_SESSION.user, id: "admin-1", role: "admin" },
+      };
+      mockGetSession.mockResolvedValue(adminSession);
+
+      vi.mocked(prisma.$transaction).mockImplementation(async (fn) => {
+        const tx = {
+          chapter: {
+            findFirst: vi.fn().mockResolvedValue(null),
+            create: vi.fn().mockResolvedValue({}),
+          },
+        };
+        return fn(tx as never);
+      });
+
+      const chapterInput = {
+        name: "New chapter name",
+        courseId: "00000000-0000-4000-8000-000000000001",
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result = await createChapter(chapterInput as any);
+
+      expect(mockRedirect).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        status: "success",
+        message: "Chapter created successfully",
+      });
+    });
+  });
+});
