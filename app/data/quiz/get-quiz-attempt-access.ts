@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/app/data/user/require-user";
-import { CourseStatus, EnrollmentStatus } from "@/src/generated/prisma";
+import { CourseStatus, EnrollmentStatus } from "@/src/generated/prisma/client";
 
 export async function getQuizAttemptAccess(quizId: string) {
   const user = await requireUser();

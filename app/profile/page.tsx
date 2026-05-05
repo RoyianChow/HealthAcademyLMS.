@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { format } from "date-fns";
-import { EnrollmentStatus } from "@/src/generated/prisma";
+import { EnrollmentStatus } from "@/src/generated/prisma/client";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

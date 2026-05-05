@@ -1,16 +1,9 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
-import { EnrollmentStatus, CourseStatus } from "@/src/generated/prisma";
+import { requireUser } from "@/app/data/user/require-user";
+import { EnrollmentStatus, CourseStatus } from "@/src/generated/prisma/client";
 
 export async function getEnrolledCourseQuizzes() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session?.user?.id) {
-    return [];
-  }
+  const user = await requireUser();
 
   return prisma.quiz.findMany({
     where: {
@@ -23,7 +16,7 @@ export async function getEnrolledCourseQuizzes() {
           status: CourseStatus.Published,
           enrollments: {
             some: {
-              userId: session.user.id,
+              userId: user.id,
               status: EnrollmentStatus.Active,
             },
           },
@@ -76,32 +69,32 @@ export async function getEnrolledCourseQuizzes() {
         },
       },
       attempts: {
-  where: {
-    userId: session.user.id,
-    isComplete: true,
-  },
-  orderBy: {
-    submittedAt: "desc",
-  },
-  take: 1,
-  select: {
-    id: true,
-    score: true,
-    attemptNumber: true,
-    submittedAt: true,
-    isComplete: true,
-    isGraded: true,
-    feedback: true,
-    answers: {
-      select: {
-        id: true,
-        questionId: true,
-        selectedOptionId: true,
-        isCorrect: true,
+        where: {
+          userId: user.id,
+          isComplete: true,
+        },
+        orderBy: {
+          submittedAt: "desc",
+        },
+        take: 1,
+        select: {
+          id: true,
+          score: true,
+          attemptNumber: true,
+          submittedAt: true,
+          isComplete: true,
+          isGraded: true,
+          feedback: true,
+          answers: {
+            select: {
+              id: true,
+              questionId: true,
+              selectedOptionId: true,
+              isCorrect: true,
+            },
+          },
+        },
       },
-    },
-  },
-},
     },
   });
 }

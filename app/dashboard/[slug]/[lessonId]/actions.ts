@@ -4,17 +4,43 @@ import { requireUser } from "@/app/data/user/require-user";
 import { prisma } from "@/lib/db";
 import { ApiResponse } from "@/lib/types";
 import { revalidatePath } from "next/cache";
+import { EnrollmentStatus } from "@/src/generated/prisma/client";
 
 export async function markLessonComplete(
   lessonId: string,
   slug: string
 ): Promise<ApiResponse> {
-  await requireUser();
+  const user = await requireUser();
 
   try {
-    await prisma.lesson.update({
+    const lesson = await prisma.lesson.findFirst({
       where: {
         id: lessonId,
+        chapter: {
+          course: {
+            slug,
+            enrollments: {
+              some: {
+                userId: user.id,
+                status: EnrollmentStatus.Active,
+              },
+            },
+          },
+        },
+      },
+      select: { id: true },
+    });
+
+    if (!lesson) {
+      return {
+        status: "error",
+        message: "Lesson not found or you are not enrolled in this course.",
+      };
+    }
+
+    await prisma.lesson.update({
+      where: {
+        id: lesson.id,
       },
       data: {
         lessonProgress: true,

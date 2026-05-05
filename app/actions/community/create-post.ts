@@ -3,6 +3,8 @@
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/app/data/user/require-user";
 import { revalidatePath } from "next/cache";
+import { EnrollmentStatus } from "@/src/generated/prisma/client";
+import { rethrowIfNextRedirect } from "@/lib/rethrow-next-redirect";
 
 export async function createPost({
   content,
@@ -24,6 +26,20 @@ export async function createPost({
       return { error: "Course ID is required" };
     }
 
+    const enrollment = await prisma.enrollment.findFirst({
+      where: {
+        userId: user.id,
+        courseId,
+        status: EnrollmentStatus.Active,
+      },
+    });
+
+    if (!enrollment) {
+      return {
+        error: "You must be enrolled in this course to create a post.",
+      };
+    }
+
     await prisma.communityPost.create({
       data: {
         content,
@@ -36,6 +52,7 @@ export async function createPost({
 
     return { success: true };
   } catch (error) {
+    rethrowIfNextRedirect(error);
     console.error(error);
     return { error: "Something went wrong while creating the post." };
   }

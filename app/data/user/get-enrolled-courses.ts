@@ -1,6 +1,6 @@
 import { requireUser } from "./require-user";
 import { prisma } from "@/lib/db";
-import { EnrollmentStatus } from "@/src/generated/prisma";
+import { EnrollmentStatus } from "@/src/generated/prisma/client";
 
 export async function getEnrolledCourses() {
   const user = await requireUser();

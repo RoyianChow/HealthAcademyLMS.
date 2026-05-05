@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/app/data/admin/require-admin";
 
 export async function POST(req: Request) {
+  await requireAdmin();
+
   try {
     const body = await req.json();
 

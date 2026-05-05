@@ -4,7 +4,7 @@ import { MessageCircle, Users } from "lucide-react";
 
 import { requireUser } from "@/app/data/user/require-user";
 import { prisma } from "@/lib/db";
-import { CourseStatus, EnrollmentStatus } from "@/src/generated/prisma";
+import { CourseStatus, EnrollmentStatus } from "@/src/generated/prisma/client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";

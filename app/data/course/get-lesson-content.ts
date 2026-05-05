@@ -2,7 +2,7 @@
 import { prisma } from "@/lib/db";
 import { requireUser } from "../user/require-user";
 import { notFound } from "next/navigation";
-import { EnrollmentStatus } from "@/src/generated/prisma";
+import { EnrollmentStatus } from "@/src/generated/prisma/client";
 
 export async function getLessonContent(lessonId: string) {
   const session = await requireUser();
@@ -54,6 +54,10 @@ export async function getLessonContent(lessonId: string) {
   });
 
   if (!enrollment || enrollment.status !== EnrollmentStatus.Active) {
+    return notFound();
+  }
+
+  if (!lesson.isPublished && !lesson.isFreePreview) {
     return notFound();
   }
 

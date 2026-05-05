@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/app/data/user/require-user";
 import { revalidatePath } from "next/cache";
+import { rethrowIfNextRedirect } from "@/lib/rethrow-next-redirect";
 
 type SubmitQuizAttemptInput = {
   quizId: string;
@@ -195,6 +196,7 @@ export async function submitQuizAttempt(input: SubmitQuizAttemptInput) {
       answers: answerRows,
     };
   } catch (error) {
+    rethrowIfNextRedirect(error);
     console.error("submitQuizAttempt error", error);
 
     return {

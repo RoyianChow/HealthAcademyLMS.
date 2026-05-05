@@ -3,6 +3,8 @@
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/app/data/user/require-user";
 import { revalidatePath } from "next/cache";
+import { EnrollmentStatus } from "@/src/generated/prisma/client";
+import { rethrowIfNextRedirect } from "@/lib/rethrow-next-redirect";
 
 export async function createComment({
   postId,
@@ -22,6 +24,29 @@ export async function createComment({
       return { error: "Comment cannot be empty" };
     }
 
+    const post = await prisma.communityPost.findUnique({
+      where: { id: postId },
+      select: { courseId: true },
+    });
+
+    if (!post) {
+      return { error: "Post not found." };
+    }
+
+    const enrollment = await prisma.enrollment.findFirst({
+      where: {
+        userId: user.id,
+        courseId: post.courseId,
+        status: EnrollmentStatus.Active,
+      },
+    });
+
+    if (!enrollment) {
+      return {
+        error: "You must be enrolled in this course to comment.",
+      };
+    }
+
     await prisma.communityComment.create({
       data: {
         content,
@@ -34,6 +59,7 @@ export async function createComment({
 
     return { success: true };
   } catch (error) {
+    rethrowIfNextRedirect(error);
     console.error(error);
     return { error: "Something went wrong while creating the comment." };
   }

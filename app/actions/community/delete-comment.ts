@@ -5,6 +5,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/app/data/user/require-user";
+import { rethrowIfNextRedirect } from "@/lib/rethrow-next-redirect";
 
 export async function deleteCommunityComment(commentId: string) {
   try {
@@ -59,7 +60,8 @@ export async function deleteCommunityComment(commentId: string) {
       status: "success" as const,
       message: "Comment deleted successfully.",
     };
-  } catch {
+  } catch (error) {
+    rethrowIfNextRedirect(error);
     return {
       status: "error" as const,
       message: "Failed to delete comment.",

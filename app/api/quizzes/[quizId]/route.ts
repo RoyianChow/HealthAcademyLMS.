@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/app/data/admin/require-admin";
 
 export const runtime = "nodejs";
 
@@ -43,6 +44,8 @@ function apiError(message: string, status = 400) {
 }
 
 export async function PATCH(req: Request, { params }: RouteContext) {
+  await requireAdmin();
+
   try {
     const { quizId } = await params;
     const body = (await req.json()) as QuizUpdateBody;

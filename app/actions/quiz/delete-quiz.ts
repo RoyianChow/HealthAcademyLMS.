@@ -5,9 +5,9 @@ import { requireAdmin } from "@/app/data/admin/require-admin";
 import { revalidatePath } from "next/cache";
 
 export async function deleteQuiz(quizId: string) {
-  try {
-    await requireAdmin();
+  await requireAdmin();
 
+  try {
     const quiz = await prisma.quiz.findUnique({
       where: {
         id: quizId,

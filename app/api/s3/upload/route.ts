@@ -24,9 +24,9 @@ const aj = arcjet.withRule(
 );
 
 export async function POST(request: Request) {
-  try {
-    const session = await requireAdmin();
+  const session = await requireAdmin();
 
+  try {
     const decision = await aj.protect(request, {
       fingerprint: session.user.id,
     });
