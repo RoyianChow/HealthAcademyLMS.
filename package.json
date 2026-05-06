@@ -9,8 +9,11 @@
     "lint": "next lint",
     "postinstall": "prisma generate",
     "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:integration": "vitest run --project integration",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:coverage:unit": "vitest run --coverage --project unit"
   },
   "dependencies": {
     "@arcjet/inspect": "1.0.0-beta.8",
