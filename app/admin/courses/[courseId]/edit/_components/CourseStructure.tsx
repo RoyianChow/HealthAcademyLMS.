@@ -33,6 +33,7 @@ import {
   ChevronRight,
   FileText,
   GripVertical,
+  HelpCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -69,6 +70,11 @@ export function CourseStructure({ data }: iAppProps) {
         title: lesson.title,
         order: lesson.position,
       })),
+        quizzes: chapter.quizzes.map((quiz) => ({
+        id: quiz.id,
+        title: quiz.title,
+        isPublished: quiz.isPublished,
+      })),
     })) || [];
 
   const [items, setItems] = useState(initialItems);
@@ -88,6 +94,11 @@ export function CourseStructure({ data }: iAppProps) {
             id: lesson.id,
             title: lesson.title,
             order: lesson.position,
+          })),
+          quizzes: chapter.quizzes.map((quiz) => ({
+            id: quiz.id,
+            title: quiz.title,
+            isPublished: quiz.isPublished,
           })),
         })) || [];
 
@@ -334,6 +345,7 @@ export function CourseStructure({ data }: iAppProps) {
 
                       <CollapsibleContent>
                         <div className="p-1">
+                          {/* Lessons */}
                           <SortableContext
                             items={item.lessons.map((lesson) => lesson.id)}
                             strategy={verticalListSortingStrategy}
@@ -361,7 +373,6 @@ export function CourseStructure({ data }: iAppProps) {
                                         {lesson.title}
                                       </Link>
                                     </div>
-
                                     <DeleteLesson
                                       chapterId={item.id}
                                       courseId={data.id}
@@ -372,6 +383,29 @@ export function CourseStructure({ data }: iAppProps) {
                               </SortableItem>
                             ))}
                           </SortableContext>
+
+                          {/* Quizzes */}
+                          {item.quizzes.map((quiz) => (
+                            <div
+                              key={quiz.id}
+                              className="flex items-center justify-between p-1 hover:bg-accent rounded-sm group"
+                            >
+                              <div className="flex items-center gap-2">
+                                <div className="size-10 flex items-center justify-center" />
+                                <HelpCircle className="size-4" />                                
+                                <Link href={`/admin/quizzes/${quiz.id}/edit`}>
+                                  {quiz.title}
+                                </Link>
+                                
+                                {!quiz.isPublished && (
+                                  <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground uppercase font-semibold">
+                                    Draft
+                                  </span>
+                                )}
+                              </div>
+                              <div className="w-10" /> 
+                            </div>
+                          ))}
                           <div className="p-2">
                             <NewLessonModal
                               chapterId={item.id}
