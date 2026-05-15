@@ -35,6 +35,7 @@ vi.mock("@/lib/db", () => ({
       delete: vi.fn(),
       findUnique: vi.fn(),
       findMany: vi.fn(),
+      findFirst: vi.fn(),
     },
     chapter: {
       create: vi.fn(),
