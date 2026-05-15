@@ -40,6 +40,13 @@ export async function adminGetCourse(id: string) {
               position: "asc",
             },
           },
+          quizzes: {
+            select: {
+              id: true,
+              title: true,
+              isPublished: true,
+            },
+          },
         },
         orderBy: {
           position: "asc",
