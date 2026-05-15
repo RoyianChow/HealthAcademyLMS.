@@ -588,7 +588,7 @@ describe("Admin server actions — user role access (integration)", () => {
       expect(mockRedirect).not.toHaveBeenCalled();
       expect(result).toEqual({
         status: "success",
-        message: "Course created succesfully",
+        message: "Course created successfully",
       });
       expect(prisma.course.create).toHaveBeenCalled();
     });
