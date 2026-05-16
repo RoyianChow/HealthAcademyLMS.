@@ -62,7 +62,7 @@ export async function editCourse(
     await prisma.course.update({
       where: {
         id: courseId,
-        userId: user.user.id,
+        //userId: user.user.id, // Add this only if you want to restrict course editing to the admin who created it.
       },
       data: {
         ...result.data,
