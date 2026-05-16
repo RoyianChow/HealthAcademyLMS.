@@ -95,19 +95,29 @@ export async function reorderLessons(
       };
     }
 
-    const updates = lessons.map((lesson) =>
+    const tempUpdates = lessons.map((lesson) =>
+      prisma.lesson.update({
+        where: {
+          id: lesson.id, 
+        },
+        data: {
+          position: -lesson.position,
+        },
+      })
+    );
+    await prisma.$transaction(tempUpdates);
+
+    const finalUpdates = lessons.map((lesson) =>
       prisma.lesson.update({
         where: {
           id: lesson.id,
-          chapterId: chapterId,
         },
         data: {
           position: lesson.position,
         },
       })
     );
-
-    await prisma.$transaction(updates);
+    await prisma.$transaction(finalUpdates);
 
     revalidatePath(`/admin/courses/${courseId}/edit`);
 
@@ -115,7 +125,8 @@ export async function reorderLessons(
       status: "success",
       message: "Lessons reordered successfully",
     };
-  } catch {
+  } catch (error) {
+    console.error("REORDER_LESSONS_ERROR:", error); 
     return {
       status: "error",
       message: "Failed to reorder lessons.",
@@ -136,19 +147,29 @@ export async function reorderChapters(
       };
     }
 
-    const updates = chapters.map((chapter) =>
+    const tempUpdates = chapters.map((chapter) =>
+      prisma.chapter.update({
+        where: {
+          id: chapter.id, 
+        },
+        data: {
+          position: -chapter.position, 
+        },
+      })
+    );
+    await prisma.$transaction(tempUpdates);
+
+    const finalUpdates = chapters.map((chapter) =>
       prisma.chapter.update({
         where: {
           id: chapter.id,
-          courseId: courseId,
         },
         data: {
           position: chapter.position,
         },
       })
     );
-
-    await prisma.$transaction(updates);
+    await prisma.$transaction(finalUpdates);
 
     revalidatePath(`/admin/courses/${courseId}/edit`);
 
@@ -156,7 +177,8 @@ export async function reorderChapters(
       status: "success",
       message: "Chapters reordered successfully",
     };
-  } catch {
+  } catch (error) {
+    console.error("REORDER_CHAPTERS_ERROR:", error); 
     return {
       status: "error",
       message: "Failed to reorder chapters",
@@ -445,3 +467,4 @@ export async function deleteChapter({
     };
   }
 }
+
