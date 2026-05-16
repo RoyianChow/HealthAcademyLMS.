@@ -58,6 +58,33 @@ interface SortableItemProps {
   };
 }
 
+function SortableItem({ children, id, className, data }: SortableItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: id, data: data });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      className={cn("touch-none", className, isDragging ? "z-10" : "")}
+    >
+      {children(listeners)}
+    </div>
+  );
+}
+
 export function CourseStructure({ data }: iAppProps) {
   const initialItems =
     data.chapters.map((chapter) => ({
@@ -105,33 +132,6 @@ export function CourseStructure({ data }: iAppProps) {
       return updatedItems;
     });
   }, [data]);
-
-  function SortableItem({ children, id, className, data }: SortableItemProps) {
-    const {
-      attributes,
-      listeners,
-      setNodeRef,
-      transform,
-      transition,
-      isDragging,
-    } = useSortable({ id: id, data: data });
-
-    const style = {
-      transform: CSS.Transform.toString(transform),
-      transition,
-    };
-
-    return (
-      <div
-        ref={setNodeRef}
-        style={style}
-        {...attributes}
-        className={cn("touch-none", className, isDragging ? "z-10" : "")}
-      >
-        {children(listeners)}
-      </div>
-    );
-  }
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -190,9 +190,9 @@ export function CourseStructure({ data }: iAppProps) {
             if (result.status === "success") return result.message;
             throw new Error(result.message);
           },
-          error: () => {
+          error: (err) => {
             setItems(previousItems);
-            return "Failed to reorder chapters.";
+            return err instanceof Error ? err.message : "Failed to reorder chapters.";
           },
         });
       }
@@ -265,9 +265,9 @@ export function CourseStructure({ data }: iAppProps) {
             if (result.status === "success") return result.message;
             throw new Error(result.message);
           },
-          error: () => {
+          error: (err) => {
             setItems(previousItems);
-            return "Failed to reorder lessons.";
+            return err instanceof Error ? err.message : "Failed to reorder lessons.";
           },
         });
       }
