@@ -468,3 +468,46 @@ export async function deleteChapter({
   }
 }
 
+export async function editChapter({
+  chapterId,
+  courseId,
+  name,
+}: {
+  chapterId: string;
+  courseId: string;
+  name: string;
+}): Promise<ApiResponse> {
+  await requireAdmin();
+  try {
+    if (!name || name.trim() === "") {
+      return {
+        status: "error",
+        message: "Chapter title cannot be empty",
+      };
+    }
+
+    await prisma.chapter.update({
+      where: {
+        id: chapterId,
+      },
+      data: {
+        title: name,
+      },
+    });
+
+    revalidatePath(`/admin/courses/${courseId}/edit`);
+
+    return {
+      status: "success",
+      message: "Chapter updated successfully",
+    };
+  } catch (error) {
+    console.error("EDIT_CHAPTER_ERROR:", error);
+    return {
+      status: "error",
+      message: "Failed to update chapter",
+    };
+  }
+}
+
+
