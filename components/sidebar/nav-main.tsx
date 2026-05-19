@@ -20,6 +20,7 @@ export function NavMain({
     title: string;
     url: string;
     icon?: Icon;
+    isChild?: boolean;
   }[];
 }) {
   const pathname = usePathname();
@@ -44,7 +45,10 @@ export function NavMain({
         )}
         <SidebarMenu>
           {items.map((item) => (
-            <SidebarMenuItem key={item.title}>
+            <SidebarMenuItem 
+              key={item.title} 
+              className={cn(item.isChild && "ml-4")}
+            >
               <SidebarMenuButton tooltip={item.title} asChild>
                 <Link
                   href={item.url}
