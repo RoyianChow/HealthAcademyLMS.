@@ -43,6 +43,7 @@ import { NewChapterModal } from "./NewChapterModal";
 import { NewLessonModal } from "./NewLessonModal";
 import { DeleteLesson } from "./DeleteLesson";
 import { DeleteChapter } from "./DeleteChapter";
+import { EditChapter } from "./EditChapter";
 
 interface iAppProps {
   data: AdminCourseSingularType;
@@ -340,7 +341,10 @@ export function CourseStructure({ data }: iAppProps) {
                           </p>
                         </div>
 
-                        <DeleteChapter chapterId={item.id} courseId={data.id} />
+                        <div className="flex items-center gap-1">
+                          <EditChapter chapterId={item.id} courseId={data.id} initialTitle={item.title} />
+                          <DeleteChapter chapterId={item.id} courseId={data.id} />
+                        </div>
                       </div>
 
                       <CollapsibleContent>
@@ -424,4 +428,6 @@ export function CourseStructure({ data }: iAppProps) {
       </Card>
     </DndContext>
   );
+}
+
 }
