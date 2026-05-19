@@ -1,7 +1,7 @@
-import { SiteHeader } from "@/components/sidebar/site-header";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { ReactNode } from "react";
-import { AppSidebar } from "./_components/DashboardAppSidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { SiteHeader } from "@/components/sidebar/site-header";
+import { AppSidebar } from "@/components/sidebar/app-sidebar"; 
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
