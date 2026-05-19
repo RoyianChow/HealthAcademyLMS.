@@ -2,17 +2,17 @@
 
 import * as React from "react";
 import {
-  IconChartBar,
+  IconChecklist,
   IconDashboard,
   IconGlobe,
   IconListDetails,
-  IconMessage,
   IconUser,
 } from "@tabler/icons-react";
 import Image from "next/image";
 import Link from "next/link";
 
 import Logo from "@/public/logo.png";
+import { authClient } from "@/lib/auth-client";
 import { NavMain } from "@/components/sidebar/nav-main";
 import { NavUser } from "@/components/sidebar/nav-user";
 import {
@@ -25,51 +25,62 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
-const navMain = [
-  {
-    title: "Dashboard",
-    url: "/dashboard",
-    icon: IconDashboard,
-  },
-  {
-    title: "Admin Dashboard",
-    url: "/admin",
-    icon: IconDashboard,
-  },
-  {
-    title: "Profile",
-    url: "/profile",
-    icon: IconUser,
-  },
-  
-  {
-    title: "Courses",
-    url: "/admin/courses",
-    icon: IconListDetails,
-  },
-  {
-    title: "Admin Quizzes",
-    url: "/admin/quizzes",
-    icon: IconChartBar,
-  },
-  {
-    title: "Quizzes",
-    url: "/quizzes",
-    icon: IconChartBar,
-  },
-  {
-    title: "Community",
-    url: "/dashboard/community",
-    icon: IconGlobe,
-  },
-  {
-    title: "Admin Community",
-    url: "/admin/community",
-    icon: IconGlobe,
-  },
-];
-
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { data: session } = authClient.useSession();
+
+  const navMain = [
+    {
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: IconDashboard,
+    },
+    {
+      title: "Quizzes",
+      url: "/quizzes",
+      icon: IconChecklist,
+      isChild: true,
+    },
+    {
+      title: "Profile",
+      url: "/profile",
+      icon: IconUser,
+      isChild: true,
+    },
+    {
+      title: "Community",
+      url: "/dashboard/community",
+      icon: IconGlobe,
+      isChild: true,
+    },
+    ...(session?.user?.role === "admin"
+      ? [
+          {
+            title: "Admin Dashboard",
+            url: "/admin",
+            icon: IconDashboard,
+          },
+          {
+            title: "Admin Courses",
+            url: "/admin/courses",
+            icon: IconListDetails,
+            isChild: true,
+          },
+          {
+            title: "Admin Quizzes",
+            url: "/admin/quizzes",
+            icon: IconChecklist,
+            isChild: true,
+          },
+          {
+            title: "Admin Community",
+            url: "/admin/community",
+            icon: IconGlobe,
+            isChild: true,
+          },
+        ]
+      : []),
+  ];
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -87,7 +98,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   priority
                 />
                 <span className="text-base font-semibold">
-                  Healthy Academy LMS
+                  Healthy Academy LMS.
                 </span>
               </Link>
             </SidebarMenuButton>
