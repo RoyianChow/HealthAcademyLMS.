@@ -4,25 +4,30 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export async function sendContactEmail(formData: FormData) {
+export async function sendContactEmail(_prevState: any, formData: FormData) {
   try {
-    const name = formData.get("name") as string;
+    const firstName = formData.get("firstName") as string;
+    const lastName = formData.get("lastName") as string;
     const email = formData.get("email") as string;
+    const subject = formData.get("subject") as string;
     const message = formData.get("message") as string;
 
-    if (!name || !email || !message) {
-      return { error: "All fields are required" };
+    if (!email || !subject || !message) {
+      return { error: "Required fields are missing" };
     }
+
+    const fullName = [firstName, lastName].filter(Boolean).join(" ") || "A User";
 
     await resend.emails.send({
       from: "onboarding@resend.dev", // change later to your domain
-      to: "happynutritionhealth@gmail.com",
-      subject: `New Contact Form Submission from ${name}`,
+      to: "happynutritionhealth@gmail.com", // change later to your email
+      subject: `Natural Health Academy: ${subject}`,
       replyTo: email,
       html: `
-        <h2>New Message</h2>
-        <p><strong>Name:</strong> ${name}</p>
+        <h2>Natural Health Academy Email</h2>
+        <p><strong>Name:</strong> ${fullName}</p>
         <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Subject:</strong> ${subject}</p>
         <p><strong>Message:</strong></p>
         <p>${message}</p>
       `,
