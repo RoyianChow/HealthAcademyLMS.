@@ -1,0 +1,227 @@
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); filter: brightness(1); }
+  50% { transform: scale(1.1); filter: brightness(1.2); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+.journeyContainer,
+.milestone,
+.road {
+  will-change: transform, opacity;
+}
+
+.journeyContainer {
+  max-width: 1400px;
+  margin: 0 auto;
+  position: relative;
+  opacity: 0;
+  padding: 0 20px;
+}
+
+.journeyContainer.visible {
+  opacity: 1;
+  transition: opacity 0.8s ease;
+}
+
+.roadMap {
+  position: relative;
+  padding: 20px;
+  min-height: 700px;
+  margin: 40px 0;
+}
+
+.road {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 80px;
+  background: linear-gradient(to bottom, #424242, #2d2d2d 20%, #2d2d2d 80%, #424242);
+  z-index: 1;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1), 0 1px 0 rgba(255,255,255,0.05);
+  border-radius: 40px;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.journeyContainer.visible .road {
+  opacity: 1;
+}
+
+.road::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 8px;
+  background: rgba(255,255,255,0.9);
+  transform: translateY(-50%);
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 1.5s ease-out;
+  box-shadow: 0 0 20px rgba(255,255,255,0.3);
+  width: 100%;
+  background-image: repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(0,0,0,0.2) 40px, rgba(0,0,0,0.2) 80px);
+}
+
+.journeyContainer.visible .road::before {
+  clip-path: inset(0 0 0 0);
+}
+
+.milestone {
+  position: absolute;
+  width: 280px;
+  background: white;
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.30), 0 1px 3px rgba(0,0,0,0.05);
+  z-index: 2;
+  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+  opacity: 0;
+  transform: translateY(20px);
+  background: linear-gradient(145deg, #ffffff, #f5f5f5);
+}
+
+.milestone:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 30px 60px rgba(40, 80, 20, 0.6), 0 1px 3px rgba(40, 80, 20, 0.4);
+}
+
+.journeyContainer.visible .milestone {
+  animation: fadeIn 0.5s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+}
+
+.milestone::before {
+  content: '';
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  background: #467326;
+  border-radius: 50%;
+  border: 4px solid white;
+  box-shadow: 0 4px 10px rgba(76,175,80,0.3), 0 0 0 8px rgba(76,175,80,0.1);
+  z-index: 3;
+  transition: all 0.3s ease;
+}
+
+.journeyContainer.visible .milestone::before {
+  animation: pulse 2s infinite;
+}
+
+.milestone:hover::before {
+  transform: scale(1.2);
+  box-shadow: 0 6px 15px rgba(76,175,80,0.4), 0 0 0 12px rgba(76,175,80,0.1);
+}
+
+.milestone h3 {
+  color: #1B263B;
+  margin: 0 0 20px 0;
+  font-size: 1.6em;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  transition: color 0.3s ease;
+}
+
+.milestone ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.milestone ul li {
+  margin: 12px 0;
+  padding-left: 24px;
+  color: #546E7A;
+  position: relative;
+  font-size: 1.1em;
+  transition: all 0.3s ease;
+}
+
+.milestone ul li::before {
+  content: "→";
+  color: #467326;
+  position: absolute;
+  left: 0;
+  transform: translateX(0);
+  transition: transform 0.3s ease;
+}
+
+.milestone ul li:hover {
+  color: #1B5E20;
+  transform: translateX(5px);
+}
+
+.milestone ul li:hover::before {
+  transform: translateX(5px);
+}
+
+/* Positions & Delays */
+.m1 { left: 0; bottom: calc(50% + 60px); }
+.m2 { left: 20%; top: calc(50% + 60px); }
+.m3 { left: 40%; bottom: calc(50% + 60px); }
+.m4 { left: 60%; top: calc(50% + 60px); }
+.m5 { left: 80%; bottom: calc(50% + 60px); }
+
+.journeyContainer.visible .m1 { animation-delay: 0.2s; }
+.journeyContainer.visible .m2 { animation-delay: 0.4s; }
+.journeyContainer.visible .m3 { animation-delay: 0.6s; }
+.journeyContainer.visible .m4 { animation-delay: 0.8s; }
+.journeyContainer.visible .m5 { animation-delay: 1s; }
+
+/* Indicators & Connectors */
+.m1::before, .m3::before, .m5::before { bottom: -72px; left: 50%; transform: translateX(-50%); }
+.m2::before, .m4::before { top: -72px; left: 50%; transform: translateX(-50%); }
+
+.milestone::after {
+  content: '';
+  position: absolute;
+  width: 3px;
+  left: 50%;
+  height: 50px;
+  background: linear-gradient(to bottom, #467326, #95b66b);
+  transform: translateX(-50%);
+  transition: all 0.3s ease;
+}
+
+.milestone:hover::after {
+  height: 55px;
+}
+
+.m1::after, .m3::after, .m5::after { bottom: -50px; }
+.m2::after, .m4::after { top: -50px; }
+
+/* Responsive adjustments */
+@media (max-width: 1400px) {
+  .milestone { width: 240px; padding: 25px; }
+  .milestone h3 { font-size: 1.4em; }
+  .milestone ul li { font-size: 1em; }
+}
+
+@media (max-width: 1200px) {
+  .milestone { width: 200px; padding: 20px; }
+  .milestone h3 { font-size: 1.2em; }
+}
+
+@media (max-width: 768px) {
+  .journeyContainer { padding: 0 10px; overflow-x: hidden; }
+  .roadMap { padding: 10px; min-height: auto; display: flex; flex-direction: column; gap: 30px; }
+  .road { display: none; }
+  .milestone { position: relative; width: 100%; max-width: 400px; margin: 0 auto; left: 0; top: 0; bottom: 0; }
+  .milestone::before { display: none; }
+  .milestone::after { width: 50px; height: 3px; left: -50px; top: 50%; transform: translateY(-50%); }
+  .m1::after, .m2::after, .m3::after, .m4::after, .m5::after { bottom: auto; top: 50%; }
+  .milestone h3 { font-size: 1.3em; }
+  .milestone ul li { font-size: 1em; margin: 8px 0; }
+}
+
+@media (max-width: 480px) {
+  .journeyContainer { padding: 0 5px; }
+  .milestone { padding: 15px; }
+  .milestone h3 { font-size: 1.2em; margin-bottom: 15px; }
+  .milestone ul li { font-size: 0.9em; margin: 6px 0; }
+}
