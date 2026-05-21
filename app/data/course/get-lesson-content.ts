@@ -1,4 +1,4 @@
-
+// app\data\course\get-lesson-content.ts
 import { prisma } from "@/lib/db";
 import { requireUser } from "../user/require-user";
 import { notFound } from "next/navigation";
@@ -53,7 +53,9 @@ export async function getLessonContent(lessonId: string) {
     },
   });
 
-  if (!enrollment || enrollment.status !== EnrollmentStatus.Active) {
+  const hasActiveEnrollment = enrollment && enrollment.status === EnrollmentStatus.Active;
+
+  if (!hasActiveEnrollment && !lesson.isFreePreview) {
     return notFound();
   }
 
