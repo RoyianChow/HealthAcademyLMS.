@@ -134,25 +134,55 @@ export default async function SlugPage({ params }: { params: Params }) {
                   <CollapsibleContent>
                     <div className="border-t bg-muted/20">
                       <div className="p-6 pt-4 space-y-3">
-                        {chapter.lessons.map((lesson, lessonIndex) => (
-                          <div
-                            key={lesson.id}
-                            className="flex items-center gap-4 rounded-lg p-3 hover:bg-accent transition-colors"
-                          >
-                            <div className="flex size-8 items-center justify-center rounded-full bg-background border-2 border-primary/20">
-                              <IconPlayerPlay className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                            </div>
+                        {chapter.lessons.map((lesson, lessonIndex) => {
+                          const showPreviewLink = lesson.isFreePreview && !isEnrolled;
 
-                            <div className="flex-1">
-                              <p className="font-medium text-sm">
-                                {lesson.title}
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Lesson {lessonIndex + 1}
-                              </p>
+                          const lessonContent = (
+                            <div className="flex items-center justify-between w-full">
+                              <div className="flex items-center gap-4 text-left">
+                                <div className="flex size-8 items-center justify-center rounded-full bg-background border-2 border-primary/20">
+                                  <IconPlayerPlay className="size-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                                </div>
+
+                                <div>
+                                  <p className="font-medium text-sm">
+                                    {lesson.title}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Lesson {lessonIndex + 1}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {lesson.isFreePreview && (
+                                <Badge variant="secondary" className="text-xs font-medium bg-green-500/10 text-green-600 hover:bg-green-500/20 border-none">
+                                  Preview
+                                </Badge>
+                              )}
                             </div>
-                          </div>
-                        ))}
+                          );
+
+                          if (showPreviewLink) {
+                            return (
+                              <Link
+                                key={lesson.id}
+                                href={`/dashboard/${slug}/${lesson.id}`}
+                                className="flex items-center gap-4 rounded-lg p-3 hover:bg-accent transition-colors group cursor-pointer border border-dashed border-transparent hover:border-green-500/20"
+                              >
+                                {lessonContent}
+                              </Link>
+                            );
+                          }
+
+                          return (
+                            <div
+                              key={lesson.id}
+                              className="flex items-center gap-4 rounded-lg p-3 hover:bg-accent transition-colors"
+                            >
+                              {lessonContent}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   </CollapsibleContent>
