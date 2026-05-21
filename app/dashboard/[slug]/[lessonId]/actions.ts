@@ -1,3 +1,4 @@
+// app\dashboard\[slug]\[lessonId]\actions.ts
 "use server";
 
 import { requireUser } from "@/app/data/user/require-user";
@@ -13,19 +14,26 @@ export async function markLessonComplete(
   const user = await requireUser();
 
   try {
+    const enrollment = await prisma.enrollment.findFirst({
+      where: {
+        userId: user.id,
+        course: { slug },
+        status: EnrollmentStatus.Active,
+      },
+    });
+
+    if (!enrollment) {
+      return {
+        status: "error",
+        message: "Progress tracking features require full course enrollment.",
+      };
+    }
+
     const lesson = await prisma.lesson.findFirst({
       where: {
         id: lessonId,
         chapter: {
-          course: {
-            slug,
-            enrollments: {
-              some: {
-                userId: user.id,
-                status: EnrollmentStatus.Active,
-              },
-            },
-          },
+          course: { slug },
         },
       },
       select: { id: true },
@@ -34,7 +42,7 @@ export async function markLessonComplete(
     if (!lesson) {
       return {
         status: "error",
-        message: "Lesson not found or you are not enrolled in this course.",
+        message: "Lesson parameters match no record associated with this course.",
       };
     }
 
