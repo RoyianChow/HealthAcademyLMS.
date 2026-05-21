@@ -13,8 +13,8 @@ const navigationItems = [
   { name: "Home", href: "/" },
   { name: "About", href: "/about" },
   { name: "Courses", href: "/courses" },
-    { name: "Corporate Wellness", href: "/corporate-wellness" },
-      { name: "Contact Us", href: "/contact" },
+  { name: "Corporate Wellness", href: "/corporate-wellness" },
+  { name: "Contact Us", href: "/contact" },
 
   { name: "Dashboard", href: "/dashboard" },
 ];
@@ -77,3 +77,4 @@ export function Navbar() {
     </header>
   );
 }
+
