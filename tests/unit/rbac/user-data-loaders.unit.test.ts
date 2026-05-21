@@ -169,20 +169,26 @@ describe("User data loaders — authenticated enrollment rules", () => {
 
   describe("getCourseSidebarData", () => {
     /** An unknown slug means the course does not exist; notFound() is thrown
-     *  and the enrollment check is skipped since there is nothing to enroll in. */
+     * and the queries reflect that the slug was checked. */
     it("calls notFound when course slug does not exist", async () => {
       vi.mocked(prisma.course.findUnique).mockResolvedValue(null);
+      vi.mocked(prisma.enrollment.findFirst).mockResolvedValue(null);
 
       await expect(getCourseSidebarData("unknown-slug")).rejects.toThrow(
         "NEXT_NOT_FOUND"
       );
+      expect(prisma.course.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { slug: "unknown-slug" },
+        })
+      );
       expect(prisma.enrollment.findUnique).not.toHaveBeenCalled();
     });
 
-    /** Course exists but the user has no enrollment row for it; notFound() is
-     *  thrown to prevent unenrolled users from accessing the course sidebar. */
-    it("calls notFound when user has no enrollment for the course", async () => {
-      vi.mocked(prisma.course.findUnique).mockResolvedValue({
+    /** Course exists but the user has no enrollment row for it; returns isEnrolled: false
+     * to support displaying locked sidebars or preview content. */
+    it("returns course data with isEnrolled false when user has no enrollment for the course", async () => {
+      const coursePayload = {
         id: "course-1",
         slug: "c1",
         title: "C",
@@ -191,19 +197,21 @@ describe("User data loaders — authenticated enrollment rules", () => {
         level: "beginner",
         category: "x",
         chapters: [],
-      } as never);
-
+      };
+      vi.mocked(prisma.course.findUnique).mockResolvedValue(coursePayload as never);
       vi.mocked(prisma.enrollment.findUnique).mockResolvedValue(null);
+      vi.mocked(prisma.enrollment.findFirst).mockResolvedValue(null);
 
-      await expect(getCourseSidebarData("c1")).rejects.toThrow("NEXT_NOT_FOUND");
+      const result = await getCourseSidebarData("c1");
+      
+      expect(result).toEqual({ course: coursePayload, isEnrolled: false });
       expect(prisma.course.findUnique).toHaveBeenCalled();
-      expect(prisma.enrollment.findUnique).toHaveBeenCalled();
     });
 
     /** An Inactive enrollment means the user's access has been revoked; the
-     *  sidebar should be inaccessible even though an enrollment row exists. */
-    it("calls notFound when enrollment status is Inactive", async () => {
-      vi.mocked(prisma.course.findUnique).mockResolvedValue({
+     * sidebar data is returned with isEnrolled false. */
+    it("returns course data with isEnrolled false when enrollment status is Inactive", async () => {
+      const coursePayload = {
         id: "course-1",
         slug: "c1",
         title: "C",
@@ -212,18 +220,23 @@ describe("User data loaders — authenticated enrollment rules", () => {
         level: "beginner",
         category: "x",
         chapters: [],
-      } as never);
-
+      };
+      vi.mocked(prisma.course.findUnique).mockResolvedValue(coursePayload as never);
       vi.mocked(prisma.enrollment.findUnique).mockResolvedValue({
         status: "Inactive",
       } as never);
+      vi.mocked(prisma.enrollment.findFirst).mockResolvedValue({
+        status: "Inactive",
+      } as never);
 
-      await expect(getCourseSidebarData("c1")).rejects.toThrow("NEXT_NOT_FOUND");
+      const result = await getCourseSidebarData("c1");
+
+      expect(result).toEqual({ course: coursePayload, isEnrolled: false });
     });
 
     /** Happy path: an Active enrollment confirms the user has paid and their
-     *  access is current; the full sidebar data object is returned. */
-    it("returns course data when enrollment is Active", async () => {
+     * access is current; the full sidebar data object is returned with isEnrolled: true. */
+    it("returns course data with isEnrolled true when enrollment is Active", async () => {
       const coursePayload = {
         id: "course-1",
         slug: "c1",
@@ -238,10 +251,13 @@ describe("User data loaders — authenticated enrollment rules", () => {
       vi.mocked(prisma.enrollment.findUnique).mockResolvedValue({
         status: "Active",
       } as never);
+      vi.mocked(prisma.enrollment.findFirst).mockResolvedValue({
+        status: "Active",
+      } as never);
 
       const result = await getCourseSidebarData("c1");
 
-      expect(result).toEqual({ course: coursePayload });
+      expect(result).toEqual({ course: coursePayload, isEnrolled: true });
     });
   });
 
