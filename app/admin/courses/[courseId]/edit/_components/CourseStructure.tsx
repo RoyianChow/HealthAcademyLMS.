@@ -429,5 +429,3 @@ export function CourseStructure({ data }: iAppProps) {
     </DndContext>
   );
 }
-
-}
