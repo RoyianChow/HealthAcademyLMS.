@@ -22,9 +22,10 @@ import { cn } from "@/lib/utils";
 
 interface iAppProps {
   course: CourseSidebarDataType["course"];
+  isEnrolled: boolean;
 }
 
-export function CourseSidebar({ course }: iAppProps) {
+export function CourseSidebar({ course, isEnrolled }: iAppProps) {
   const pathname = usePathname();
   const currentId = pathname.split("/").pop();
 
@@ -123,26 +124,28 @@ export function CourseSidebar({ course }: iAppProps) {
           </Collapsible>
         ))}
 
-        <div className="border-t border-border pt-4">
-          <Link
-            href={`/dashboard/${course.slug}/community`}
-            className={cn(
-              "flex items-center gap-3 rounded-lg border px-3 py-3 text-sm font-medium transition hover:bg-muted",
-              isCommunityActive && "border-primary bg-primary/10 text-primary"
-            )}
-          >
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-              <MessageCircle className="size-4 text-primary" />
-            </div>
+        {isEnrolled && (
+          <div className="border-t border-border pt-4">
+            <Link
+              href={`/dashboard/${course.slug}/community`}
+              className={cn(
+                "flex items-center gap-3 rounded-lg border px-3 py-3 text-sm font-medium transition hover:bg-muted",
+                isCommunityActive && "border-primary bg-primary/10 text-primary"
+              )}
+            >
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                <MessageCircle className="size-4 text-primary" />
+              </div>
 
-            <div className="min-w-0 flex-1">
-              <p className="truncate">Visit Community</p>
-              <p className="truncate text-xs font-normal text-muted-foreground">
-                Ask questions and connect with learners
-              </p>
-            </div>
-          </Link>
-        </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate">Visit Community</p>
+                <p className="truncate text-xs font-normal text-muted-foreground">
+                  Ask questions and connect with learners
+                </p>
+              </div>
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );
