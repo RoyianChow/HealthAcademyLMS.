@@ -1,3 +1,4 @@
+// app\data\course\get-course-sidebar-data.ts
 import { prisma } from "@/lib/db";
 import { requireUser } from "../user/require-user";
 import { notFound } from "next/navigation";
@@ -5,6 +6,21 @@ import { EnrollmentStatus } from "@/src/generated/prisma/client";
 
 export async function getCourseSidebarData(slug: string) {
   const session = await requireUser();
+
+  const enrollment = await prisma.enrollment.findFirst({
+    where: {
+      userId: session.id,
+      course: { slug },
+    },
+    select: {
+      status: true,
+    },
+  });
+
+  const isEnrolled = enrollment?.status === EnrollmentStatus.Active;
+
+  const lessonFilter = isEnrolled ? {} : { isFreePreview: true, isPublished: true };
+  const chapterFilter = isEnrolled ? {} : { lessons: { some: { isFreePreview: true, isPublished: true } } };
 
   const course = await prisma.course.findUnique({
     where: {
@@ -19,17 +35,15 @@ export async function getCourseSidebarData(slug: string) {
       category: true,
       slug: true,
       chapters: {
-        orderBy: {
-          position: "asc",
-        },
+        where: chapterFilter,
+        orderBy: { position: "asc" },
         select: {
           id: true,
           title: true,
           position: true,
           lessons: {
-            orderBy: {
-              position: "asc",
-            },
+            where: lessonFilter,
+            orderBy: { position: "asc" },
             select: {
               id: true,
               title: true,
@@ -40,21 +54,19 @@ export async function getCourseSidebarData(slug: string) {
               lessonProgress: true,
             },
           },
-          quizzes: {
-            where: {
-              isPublished: true,
-            },
-            orderBy: {
-              createdAt: "asc",
-            },
-            select: {
-              id: true,
-              title: true,
-              description: true,
-              isPublished: true,
-              chapterId: true,
-            },
-          },
+          quizzes: isEnrolled
+            ? {
+                where: { isPublished: true },
+                orderBy: { createdAt: "asc" },
+                select: {
+                  id: true,
+                  title: true,
+                  description: true,
+                  isPublished: true,
+                  chapterId: true,
+                },
+              }
+            : false,
         },
       },
     },
@@ -64,21 +76,17 @@ export async function getCourseSidebarData(slug: string) {
     return notFound();
   }
 
-  const enrollment = await prisma.enrollment.findUnique({
-    where: {
-      userId_courseId: {
-        userId: session.id,
-        courseId: course.id,
-      },
-    },
-  });
-
-  if (!enrollment || enrollment.status !== EnrollmentStatus.Active) {
-    return notFound();
-  }
+  const sanitizedChapters = course.chapters.map((chapter) => ({
+    ...chapter,
+    quizzes: chapter.quizzes || [],
+  }));
 
   return {
-    course,
+    course: {
+      ...course,
+      chapters: sanitizedChapters,
+    },
+    isEnrolled,
   };
 }
 
