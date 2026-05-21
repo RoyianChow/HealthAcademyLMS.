@@ -31,6 +31,7 @@ export function NavUser() {
   const { isMobile } = useSidebar();
   const { data: session, isPending } = authClient.useSession();
   const handleSignOut = useSignOut();
+  const isAdmin = session?.user?.role == "admin";
 
   if (isPending) {
     return null;
@@ -115,13 +116,13 @@ export function NavUser() {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/dashboard">
+                <Link href={isAdmin ? "/admin" : "/dashboard"}>
                   <IconDashboard />
                   Dashboard
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/courses">
+                <Link href={isAdmin ? "/admin/courses" : "/courses"}>
                   <Tv2 />
                   Courses
                 </Link>
