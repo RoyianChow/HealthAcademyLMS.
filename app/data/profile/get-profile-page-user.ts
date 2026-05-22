@@ -21,6 +21,9 @@ export async function getProfilePageUser(userId: string) {
       },
 
       enrollments: {
+        where: {
+          status: "Active", 
+        },
         orderBy: {
           createdAt: "desc",
         },
