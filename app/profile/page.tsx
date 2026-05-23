@@ -314,7 +314,9 @@ export default async function ProfilePage() {
 function getCourseProgress(course: {
   chapters: {
     lessons: {
-      lessonProgress: boolean;
+      lessonProgress: {
+        completed: boolean;
+      }[];
     }[];
   }[];
 }) {
@@ -325,7 +327,7 @@ function getCourseProgress(course: {
     chapter.lessons.forEach((lesson) => {
       totalLessons++;
 
-      if (lesson.lessonProgress) {
+      if (lesson.lessonProgress && lesson.lessonProgress[0]?.completed) {
         completedLessons++;
       }
     });
