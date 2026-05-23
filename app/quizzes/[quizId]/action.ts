@@ -14,6 +14,53 @@ type SubmitQuizAttemptInput = {
   }[];
 };
 
+export async function getLastQuizResult(
+  quizId: string,
+  passingScore: number | null,
+  totalQuestions: number
+) {
+  try {
+    const user = await requireUser();
+
+    const lastAttempt = await prisma.quizAttempt.findFirst({
+      where: {
+        quizId,
+        userId: user.id,
+        isComplete: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        answers: true,
+      },
+    });
+
+    if (!lastAttempt) return null;
+
+    return {
+      status: "success" as const,
+      message:
+        (lastAttempt.score ?? 0) >= (passingScore ?? 0)
+          ? "Quiz submitted successfully. You passed."
+          : "Quiz submitted successfully.",
+      score: lastAttempt.score ?? 0,
+      totalQuestions,
+      passed: (lastAttempt.score ?? 0) >= (passingScore ?? 0),
+      feedback: lastAttempt.feedback,
+      answers: lastAttempt.answers.map((ans) => ({
+        attemptId: ans.attemptId,
+        questionId: ans.questionId,
+        selectedOptionId: ans.selectedOptionId,
+        isCorrect: ans.isCorrect ?? false,
+      })),
+    };
+  } catch (error) {
+    console.error("getLastQuizResult error", error);
+    return null;
+  }
+}
+
 export async function startQuizAttempt(quizId: string, attemptNumber: number) {
   try {
     const user = await requireUser();
