@@ -228,25 +228,36 @@ export default async function ProfilePage() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 md:justify-end">
-                      <Badge variant="outline">
-                        Attempt #{attempt.attemptNumber}
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        <span>Attempt #</span>
+                        <span className="inline-block w-4 text-right tabular-nums">
+                          {attempt.attemptNumber}
+                        </span>
                       </Badge>
 
-                      <Badge
-                        variant={attempt.isComplete ? "default" : "secondary"}
+                      <Badge 
+                        variant={attempt.isComplete ? "default" : "secondary"} 
+                        className="flex items-center gap-1"
                       >
-                        {attempt.isComplete ? "Completed" : "In Progress"}
+                        <span className="inline-block w-[58px] text-left">
+                          {attempt.isComplete ? "Completed" : "In Progress"}
+                        </span>
                       </Badge>
 
-                      <Badge
-                        variant={attempt.isGraded ? "default" : "secondary"}
+                      <Badge 
+                        variant={attempt.isGraded ? "default" : "secondary"} 
+                        className="flex items-center gap-1"
                       >
-                        {attempt.isGraded ? "Graded" : "Pending"}
+                        <span className="inline-block w-[42px] text-left">
+                          {attempt.isGraded ? "Graded" : "Pending"}
+                        </span>
                       </Badge>
 
-                      <Badge variant="outline">
-                        Score:{" "}
-                        {attempt.score !== null ? `${attempt.score}%` : "N/A"}
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        <span>Score:</span>
+                        <span className="inline-block w-7 text-right tabular-nums">
+                          {attempt.score !== null ? `${attempt.score}%` : "N/A"}
+                        </span>
                       </Badge>
                     </div>
                   </div>
