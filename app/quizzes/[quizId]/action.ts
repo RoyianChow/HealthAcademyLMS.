@@ -14,6 +14,40 @@ type SubmitQuizAttemptInput = {
   }[];
 };
 
+export async function startQuizAttempt(quizId: string, attemptNumber: number) {
+  try {
+    const user = await requireUser();
+
+    const existingAttempt = await prisma.quizAttempt.findFirst({
+      where: {
+        quizId,
+        userId: user.id,
+        isComplete: false,
+      },
+    });
+
+    if (existingAttempt) {
+      return existingAttempt;
+    }
+
+    const newAttempt = await prisma.quizAttempt.create({
+      data: {
+        quizId,
+        userId: user.id,
+        attemptNumber,
+        isComplete: false,
+        isGraded: false,
+      },
+    });
+
+    revalidatePath(`/quizzes/${quizId}`);
+    return newAttempt;
+  } catch (error) {
+    console.error("startQuizAttempt error", error);
+    throw new Error("Failed to start quiz attempt.");
+  }
+}
+
 export async function submitQuizAttempt(input: SubmitQuizAttemptInput) {
   try {
     const user = await requireUser();
@@ -62,33 +96,39 @@ export async function submitQuizAttempt(input: SubmitQuizAttemptInput) {
     }
 
     if (quiz.timeLimitMinutes !== null) {
+      // 15-second network latency grace period for slow connections or temporary client issues
       const deadline = new Date(
-        attempt.createdAt.getTime() + quiz.timeLimitMinutes * 60 * 1000
+        attempt.createdAt.getTime() + (quiz.timeLimitMinutes * 60 * 1000) + 15000
       );
 
       if (new Date() > deadline) {
-        await prisma.quizAnswer.deleteMany({
-          where: {
-            attemptId: attempt.id,
-          },
-        });
+        await prisma.$transaction([
+          prisma.quizAnswer.deleteMany({
+            where: { attemptId: attempt.id },
+          }),
+          prisma.quizAttempt.update({
+            where: { id: attempt.id },
+            data: {
+              isComplete: true,
+              isGraded: true,
+              submittedAt: new Date(),
+              gradedAt: new Date(),
+              score: 0,
+            },
+          }),
+        ]);
 
-        await prisma.quizAttempt.update({
-          where: {
-            id: attempt.id,
-          },
-          data: {
-            isComplete: true,
-            isGraded: true,
-            submittedAt: deadline,
-            gradedAt: new Date(),
-            score: 0,
-          },
-        });
+        revalidatePath(`/quizzes/${quiz.id}`);
+        revalidatePath("/quizzes");
+        revalidatePath("/dashboard");
 
         return {
-          status: "error" as const,
-          message: "Time is up. This attempt has expired.",
+          status: "success" as const,
+          message: "Time limit severely exceeded. This attempt has expired.",
+          score: 0,
+          totalQuestions: quiz.questions.length,
+          passed: false,
+          answers: [],
         };
       }
     }
