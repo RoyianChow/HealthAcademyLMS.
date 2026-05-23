@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { QuizAttempt } from "./_components/QuizAttempt";
 import { QuizStartButton } from "./_components/QuizStartButton";
 import { QuizBackButton } from "./_components/QuizBackButton";
+import { getLastQuizResult } from "./action";
+
 type PageProps = {
   params: Promise<{
     quizId: string;
@@ -30,15 +32,21 @@ export default async function QuizDetailsPage({ params }: PageProps) {
   const canAttempt = !attempt.blocked;
   const previousAttempts = Math.max(0, attempt.attemptNumber - 1);
 
+  const lastResult = await getLastQuizResult(
+    quizId,
+    quiz.passingScore,
+    totalQuestions
+  );
+
   return (
     <main className="min-h-[calc(100vh-5rem)] bg-muted/20 px-4 py-6 md:px-8">
       <div className="mx-auto w-full max-w-6xl space-y-6">
         <div className="flex items-center justify-between gap-4">
-         <QuizBackButton
-  href={`/dashboard/${quiz.course.slug}`}
-  label={`Back to ${quiz.course.title}`}
-  shouldWarn={canAttempt && quiz.timeLimitMinutes !== null}
-/>
+          <QuizBackButton
+            href={`/dashboard/${quiz.course.slug}`}
+            label={`Back to ${quiz.course.title}`}
+            shouldWarn={canAttempt && quiz.timeLimitMinutes !== null}
+          />
 
           <Badge variant={canAttempt ? "default" : "secondary"}>
             {canAttempt ? "Available" : "Attempt Locked"}
@@ -150,7 +158,7 @@ export default async function QuizDetailsPage({ params }: PageProps) {
             startedAt={attempt.startedAt ? attempt.startedAt.toISOString() : ""}
             canAttempt={canAttempt}
             nextAttemptNumber={attempt.attemptNumber}
-            previousAttemptsCount={previousAttempts}
+            lastResult={lastResult}
           />
         </section>
       </div>
