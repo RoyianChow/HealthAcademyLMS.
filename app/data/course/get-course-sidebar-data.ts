@@ -51,7 +51,14 @@ export async function getCourseSidebarData(slug: string) {
               description: true,
               isPublished: true,
               isFreePreview: true,
-              lessonProgress: true,
+              lessonProgress: {
+                where: {
+                  userId: session.id,
+                },
+                select: {
+                  completed: true,
+                },
+              },
             },
           },
           quizzes: isEnrolled
