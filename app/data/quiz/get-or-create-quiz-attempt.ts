@@ -9,8 +9,8 @@ export async function getOrCreateQuizAttempt(quizId: string) {
     where: {
       id: quizId,
       isPublished: true,
-      chapterId: {
-        not: null,
+      chapterId: { 
+        not: null 
       },
       course: {
         is: {
@@ -31,25 +31,25 @@ export async function getOrCreateQuizAttempt(quizId: string) {
       allowMultipleAttempts: true,
       timeLimitMinutes: true,
       course: {
-        select: {
-          id: true,
-          title: true,
-          slug: true,
+        select: { 
+          id: true, 
+          title: true, 
+          slug: true 
         },
       },
       chapter: {
-        select: {
-          id: true,
-          title: true,
-          position: true,
+        select: { 
+          id: true, 
+          title: true, 
+          position: true 
         },
       },
       attempts: {
-        where: {
-          userId: user.id,
+        where: { 
+          userId: user.id 
         },
-        orderBy: {
-          attemptNumber: "desc",
+        orderBy: { 
+          attemptNumber: "desc" 
         },
         select: {
           id: true,
@@ -78,9 +78,7 @@ export async function getOrCreateQuizAttempt(quizId: string) {
     };
   }
 
-  const completedAttempts = quiz.attempts.filter(
-    (attempt) => attempt.isComplete
-  );
+  const completedAttempts = quiz.attempts.filter((a) => a.isComplete);
 
   if (!quiz.allowMultipleAttempts && completedAttempts.length > 0) {
     return {
@@ -97,26 +95,11 @@ export async function getOrCreateQuizAttempt(quizId: string) {
     ? latestAttempt.attemptNumber + 1
     : 1;
 
-  const createdAttempt = await prisma.quizAttempt.create({
-    data: {
-      quizId: quiz.id,
-      userId: user.id,
-      attemptNumber: nextAttemptNumber,
-      isComplete: false,
-      isGraded: false,
-    },
-    select: {
-      id: true,
-      attemptNumber: true,
-      createdAt: true,
-    },
-  });
-
   return {
     blocked: false as const,
-    attemptId: createdAttempt.id,
-    attemptNumber: createdAttempt.attemptNumber,
-    startedAt: createdAttempt.createdAt,
+    attemptId: null, 
+    attemptNumber: nextAttemptNumber,
+    startedAt: null,
     timeLimitMinutes: quiz.timeLimitMinutes,
     quiz,
   };
