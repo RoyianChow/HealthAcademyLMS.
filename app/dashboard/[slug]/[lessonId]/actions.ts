@@ -32,11 +32,11 @@ export async function markLessonComplete(
     const lesson = await prisma.lesson.findFirst({
       where: {
         id: lessonId,
-        chapter: {
-          course: { slug },
-        },
+        chapter: { course: { slug } },
       },
-      select: { id: true },
+      include: {
+        chapter: { select: { courseId: true } } // Need this for CourseProgress
+      }
     });
 
     if (!lesson) {
@@ -46,14 +46,57 @@ export async function markLessonComplete(
       };
     }
 
-    await prisma.lesson.update({
+    // Update LessonProgress for the userId
+    await prisma.lessonProgress.upsert({
       where: {
-        id: lesson.id,
+        userId_lessonId: {
+          userId: user.id,
+          lessonId: lesson.id,
+        },
       },
-      data: {
-        lessonProgress: true,
+      update: { completed: true },
+      create: {
+        userId: user.id,
+        lessonId: lesson.id,
+        completed: true,
       },
     });
+
+    // Check if the user has completed all lessons in the course
+    const courseId = lesson.chapter.courseId;
+    const totalLessons = await prisma.lesson.count({
+      where: { chapter: { courseId } }
+    });
+    
+    const completedLessons = await prisma.lessonProgress.count({
+      where: {
+        userId: user.id,
+        lesson: { chapter: { courseId } },
+        completed: true
+      }
+    });
+
+    // If all lessons are done, populate CourseProgress
+    if (totalLessons > 0 && completedLessons >= totalLessons) {
+      await prisma.courseProgress.upsert({
+        where: {
+          userId_courseId: {
+            userId: user.id,
+            courseId: courseId,
+          }
+        },
+        update: {
+          completed: true,
+          completedAt: new Date(),
+        },
+        create: {
+          userId: user.id,
+          courseId: courseId,
+          completed: true,
+          completedAt: new Date(),
+        }
+      });
+    }
 
     revalidatePath(`/dashboard/${slug}`);
     revalidatePath(`/dashboard/${slug}/${lessonId}`);
@@ -62,7 +105,7 @@ export async function markLessonComplete(
       status: "success",
       message: "Progress updated",
     };
-  } catch {
+  } catch (error) {
     return {
       status: "error",
       message: "Failed to mark lesson as complete",
