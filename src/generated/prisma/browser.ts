@@ -63,15 +63,15 @@ export type LessonDocument = Prisma.LessonDocumentModel
  */
 export type Enrollment = Prisma.EnrollmentModel
 /**
- * Model LessonProgress
- * 
- */
-export type LessonProgress = Prisma.LessonProgressModel
-/**
  * Model CourseProgress
  * 
  */
 export type CourseProgress = Prisma.CourseProgressModel
+/**
+ * Model LessonProgress
+ * 
+ */
+export type LessonProgress = Prisma.LessonProgressModel
 /**
  * Model Quiz
  * 
@@ -97,3 +97,19 @@ export type QuizAttempt = Prisma.QuizAttemptModel
  * 
  */
 export type QuizAnswer = Prisma.QuizAnswerModel
+/**
+ * Model CommunityPost
+ * 
+ */
+export type CommunityPost = Prisma.CommunityPostModel
+/**
+ * Model CommunityComment
+ * 
+ */
+export type CommunityComment = Prisma.CommunityCommentModel
+/**
+ * Model CommunityLike
+ * 
+ */
+export type CommunityLike = Prisma.CommunityLikeModel
+
