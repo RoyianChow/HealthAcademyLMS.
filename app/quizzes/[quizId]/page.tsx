@@ -6,6 +6,7 @@ import { getOrCreateQuizAttempt } from "@/app/data/quiz/get-or-create-quiz-attem
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { QuizAttempt } from "./_components/QuizAttempt";
+import { QuizStartButton } from "./_components/QuizStartButton";
 import { QuizBackButton } from "./_components/QuizBackButton";
 type PageProps = {
   params: Promise<{
@@ -122,20 +123,28 @@ export default async function QuizDetailsPage({ params }: PageProps) {
                   : "You have already completed this quiz"}
               </p>
               <p className="text-sm text-muted-foreground">
-                {totalQuestions} question{totalQuestions !== 1 ? "s" : ""} ·
-                Choose the best answer for each question · Previous attempts:{" "}
-                {previousAttempts}
+                {totalQuestions} question{totalQuestions !== 1 ? "s" : ""} · Choose the best answer for each question
               </p>
             </div>
 
-            <Button asChild variant="outline" className="rounded-full">
-              <Link href="/quizzes">View All Quizzes</Link>
-            </Button>
+            <div className="flex items-center gap-3">
+              {canAttempt && !attempt.attemptId && (
+                <QuizStartButton
+                  quizId={quiz.id}
+                  attemptNumber={attempt.attemptNumber}
+                  isRetake={previousAttempts > 0}
+                />
+              )}
+              <Button asChild variant="outline" className="rounded-full">
+                <Link href="/quizzes">View All Quizzes</Link>
+              </Button>
+            </div>
           </div>
         </section>
 
         <section className="rounded-3xl border bg-background p-4 shadow-sm md:p-6">
           <QuizAttempt
+            key={attempt.attemptId ?? "new"}
             quiz={quiz}
             attemptId={attempt.attemptId ?? ""}
             startedAt={attempt.startedAt ? attempt.startedAt.toISOString() : ""}
