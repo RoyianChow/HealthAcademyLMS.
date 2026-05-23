@@ -27,6 +27,7 @@ model User {
   communityPosts    CommunityPost[]
   courses           Course[]
   courseProgress    CourseProgress[]
+  lessonProgress    LessonProgress[]
   enrollments       Enrollment[]
   quizAttempts      QuizAttempt[]
   accounts          Account[]
@@ -139,7 +140,7 @@ model Lesson {
   content        String?
   isFreePreview  Boolean  @default(false)
   isPublished    Boolean  @default(false)
-  lessonProgress Boolean  @default(false)
+  lessonProgress LessonProgress[]
 
   chapter   Chapter          @relation(fields: [chapterId], references: [id], onDelete: Cascade)
   documents LessonDocument[]
@@ -200,6 +201,22 @@ model CourseProgress {
   @@unique([userId, courseId])
   @@index([userId])
   @@index([courseId])
+}
+
+model LessonProgress {
+  id          String   @id @default(uuid())
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String
+  lessonId    String
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@index([lessonId])
 }
 
 model Quiz {
