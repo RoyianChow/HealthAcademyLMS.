@@ -41,7 +41,14 @@ export async function getProfilePageUser(userId: string) {
                     },
                     select: {
                       id: true,
-                      lessonProgress: true,
+                      lessonProgress: {
+                        where: {
+                          userId: userId,
+                        },
+                        select: {
+                          completed: true,
+                        },
+                      },
                     },
                   },
                 },
