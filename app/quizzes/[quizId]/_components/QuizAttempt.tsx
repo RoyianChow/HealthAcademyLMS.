@@ -9,6 +9,8 @@ import clsx from "clsx";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
+const quizResultCache = new Map<string, any>();
+
 type QuizAttemptProps = {
   quiz: {
     id: string;
@@ -27,12 +29,13 @@ type QuizAttemptProps = {
       }[];
     }[];
   };
-  attemptId: string;
-  startedAt: string;
+  attemptId: string | null;
+  startedAt: string | null;
   canAttempt: boolean;
   nextAttemptNumber: number;
   previousAttemptsCount: number;
 };
+
 type SubmissionResult = {
   status: "success" | "error";
   message: string;
@@ -58,14 +61,23 @@ export function QuizAttempt({
   nextAttemptNumber,
   previousAttemptsCount,
 }: QuizAttemptProps) {
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>(
-    {}
-  );
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
-  const [result, setResult] = useState<SubmissionResult | null>(null);
+  
+  const [result, setResult] = useState<SubmissionResult | null>(() => {
+    return quizResultCache.get(quiz.id) || null;
+  });
+  
   const [isExpired, setIsExpired] = useState(false);
   const [isPending, startTransition] = useTransition();
   const hasAutoSubmittedRef = useRef(false);
+
+  useEffect(() => {
+    if (attemptId) {
+      quizResultCache.delete(quiz.id);
+      setResult(null);
+    }
+  }, [attemptId, quiz.id]);
 
   const totalQuestions = quiz.questions.length;
 
@@ -75,8 +87,9 @@ export function QuizAttempt({
 
   const allAnswered = totalQuestions > 0 && answeredCount === totalQuestions;
 
+  // Timer calculation hook
   useEffect(() => {
-    if (!quiz.timeLimitMinutes || result || !canAttempt) {
+    if (!quiz.timeLimitMinutes || result || !canAttempt || !startedAt) {
       return;
     }
 
@@ -84,11 +97,7 @@ export function QuizAttempt({
     const deadlineMs = startedAtMs + quiz.timeLimitMinutes * 60 * 1000;
 
     const tick = () => {
-      const remainingSeconds = Math.max(
-        0,
-        Math.floor((deadlineMs - Date.now()) / 1000)
-      );
-
+      const remainingSeconds = Math.max(0, Math.floor((deadlineMs - Date.now()) / 1000));
       setTimeLeft(remainingSeconds);
 
       if (remainingSeconds <= 0) {
@@ -98,12 +107,12 @@ export function QuizAttempt({
 
     tick();
     const timer = window.setInterval(tick, 1000);
-
     return () => window.clearInterval(timer);
   }, [quiz.timeLimitMinutes, startedAt, result, canAttempt]);
 
+  // Automated submission loop hook
   useEffect(() => {
-    if (!isExpired || result || hasAutoSubmittedRef.current || !canAttempt) {
+    if (!isExpired || result || hasAutoSubmittedRef.current || !canAttempt || !attemptId) {
       return;
     }
 
@@ -117,7 +126,7 @@ export function QuizAttempt({
 
       const response = await submitQuizAttempt({
         quizId: quiz.id,
-        attemptId,
+        attemptId: attemptId,
         answers: payload,
       });
 
@@ -126,6 +135,8 @@ export function QuizAttempt({
         return;
       }
 
+      // Save to module cache and update state
+      quizResultCache.set(quiz.id, response);
       setResult(response);
       toast.error("Time is up. Your quiz has been submitted.");
     });
@@ -133,23 +144,18 @@ export function QuizAttempt({
 
   function handleSelect(questionId: string, optionId: string) {
     if (isPending || result || isExpired) return;
-
-    setSelectedAnswers((prev) => ({
-      ...prev,
-      [questionId]: optionId,
-    }));
+    setSelectedAnswers((prev) => ({ ...prev, [questionId]: optionId }));
   }
 
   function formatTime(seconds: number) {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   }
 
   function handleSubmit(autoSubmit = false) {
-    if (!canAttempt) {
-      toast.error("You cannot take this quiz again.");
+    if (!canAttempt || !attemptId) {
+      toast.error("You cannot take this quiz right now.");
       return;
     }
 
@@ -171,7 +177,7 @@ export function QuizAttempt({
 
       const response = await submitQuizAttempt({
         quizId: quiz.id,
-        attemptId,
+        attemptId: attemptId,
         answers: payload,
       });
 
@@ -180,8 +186,10 @@ export function QuizAttempt({
         return;
       }
 
+      // Save to module cache and update state
+      quizResultCache.set(quiz.id, response);
       setResult(response);
-
+      
       if (response.passed) {
         toast.success(response.message);
       } else {
@@ -195,16 +203,28 @@ export function QuizAttempt({
       <section className="space-y-6">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight">Quiz Questions</h2>
-          <p className="text-sm text-muted-foreground">
-            You have already used your allowed attempt for this quiz.
-          </p>
+          <p className="text-sm text-muted-foreground">You have already used your allowed attempt for this quiz.</p>
         </div>
-
         <Card className="rounded-2xl border border-dashed border-border bg-muted/20">
           <CardContent className="py-12 text-center">
             <h3 className="text-lg font-semibold">No more attempts available</h3>
+            <p className="mt-2 text-sm text-muted-foreground">This quiz does not allow multiple attempts.</p>
+          </CardContent>
+        </Card>
+      </section>
+    );
+  }
+
+  if (canAttempt && !attemptId && !result) {
+    return (
+      <section className="space-y-6">
+        <Card className="rounded-2xl border border-dashed border-border bg-muted/20">
+          <CardContent className="py-12 text-center">
+            <h3 className="text-lg font-semibold">
+              {previousAttemptsCount > 0 ? "Ready for another try?" : "Ready to begin?"}
+            </h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              This quiz does not allow multiple attempts.
+              Click the {previousAttemptsCount > 0 ? "Retake Quiz" : "Start Quiz"} button in the header above to begin your attempt.
             </p>
           </CardContent>
         </Card>
@@ -234,12 +254,6 @@ export function QuizAttempt({
               <Badge variant="outline">Single attempt only</Badge>
             )}
           </div>
-
-          {previousAttemptsCount > 0 ? (
-            <p className="text-xs text-muted-foreground">
-              Previous attempts: {previousAttemptsCount}
-            </p>
-          ) : null}
         </div>
 
         {timeLeft !== null && !result ? (
@@ -278,7 +292,7 @@ export function QuizAttempt({
                     : "bg-red-600 text-white hover:bg-red-600"
                 )}
               >
-                {result.passed ? "Passed" : "Did not pass"}
+                {result.passed ? "Passed" : "Failed"}
               </Badge>
 
               <Badge variant="secondary">
@@ -350,14 +364,14 @@ export function QuizAttempt({
                     })}
                   </div>
 
-                 {(answer?.explanation ?? question.explanation) ? (
-  <div className="mt-4 rounded-xl border border-border/60 bg-muted/40 p-4">
-    <p className="text-sm font-medium">Explanation</p>
-    <p className="mt-1 text-sm text-muted-foreground">
-      {answer?.explanation ?? question.explanation}
-    </p>
-  </div>
-) : null}
+                  {(answer?.explanation ?? question.explanation) ? (
+                    <div className="mt-4 rounded-xl border border-border/60 bg-muted/40 p-4">
+                      <p className="text-sm font-medium">Explanation</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {answer?.explanation ?? question.explanation}
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
               );
             })}
