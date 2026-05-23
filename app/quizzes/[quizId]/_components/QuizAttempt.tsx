@@ -9,7 +9,22 @@ import clsx from "clsx";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
-const quizResultCache = new Map<string, any>();
+export type SubmissionResult = {
+  status: "success" | "error";
+  message: string;
+  score?: number;
+  totalQuestions?: number;
+  passed?: boolean;
+  feedback?: string | null;
+  gradedAt?: string | null;
+  answers?: {
+    attemptId?: string;
+    questionId: string;
+    selectedOptionId: string | null;
+    isCorrect: boolean;
+    explanation?: string | null;
+  }[];
+};
 
 type QuizAttemptProps = {
   quiz: {
@@ -33,24 +48,7 @@ type QuizAttemptProps = {
   startedAt: string | null;
   canAttempt: boolean;
   nextAttemptNumber: number;
-  previousAttemptsCount: number;
-};
-
-type SubmissionResult = {
-  status: "success" | "error";
-  message: string;
-  score?: number;
-  totalQuestions?: number;
-  passed?: boolean;
-  feedback?: string | null;
-  gradedAt?: string | null;
-  answers?: {
-    attemptId?: string;
-    questionId: string;
-    selectedOptionId: string | null;
-    isCorrect: boolean;
-    explanation?: string | null;
-  }[];
+  lastResult?: SubmissionResult | null;
 };
 
 export function QuizAttempt({
@@ -59,25 +57,24 @@ export function QuizAttempt({
   startedAt,
   canAttempt,
   nextAttemptNumber,
-  previousAttemptsCount,
+  lastResult,
 }: QuizAttemptProps) {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   
-  const [result, setResult] = useState<SubmissionResult | null>(() => {
-    return quizResultCache.get(quiz.id) || null;
-  });
+  // Initialize result with the last database result if it exists
+  const [result, setResult] = useState<SubmissionResult | null>(lastResult || null);
   
   const [isExpired, setIsExpired] = useState(false);
   const [isPending, startTransition] = useTransition();
   const hasAutoSubmittedRef = useRef(false);
 
+  // Clear the result screen if a new attempt is started
   useEffect(() => {
     if (attemptId) {
-      quizResultCache.delete(quiz.id);
       setResult(null);
     }
-  }, [attemptId, quiz.id]);
+  }, [attemptId]);
 
   const totalQuestions = quiz.questions.length;
 
@@ -135,8 +132,6 @@ export function QuizAttempt({
         return;
       }
 
-      // Save to module cache and update state
-      quizResultCache.set(quiz.id, response);
       setResult(response);
       toast.error("Time is up. Your quiz has been submitted.");
     });
@@ -186,8 +181,6 @@ export function QuizAttempt({
         return;
       }
 
-      // Save to module cache and update state
-      quizResultCache.set(quiz.id, response);
       setResult(response);
       
       if (response.passed) {
@@ -220,11 +213,9 @@ export function QuizAttempt({
       <section className="space-y-6">
         <Card className="rounded-2xl border border-dashed border-border bg-muted/20">
           <CardContent className="py-12 text-center">
-            <h3 className="text-lg font-semibold">
-              {previousAttemptsCount > 0 ? "Ready for another try?" : "Ready to begin?"}
-            </h3>
+            <h3 className="text-lg font-semibold">Ready to begin?</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Click the {previousAttemptsCount > 0 ? "Retake Quiz" : "Start Quiz"} button in the header above to begin your attempt.
+              Click the Start Quiz button in the header above to begin your attempt.
             </p>
           </CardContent>
         </Card>
@@ -448,16 +439,8 @@ export function QuizAttempt({
               onClick={() => handleSubmit(false)}
               disabled={!allAnswered || isPending || isExpired}
             >
-              {isPending ? (
-                <>
-                  <Loader2 className="mr-2 size-4 animate-spin" />
-                  Submitting...
-                </>
-              ) : isExpired ? (
-                "Time Expired"
-              ) : (
-                "Submit Quiz"
-              )}
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Submit Quiz
             </Button>
           </div>
         </div>
