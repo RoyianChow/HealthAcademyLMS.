@@ -23,7 +23,11 @@ export async function getLessonContent(lessonId: string) {
       position: true,
       isPublished: true,
       isFreePreview: true,
-      lessonProgress: true,
+      lessonProgress: {
+        where: {
+          userId: session.id,
+        },
+      },
       chapter: {
         select: {
           courseId: true,
