@@ -1,3 +1,4 @@
+// tests/integration/rbac/lesson-actions.test.ts
 /**
  * Integration tests — markLessonComplete RBAC
  *
@@ -14,15 +15,28 @@ vi.mock("@/lib/auth", () => ({
   auth: { api: { getSession: vi.fn() } },
 }));
 
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
+}));
+
 vi.mock("@/lib/db", () => ({
   prisma: {
     lesson: {
       findFirst: vi.fn(),
       update: vi.fn(),
+      count: vi.fn(),
     },
     enrollment: {
       findFirst: vi.fn(),
       findUnique: vi.fn(),
+    },
+    lessonProgress: {
+      upsert: vi.fn(),
+      count: vi.fn(),
+    },
+    courseProgress: {
+      upsert: vi.fn(),
     },
   },
 }));
@@ -61,7 +75,6 @@ const USER_SESSION = {
 // Rich mock lesson object with required relation hierarchies to avoid property access crashes
 const MOCK_LESSON = {
   id: "lesson-1",
-  lessonProgress: false,
   chapter: {
     id: "chapter-1",
     courseId: "course-1",
@@ -75,11 +88,14 @@ const MOCK_LESSON = {
 describe("markLessonComplete", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    
+    // 👈 Setup safe defaults for lesson counts so it doesn't try to trigger CourseProgress updates
+    vi.mocked(prisma.lesson.count).mockResolvedValue(10);
+    vi.mocked(prisma.lessonProgress.count).mockResolvedValue(5);
   });
 
   /** requireUser() is called first; a null session triggers NEXT_REDIRECT to /login
-   * before any Prisma query executes.
-   * NOTE: the same assertion is also present in user-actions-unauthenticated.test.ts. */
+   * before any Prisma query executes. */
   it("redirects unauthenticated callers to /login", async () => {
     mockGetSession.mockResolvedValue(null);
 
@@ -103,23 +119,29 @@ describe("markLessonComplete", () => {
 
     expect(result.status).toBe("error");
     expect(result.message).toContain("Progress tracking features require full course enrollment.");
-    expect(prisma.lesson.update).not.toHaveBeenCalled();
+    expect(prisma.lessonProgress.upsert).not.toHaveBeenCalled();
   });
 
-  /** Happy path: enrolled user marks their lesson complete; prisma.lesson.update
-   * is called with lessonProgress=true and a success status is returned. */
+  /** Happy path: enrolled user marks their lesson complete; prisma.lessonProgress.upsert
+   * is called with true values and a success status is returned. */
   it("marks complete when lesson exists under slug with active enrollment", async () => {
     mockGetSession.mockResolvedValue(USER_SESSION);
     vi.mocked(prisma.lesson.findFirst).mockResolvedValue(MOCK_LESSON as never);
     vi.mocked(prisma.enrollment.findFirst).mockResolvedValue({ status: "Active" } as never);
-    vi.mocked(prisma.lesson.update).mockResolvedValue({} as never);
+    vi.mocked(prisma.lessonProgress.upsert).mockResolvedValue({} as never);
 
     const result = await markLessonComplete("lesson-1", "course-slug");
 
     expect(result.status).toBe("success");
-    expect(prisma.lesson.update).toHaveBeenCalledWith({
-      where: { id: "lesson-1" },
-      data: { lessonProgress: true },
+    expect(prisma.lessonProgress.upsert).toHaveBeenCalledWith({
+      where: {
+        userId_lessonId: {
+          userId: "user-123",
+          lessonId: "lesson-1",
+        },
+      },
+      update: { completed: true },
+      create: { userId: "user-123", lessonId: "lesson-1", completed: true },
     });
   });
 });
@@ -134,14 +156,20 @@ describe("markLessonComplete — admin with Active enrollment", () => {
     });
     vi.mocked(prisma.lesson.findFirst).mockResolvedValue(MOCK_LESSON as never);
     vi.mocked(prisma.enrollment.findFirst).mockResolvedValue({ status: "Active" } as never);
-    vi.mocked(prisma.lesson.update).mockResolvedValue({} as never);
+    vi.mocked(prisma.lessonProgress.upsert).mockResolvedValue({} as never);
 
     const result = await markLessonComplete("lesson-1", "course-slug");
 
     expect(result.status).toBe("success");
-    expect(prisma.lesson.update).toHaveBeenCalledWith({
-      where: { id: "lesson-1" },
-      data: { lessonProgress: true },
+    expect(prisma.lessonProgress.upsert).toHaveBeenCalledWith({
+      where: {
+        userId_lessonId: {
+          userId: "admin-1",
+          lessonId: "lesson-1",
+        },
+      },
+      update: { completed: true },
+      create: { userId: "admin-1", lessonId: "lesson-1", completed: true },
     });
   });
 });
@@ -152,15 +180,17 @@ describe("markLessonComplete — idempotency", () => {
     mockGetSession.mockResolvedValue(USER_SESSION);
     vi.mocked(prisma.lesson.findFirst).mockResolvedValue(MOCK_LESSON as never);
     vi.mocked(prisma.enrollment.findFirst).mockResolvedValue({ status: "Active" } as never);
-    vi.mocked(prisma.lesson.update).mockResolvedValue({} as never);
+    vi.mocked(prisma.lessonProgress.upsert).mockResolvedValue({} as never);
+    vi.mocked(prisma.lesson.count).mockResolvedValue(10);
+    vi.mocked(prisma.lessonProgress.count).mockResolvedValue(5);
   });
 
   /** Calling mark complete twice still performs update both times; handler does not
    * short-circuit on lessonProgress already true — documents current behaviour. */
-  it("calls lesson.update again when lesson already marked complete in DB", async () => {
+  it("calls lessonProgress.upsert again when lesson already marked complete in DB", async () => {
     await markLessonComplete("lesson-1", "course-slug");
     await markLessonComplete("lesson-1", "course-slug");
 
-    expect(prisma.lesson.update).toHaveBeenCalledTimes(2);
+    expect(prisma.lessonProgress.upsert).toHaveBeenCalledTimes(2);
   });
 });
