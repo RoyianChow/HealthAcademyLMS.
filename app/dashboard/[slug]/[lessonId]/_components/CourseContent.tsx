@@ -17,11 +17,11 @@ import { Button } from "@/components/ui/button";
 import { tryCatch } from "@/hooks/try-catch";
 import { useConfetti } from "@/hooks/use-confetti";
 import { useConstructUrl } from "@/hooks/use-construct-url";
-
 import { markLessonComplete } from "../actions";
 
 type CourseContentProps = {
   data: LessonContentType;
+  userId: string;
 };
 
 type RenderDescriptionJson = ComponentProps<typeof RenderDescription>["json"];
@@ -186,7 +186,7 @@ function LessonDocumentItem({
   );
 }
 
-export function CourseContent({ data }: CourseContentProps) {
+export function CourseContent({ data, userId }: CourseContentProps) {
   const [pending, startTransition] = useTransition();
   const { triggerConfetti } = useConfetti();
 
@@ -195,9 +195,16 @@ export function CourseContent({ data }: CourseContentProps) {
     [data.description]
   );
 
-const isCompleted = Array.isArray(data.lessonProgress)
-  ? data.lessonProgress.some((progress) => progress.completed)
-  : Boolean(data.lessonProgress);
+  const isCompleted = Array.isArray(data.lessonProgress)
+    ? data.lessonProgress.some(
+        (progress: any) => progress.completed && progress.userId === userId
+      )
+    : Boolean(
+        data.lessonProgress && 
+        (data.lessonProgress as any).completed && 
+        (data.lessonProgress as any).userId === userId
+      );
+
   function onSubmit() {
     startTransition(async () => {
       const { data: result, error } = await tryCatch(
