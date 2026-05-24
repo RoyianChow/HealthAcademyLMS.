@@ -1,3 +1,4 @@
+import { requireUser } from "@/app/data/user/require-user";
 import { getLessonContent } from "@/app/data/course/get-lesson-content";
 import { CourseContent } from "./_components/CourseContent";
 import { Suspense } from "react";
@@ -21,5 +22,6 @@ export default async function LessonContentPage({
 
 async function LessonContentLoader({ lessonId }: { lessonId: string }) {
   const data = await getLessonContent(lessonId);
-  return <CourseContent data={data} />;
+  const user = await requireUser();
+  return <CourseContent data={data} userId={user.id} />;
 }
