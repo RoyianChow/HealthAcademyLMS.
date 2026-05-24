@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { CourseSidebarDataType } from "@/app/data/course/get-course-sidebar-data";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,29 @@ interface iAppProps {
 export function CourseSidebar({ course, isEnrolled }: iAppProps) {
   const pathname = usePathname();
   const currentId = pathname.split("/").pop();
+
+  const [openChapters, setOpenChapters] = useState<Record<string, boolean>>(() => {
+    const activeChapter = course.chapters.find((chapter) =>
+      chapter.lessons.some((l) => l.id === currentId) ||
+      chapter.quizzes.some((q) => q.id === currentId)
+    );
+
+    if (activeChapter) return { [activeChapter.id]: true };
+    return course.chapters[0] ? { [course.chapters[0].id]: true } : {};
+  });
+
+  useEffect(() => {
+    if (!currentId) return;
+
+    const activeChapter = course.chapters.find((chapter) =>
+      chapter.lessons.some((l) => l.id === currentId) ||
+      chapter.quizzes.some((q) => q.id === currentId)
+    );
+
+    if (activeChapter) {
+      setOpenChapters({ [activeChapter.id]: true });
+    }
+  }, [currentId, course.chapters]);
 
   const { completedLessons, totalLessons, progressPercentage } =
     useCourseProgress({ courseData: course });
@@ -70,7 +94,16 @@ export function CourseSidebar({ course, isEnrolled }: iAppProps) {
 
       <div className="flex-1 space-y-3 overflow-y-auto py-4 pr-4">
         {course.chapters.map((chapter, index) => (
-          <Collapsible key={chapter.id} defaultOpen={index === 0}>
+          <Collapsible 
+            key={chapter.id} 
+            open={!!openChapters[chapter.id]} // 👈 Controlled open binding
+            onOpenChange={(isOpen) => {       // 👈 Managed manual toggles
+              setOpenChapters((prev) => ({
+                ...prev,
+                [chapter.id]: isOpen,
+              }));
+            }}
+          >
             <CollapsibleTrigger asChild>
               <Button
                 variant="outline"
@@ -102,7 +135,11 @@ export function CourseSidebar({ course, isEnrolled }: iAppProps) {
                   lesson={lesson}
                   slug={course.slug}
                   isActive={currentId === lesson.id}
-                  completed={lesson.lessonProgress}
+                  completed={
+                    Array.isArray(lesson.lessonProgress)
+                      ? lesson.lessonProgress.some((progress) => progress.completed)
+                      : Boolean(lesson.lessonProgress)
+                  }
                 />
               ))}
 
