@@ -7,13 +7,6 @@ import { CourseStatus, EnrollmentStatus } from "@/src/generated/prisma/client";
 
 const POSTS_LIMIT = 50;
 
-/**
- * Loads course community data for `/dashboard/[slug]/community` with RBAC:
- * - Requires an authenticated user (`requireUser`).
- * - `notFound` when the course slug does not exist.
- * - Draft courses: only users with admin role (case-insensitive) may view.
- * - Published courses: active enrollment required unless the user is admin.
- */
 export async function getCommunityPageData(slug: string) {
   const user = await requireUser();
 
@@ -57,6 +50,10 @@ export async function getCommunityPageData(slug: string) {
               name: true,
               email: true,
               image: true,
+              role: true,
+              banned: true,
+              banReason: true,
+              banExpires: true,
             },
           },
           comments: {
@@ -69,6 +66,10 @@ export async function getCommunityPageData(slug: string) {
                   id: true,
                   name: true,
                   image: true,
+                  role: true,
+                  banned: true,
+                  banReason: true,
+                  banExpires: true,
                 },
               },
             },
