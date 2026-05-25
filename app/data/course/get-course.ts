@@ -22,6 +22,9 @@ export async function getIndividualCourse(slug: string) {
           id: true,
           title: true,
           lessons: {
+            where: {
+              isPublished: true,
+            },
             select: {
               id: true,
               title: true,
