@@ -16,6 +16,10 @@ export async function createComment({
   try {
     const user = await requireUser();
 
+    if (user.banned && user.banExpires && new Date(user.banExpires) > new Date()) {
+      return { error: "You are currently banned from community interactions." };
+    }
+
     if (!postId) {
       return { error: "Post ID is required" };
     }
