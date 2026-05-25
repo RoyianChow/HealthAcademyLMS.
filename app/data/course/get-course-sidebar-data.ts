@@ -19,8 +19,13 @@ export async function getCourseSidebarData(slug: string) {
 
   const isEnrolled = enrollment?.status === EnrollmentStatus.Active;
 
-  const lessonFilter = isEnrolled ? {} : { isFreePreview: true, isPublished: true };
-  const chapterFilter = isEnrolled ? {} : { lessons: { some: { isFreePreview: true, isPublished: true } } };
+  const lessonFilter = isEnrolled 
+    ? { isPublished: true } 
+    : { isFreePreview: true, isPublished: true };
+    
+  const chapterFilter = isEnrolled 
+    ? { lessons: { some: { isPublished: true } } } 
+    : { lessons: { some: { isFreePreview: true, isPublished: true } } };
 
   const course = await prisma.course.findUnique({
     where: {
