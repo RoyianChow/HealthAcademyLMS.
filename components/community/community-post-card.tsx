@@ -1,11 +1,10 @@
 "use client";
 
-"use client";
-
 import {
   ReactNode,
   useMemo,
   useState,
+  useEffect,
   useTransition,
   type CSSProperties,
 } from "react";
@@ -37,6 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 type TiptapMark = {
   type: string;
@@ -102,17 +102,6 @@ type PostType = {
   comments: CommentType[];
 };
 
-function getInitials(name?: string | null) {
-  if (!name) return "U";
-
-  return name
-    .split(" ")
-    .map((part) => part.charAt(0))
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
-
 function isValidTextAlign(
   value: CSSProperties["textAlign"] | string | null | undefined
 ): value is CSSProperties["textAlign"] {
@@ -126,6 +115,7 @@ function isValidTextAlign(
   );
 }
 
+// Function checking safe resource URLs
 function isSafeUrl(url?: string) {
   if (!url) return false;
 
@@ -562,33 +552,7 @@ function RichPostContent({ content }: { content: string }) {
   );
 }
 
-function UserAvatar({
-  name,
-  image,
-}: {
-  name: string | null;
-  image: string | null;
-}) {
-  if (image && isSafeUrl(image)) {
-    return (
-      <div className="size-10 overflow-hidden rounded-full border bg-muted">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={image}
-          alt={name ?? "User avatar"}
-          className="h-full w-full object-cover"
-          loading="lazy"
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex size-10 items-center justify-center rounded-full border bg-muted text-sm font-semibold text-muted-foreground">
-      {name ? getInitials(name) : <UserCircle className="size-5" />}
-    </div>
-  );
-}function CommentItem({
+function CommentItem({
   comment,
   userId,
   isAdmin,
@@ -624,7 +588,11 @@ function UserAvatar({
 
   return (
     <div className="flex gap-3 rounded-lg bg-muted/40 p-3">
-      <UserAvatar name={comment.user.name} image={comment.user.image} />
+      <UserAvatar 
+        name={comment.user.name} 
+        image={comment.user.image} 
+        userId={comment.user.id} 
+      />
 
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-3">
@@ -670,6 +638,7 @@ function UserAvatar({
     </div>
   );
 }
+
 export function CommunityPostCard({
   post,
   userId,
@@ -680,80 +649,84 @@ export function CommunityPostCard({
   isAdmin?: boolean;
 }) {
   const router = useRouter();
-const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-const [likePending, startLikeTransition] = useTransition();
-const [deletePending, startDeleteTransition] = useTransition();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [likePending, startLikeTransition] = useTransition();
+  const [deletePending, startDeleteTransition] = useTransition();
 
-const hasLiked = post.likes.some((like) => like.userId === userId);
-const canDeletePost = post.user.id === userId || isAdmin;
+  const hasLiked = post.likes.some((like) => like.userId === userId);
+  const canDeletePost = post.user.id === userId || isAdmin;
 
-const handleLike = () => {
-  startLikeTransition(async () => {
-    await toggleLike(post.id);
-    router.refresh();
-  });
-};
+  const handleLike = () => {
+    startLikeTransition(async () => {
+      await toggleLike(post.id);
+      router.refresh();
+    });
+  };
 
-const handleDeletePost = () => {
-  startDeleteTransition(async () => {
-    const result = await deleteCommunityPost(post.id);
+  const handleDeletePost = () => {
+    startDeleteTransition(async () => {
+      const result = await deleteCommunityPost(post.id);
 
-    if (result.status === "error") {
-      toast.error(result.message);
-      return;
-    }
+      if (result.status === "error") {
+        toast.error(result.message);
+        return;
+      }
 
-    toast.success(result.message);
-    setDeleteDialogOpen(false);
-    router.refresh();
-  });
-};
+      toast.success(result.message);
+      setDeleteDialogOpen(false);
+      router.refresh();
+    });
+  };
 
   return (
     <Card className="overflow-hidden shadow-sm">
       <CardContent className="space-y-5 p-5">
         <div className="flex items-start justify-between gap-4">
-  <div className="flex min-w-0 items-center gap-3">
-    <UserAvatar name={post.user.name} image={post.user.image} />
+          <div className="flex min-w-0 items-center gap-3">
+            <UserAvatar 
+              name={post.user.name} 
+              image={post.user.image} 
+              userId={post.user.id} 
+            />
 
-    <div className="min-w-0">
-      <p className="truncate font-medium">{post.user.name ?? "User"}</p>
+            <div className="min-w-0">
+              <p className="truncate font-medium">{post.user.name ?? "User"}</p>
 
-      <p className="text-xs text-muted-foreground">
-        {formatDistanceToNow(new Date(post.createdAt), {
-          addSuffix: true,
-        })}
-      </p>
-    </div>
-  </div>
+              <p className="text-xs text-muted-foreground">
+                {formatDistanceToNow(new Date(post.createdAt), {
+                  addSuffix: true,
+                })}
+              </p>
+            </div>
+          </div>
 
-  <div className="flex shrink-0 items-center gap-2">
-    {post.isPinned && (
-      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-        <Pin className="size-3" />
-        Pinned
-      </span>
-    )}
+          <div className="flex shrink-0 items-center gap-2">
+            {post.isPinned && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                <Pin className="size-3" />
+                Pinned
+              </span>
+            )}
 
-    {canDeletePost && (
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        onClick={() => setDeleteDialogOpen(true)}
-        disabled={deletePending}
-        className="size-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-        title="Delete post"
-      >
-        {deletePending ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : (
-          <Trash2 className="size-4" />
-        )}
-      </Button>
-    )}
-  </div>
-</div>
+            {canDeletePost && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setDeleteDialogOpen(true)}
+                disabled={deletePending}
+                className="size-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                title="Delete post"
+              >
+                {deletePending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Trash2 className="size-4" />
+                )}
+              </Button>
+            )}
+          </div>
+        </div>
 
         <div className="rounded-xl border bg-background p-4">
           <RichPostContent content={post.content} />
@@ -794,12 +767,13 @@ const handleDeletePost = () => {
           {post.comments.length > 0 && (
             <div className="space-y-3">
               {post.comments.map((comment) => (
- <CommentItem
-    key={comment.id}
-    comment={comment}
-    userId={userId}
-    isAdmin={isAdmin}
-  />              ))}
+                <CommentItem
+                  key={comment.id}
+                  comment={comment}
+                  userId={userId}
+                  isAdmin={isAdmin}
+                />
+              ))}
             </div>
           )}
 
@@ -807,30 +781,30 @@ const handleDeletePost = () => {
         </div>
       </CardContent>
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-  <AlertDialogContent>
-    <AlertDialogHeader>
-      <AlertDialogTitle>Delete this post?</AlertDialogTitle>
-      <AlertDialogDescription>
-        This will permanently delete the post, its likes, and its comments.
-        This action cannot be undone.
-      </AlertDialogDescription>
-    </AlertDialogHeader>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this post?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the post, its likes, and its comments.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
 
-    <AlertDialogFooter>
-      <AlertDialogCancel disabled={deletePending}>
-        Cancel
-      </AlertDialogCancel>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletePending}>
+              Cancel
+            </AlertDialogCancel>
 
-      <AlertDialogAction
-        onClick={handleDeletePost}
-        disabled={deletePending}
-        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-      >
-        {deletePending ? "Deleting..." : "Delete Post"}
-      </AlertDialogAction>
-    </AlertDialogFooter>
-  </AlertDialogContent>
-</AlertDialog>
-</Card>
+            <AlertDialogAction
+              onClick={handleDeletePost}
+              disabled={deletePending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletePending ? "Deleting..." : "Delete Post"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Card>
   );
 }
