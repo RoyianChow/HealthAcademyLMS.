@@ -105,7 +105,6 @@ export async function reorderLessons(
         },
       })
     );
-    await prisma.$transaction(tempUpdates);
 
     const finalUpdates = lessons.map((lesson) =>
       prisma.lesson.update({
@@ -117,7 +116,7 @@ export async function reorderLessons(
         },
       })
     );
-    await prisma.$transaction(finalUpdates);
+    await prisma.$transaction([...tempUpdates, ...finalUpdates]);
 
     revalidatePath(`/admin/courses/${courseId}/edit`);
 
@@ -157,7 +156,6 @@ export async function reorderChapters(
         },
       })
     );
-    await prisma.$transaction(tempUpdates);
 
     const finalUpdates = chapters.map((chapter) =>
       prisma.chapter.update({
@@ -169,7 +167,7 @@ export async function reorderChapters(
         },
       })
     );
-    await prisma.$transaction(finalUpdates);
+    await prisma.$transaction([...tempUpdates, ...finalUpdates]);
 
     revalidatePath(`/admin/courses/${courseId}/edit`);
 
@@ -371,13 +369,13 @@ export async function deleteLesson({
     });
 
     await prisma.$transaction([
-      ...updates,
       prisma.lesson.delete({
         where: {
           id: lessonId,
           chapterId: chapterId,
         },
       }),
+      ...updates,
     ]);
     revalidatePath(`/admin/courses/${courseId}/edit`);
 
@@ -447,12 +445,12 @@ export async function deleteChapter({
     });
 
     await prisma.$transaction([
-      ...updates,
       prisma.chapter.delete({
         where: {
           id: chapterId,
         },
       }),
+      ...updates,
     ]);
     revalidatePath(`/admin/courses/${courseId}/edit`);
 
