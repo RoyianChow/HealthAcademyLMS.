@@ -4,13 +4,13 @@ import {
   ReactNode,
   useMemo,
   useState,
-  useEffect,
   useTransition,
   type CSSProperties,
 } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Heart,
   Loader2,
@@ -37,6 +37,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { BanForm } from "@/components/community/ban-form";
 
 type TiptapMark = {
   type: string;
@@ -82,6 +83,10 @@ type CommentType = {
     id: string;
     name: string | null;
     image: string | null;
+    role?: string | null;
+    banned?: boolean | null;
+    banReason?: string | null;
+    banExpires?: Date | string | null;
   };
 };
 
@@ -95,6 +100,10 @@ type PostType = {
     name: string | null;
     email?: string | null;
     image: string | null;
+    role?: string | null;
+    banned?: boolean | null;
+    banReason?: string | null;
+    banExpires?: Date | string | null;
   };
   likes: {
     userId: string;
@@ -612,23 +621,40 @@ function CommentItem({
             </div>
           </div>
 
-          {canDeleteComment && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              disabled={pending}
-              onClick={handleDeleteComment}
-              className="size-8 shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-              title="Delete comment"
-            >
-              {pending ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Trash2 className="size-4" />
-              )}
-            </Button>
-          )}
+          <div className="flex shrink-0 items-center gap-1">
+            {isAdmin && comment.user.id !== userId && comment.user.role !== "admin" && (
+              <>
+                {comment.user.banned && (
+                  <Badge variant="destructive" className="mr-1">Banned</Badge>
+                )}
+                <BanForm 
+                  userId={comment.user.id} 
+                  userName={comment.user.name} 
+                  initialIsBanned={comment.user.banned ?? false}
+                  initialReason={comment.user.banReason}
+                  initialBanExpires={comment.user.banExpires ? new Date(comment.user.banExpires).toISOString() : null}
+                />
+              </>
+            )}
+
+            {canDeleteComment && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                disabled={pending}
+                onClick={handleDeleteComment}
+                className="size-8 shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                title="Delete comment"
+              >
+                {pending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Trash2 className="size-4" />
+                )}
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="mt-1">
@@ -643,10 +669,12 @@ export function CommunityPostCard({
   post,
   userId,
   isAdmin = false,
+  isBanned = false,
 }: {
   post: PostType;
   userId: string;
   isAdmin?: boolean;
+  isBanned?: boolean;
 }) {
   const router = useRouter();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -708,6 +736,22 @@ export function CommunityPostCard({
               </span>
             )}
 
+            {/* Admin Ban Action controls for Post Author */}
+            {isAdmin && post.user.id !== userId && post.user.role !== "admin" && (
+              <>
+                {post.user.banned && (
+                  <Badge variant="destructive">Banned</Badge>
+                )}
+                <BanForm 
+                  userId={post.user.id} 
+                  userName={post.user.name} 
+                  initialIsBanned={post.user.banned ?? false}
+                  initialReason={post.user.banReason}
+                  initialBanExpires={post.user.banExpires ? new Date(post.user.banExpires).toISOString() : null}
+                />
+              </>
+            )}
+
             {canDeletePost && (
               <Button
                 type="button"
@@ -738,7 +782,7 @@ export function CommunityPostCard({
             variant="ghost"
             size="sm"
             onClick={handleLike}
-            disabled={likePending}
+            disabled={likePending || isBanned}
             aria-pressed={hasLiked}
             className={cn(
               "flex items-center gap-2",
@@ -763,7 +807,7 @@ export function CommunityPostCard({
           </div>
         </div>
 
-        <div className="space-y-3 border-t pt-4">
+        <div className={cn("space-y-3 border-t pt-4", isBanned && "pointer-events-none opacity-50 select-none")}>
           {post.comments.length > 0 && (
             <div className="space-y-3">
               {post.comments.map((comment) => (
