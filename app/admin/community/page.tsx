@@ -100,7 +100,7 @@ export default async function DashboardCommunityPage() {
                 </div>
 
                 <Button asChild className="w-full">
-                  <Link href={`/admin/${course.slug}/community`}>
+                  <Link href={`/dashboard/${course.slug}/community`}>
                     Open Community
                     <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
                   </Link>
