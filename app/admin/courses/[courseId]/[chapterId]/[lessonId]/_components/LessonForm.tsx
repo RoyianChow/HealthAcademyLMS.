@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { RichTextEditor } from "@/components/rich-text-editor/Editor";
-import {Uploader} from "@/components/file-uploader/Uploader";
+import { Uploader } from "@/components/file-uploader/Uploader";
 import { useTransition } from "react";
 import { tryCatch } from "@/hooks/try-catch";
 import { updateLesson } from "../actions";
@@ -61,6 +61,8 @@ export function LessonForm({ data, chapterId, courseId }: LessonFormProps) {
       documents: data.documents ?? [],
     },
   });
+
+  const isPublished = form.watch("isPublished");
 
   function onSubmit(values: LessonSchemaType) {
     startTransition(async () => {
@@ -234,7 +236,12 @@ export function LessonForm({ data, chapterId, courseId }: LessonFormProps) {
                       <FormControl>
                         <Switch
                           checked={field.value ?? false}
-                          onCheckedChange={field.onChange}
+                          onCheckedChange={(checked) => {
+                            field.onChange(checked);
+                            if (!checked) {
+                              form.setValue("isFreePreview", false);
+                            }
+                          }}
                         />
                       </FormControl>
                     </FormItem>
@@ -257,6 +264,7 @@ export function LessonForm({ data, chapterId, courseId }: LessonFormProps) {
                         <Switch
                           checked={field.value ?? false}
                           onCheckedChange={field.onChange}
+                          disabled={!isPublished}
                         />
                       </FormControl>
                     </FormItem>
