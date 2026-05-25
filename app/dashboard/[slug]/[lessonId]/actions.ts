@@ -64,19 +64,25 @@ export async function markLessonComplete(
 
     // Check if the user has completed all lessons in the course
     const courseId = lesson.chapter.courseId;
+    
     const totalLessons = await prisma.lesson.count({
-      where: { chapter: { courseId } }
+      where: { 
+        chapter: { courseId },
+        isPublished: true 
+      }
     });
     
     const completedLessons = await prisma.lessonProgress.count({
       where: {
         userId: user.id,
-        lesson: { chapter: { courseId } },
+        lesson: { 
+          chapter: { courseId },
+          isPublished: true
+        },
         completed: true
       }
     });
 
-    // If all lessons are done, populate CourseProgress
     if (totalLessons > 0 && completedLessons >= totalLessons) {
       await prisma.courseProgress.upsert({
         where: {
