@@ -10,6 +10,10 @@ export async function toggleLike(postId: string) {
   try {
     const user = await requireUser();
 
+    if (user.banned && user.banExpires && new Date(user.banExpires) > new Date()) {
+      return { error: "You are currently banned from community interactions." };
+    }
+
     const post = await prisma.communityPost.findUnique({
       where: { id: postId },
       select: { courseId: true },
