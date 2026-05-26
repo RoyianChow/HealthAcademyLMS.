@@ -7,13 +7,19 @@ export type LessonDocument = {
   fileSize?: number | null;
 };
 
+export type LessonVideo = {
+  id?: string;
+  title?: string | null;
+  videoKey?: string | null;
+  youtubeUrl?: string | null;
+};
+
 export type LessonFormValues = {
   title: string;
   description?: string | null;
-  youtubeUrl?: string | null;
-  videoKey?: string | null;
   thumbnailKey?: string | null;
   documents: LessonDocument[];
+  videos: LessonVideo[];
 };
 
 export const ACCEPTED_DOCUMENT_TYPES: string[] = [
