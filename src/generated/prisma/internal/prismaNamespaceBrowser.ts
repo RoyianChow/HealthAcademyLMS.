@@ -56,6 +56,7 @@ export const ModelName = {
   Course: 'Course',
   Chapter: 'Chapter',
   Lesson: 'Lesson',
+  LessonVideo: 'LessonVideo',
   LessonDocument: 'LessonDocument',
   Enrollment: 'Enrollment',
   CourseProgress: 'CourseProgress',
@@ -189,8 +190,6 @@ export const LessonScalarFieldEnum = {
   title: 'title',
   description: 'description',
   thumbnailKey: 'thumbnailKey',
-  videoKey: 'videoKey',
-  youtubeUrl: 'youtubeUrl',
   position: 'position',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
@@ -201,6 +200,20 @@ export const LessonScalarFieldEnum = {
 } as const
 
 export type LessonScalarFieldEnum = (typeof LessonScalarFieldEnum)[keyof typeof LessonScalarFieldEnum]
+
+
+export const LessonVideoScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  videoKey: 'videoKey',
+  youtubeUrl: 'youtubeUrl',
+  position: 'position',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  lessonId: 'lessonId'
+} as const
+
+export type LessonVideoScalarFieldEnum = (typeof LessonVideoScalarFieldEnum)[keyof typeof LessonVideoScalarFieldEnum]
 
 
 export const LessonDocumentScalarFieldEnum = {
@@ -388,4 +401,5 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
 
