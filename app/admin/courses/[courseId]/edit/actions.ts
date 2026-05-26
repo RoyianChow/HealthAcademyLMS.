@@ -265,18 +265,26 @@ export async function createLesson(
         },
       });
 
+      const validVideos = (data.videos ?? []).filter(v => v.videoKey || v.youtubeUrl);
+
       const createdLesson = await tx.lesson.create({
         data: {
           title: data.title,
           description: data.description || null,
           content: data.content || null,
-          videoKey: data.videoKey || null,
-          youtubeUrl: data.youtubeUrl || null,
           thumbnailKey: data.thumbnailKey || null,
           chapterId: data.chapterId,
           position: (maxPos?.position ?? 0) + 1,
           isPublished: data.isPublished ?? false,
-          isFreePreview: data.isFreePreview ?? false,
+          isFreePreview: data.isFreePreview ?? false,          
+          videos: {
+            create: validVideos.map((video, idx) => ({
+              title: video.title || null,
+              videoKey: video.videoKey || null,
+              youtubeUrl: video.youtubeUrl || null,
+              position: idx,
+            })),
+          },
         },
       });
 
