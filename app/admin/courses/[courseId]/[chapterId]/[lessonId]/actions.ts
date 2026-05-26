@@ -21,24 +21,14 @@ export async function updateLesson(
 
     if (!result.success) {
       console.log(result.error.flatten());
-
-      return {
-        status: "error",
-        message: "Invalid lesson data",
-      };
+      return { status: "error", message: "Invalid lesson data" };
     }
 
     const data = result.data;
 
     await prisma.$transaction(async (tx) => {
-      await tx.lessonDocument.deleteMany({
-        where: {
-          lessonId,
-        },
-      });
-
+      await tx.lessonDocument.deleteMany({ where: { lessonId } });
       const documents: LessonDocumentSchemaType[] = data.documents ?? [];
-
       if (documents.length > 0) {
         await tx.lessonDocument.createMany({
           data: documents.map((doc) => ({
@@ -52,27 +42,38 @@ export async function updateLesson(
         });
       }
 
+      await tx.lessonVideo.deleteMany({ where: { lessonId } });
+      const videos = data.videos ?? [];
+      if (videos.length > 0) {
+        const validVideos = videos.filter(v => v.videoKey || v.youtubeUrl);
+        
+        if (validVideos.length > 0) {
+          await tx.lessonVideo.createMany({
+            data: validVideos.map((vid, index) => ({
+              title: vid.title || null,
+              videoKey: vid.videoKey || null,
+              youtubeUrl: vid.youtubeUrl || null,
+              position: index,
+              lessonId,
+            })),
+          });
+        }
+      }
+
       await tx.lesson.update({
-        where: {
-          id: lessonId,
-        },
+        where: { id: lessonId },
         data: {
           title: data.title,
           description: data.description || null,
           content: data.content || null,
           thumbnailKey: data.thumbnailKey || null,
-          videoKey: data.videoKey || null,
-          youtubeUrl: data.youtubeUrl || null,
           isPublished: data.isPublished ?? false,
           isFreePreview: data.isFreePreview ?? false,
         },
       });
     });
 
-    return {
-      status: "success",
-      message: "Lesson updated successfully",
-    };
+    return { status: "success", message: "Lesson updated successfully" };
   } catch (error) {
     console.error("UPDATE_LESSON_ERROR", error);
 
