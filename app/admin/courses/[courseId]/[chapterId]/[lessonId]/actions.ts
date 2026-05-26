@@ -3,6 +3,7 @@
 import { requireAdmin } from "@/app/data/admin/require-admin";
 import { prisma } from "@/lib/db";
 import { ApiResponse } from "@/lib/types";
+import { revalidatePath } from "next/cache";
 
 import {
   lessonSchema,
@@ -72,6 +73,8 @@ export async function updateLesson(
         },
       });
     });
+
+    revalidatePath(`/admin/courses/${data.courseId}/edit`);
 
     return { status: "success", message: "Lesson updated successfully" };
   } catch (error) {
