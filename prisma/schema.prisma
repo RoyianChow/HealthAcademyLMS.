@@ -127,26 +127,40 @@ model Chapter {
 }
 
 model Lesson {
-  id             String   @id @default(uuid())
+  id             String           @id @default(uuid())
   title          String
   description    String?
   thumbnailKey   String?
-  videoKey       String?
-  youtubeUrl     String?
   position       Int
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
   chapterId      String
   content        String?
-  isFreePreview  Boolean  @default(false)
-  isPublished    Boolean  @default(false)
+  isFreePreview  Boolean          @default(false)
+  isPublished    Boolean          @default(false)
+  
+  videos         LessonVideo[]
   lessonProgress LessonProgress[]
-
-  chapter   Chapter          @relation(fields: [chapterId], references: [id], onDelete: Cascade)
-  documents LessonDocument[]
+  chapter        Chapter          @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  documents      LessonDocument[]
 
   @@unique([chapterId, position])
   @@index([chapterId])
+}
+
+model LessonVideo {
+  id         String   @id @default(uuid())
+  title      String?  
+  videoKey   String?  
+  youtubeUrl String?  
+  position   Int      
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  lessonId   String
+
+  lesson     Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@index([lessonId])
 }
 
 model LessonDocument {
