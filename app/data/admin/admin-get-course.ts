@@ -33,13 +33,23 @@ export async function adminGetCourse(id: string) {
               description: true,
               thumbnailKey: true,
               position: true,
-              videoKey: true,
-              youtubeUrl: true,
+              videos: {
+                select: {
+                  id: true,
+                  title: true,
+                  videoKey: true,
+                  youtubeUrl: true,
+                  position: true,
+                },
+                orderBy: {
+                  position: "asc",
+                },
+              },
             },
             orderBy: {
               position: "asc",
-            },
-          },
+                },
+              },
           quizzes: {
             select: {
               id: true,
