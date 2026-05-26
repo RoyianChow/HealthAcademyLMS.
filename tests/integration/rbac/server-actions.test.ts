@@ -54,6 +54,11 @@ vi.mock("@/lib/db", () => ({
       createMany: vi.fn(),
       deleteMany: vi.fn(),
     },
+    lessonVideo: {
+      create: vi.fn(),
+      createMany: vi.fn(),
+      deleteMany: vi.fn(),
+    },
     enrollment: {
       upsert: vi.fn(),
     },
@@ -810,19 +815,24 @@ describe("Admin server actions — user role access (integration)", () => {
 
       vi.mocked(prisma.$transaction).mockImplementation(async (fn) => {
         const tx = {
+          lesson: {
+            update: vi.fn().mockResolvedValue({ id: "lesson-1" }),
+          },
           lessonDocument: {
             deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
             createMany: vi.fn().mockResolvedValue({ count: 0 }),
           },
-          lesson: {
-            update: vi.fn().mockResolvedValue({}),
+          lessonVideo: {
+            deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+            createMany: vi.fn().mockResolvedValue({ count: 0 }),
+            create: vi.fn().mockResolvedValue({}),
           },
         };
         return fn(tx as never);
       });
 
       const lessonId = "00000000-0000-4000-8000-000000000010";
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      
       const result = await updateLesson(VALID_LESSON as any, lessonId);
 
       expect(mockRedirect).not.toHaveBeenCalled();
@@ -830,6 +840,7 @@ describe("Admin server actions — user role access (integration)", () => {
         status: "success",
         message: "Lesson updated successfully",
       });
+      expect(prisma.$transaction).toHaveBeenCalled();
     });
 
     /** deleteQuiz removes answers, attempts, options, questions, then quiz row. */
@@ -879,3 +890,4 @@ describe("Admin server actions — user role access (integration)", () => {
     });
   });
 });
+
