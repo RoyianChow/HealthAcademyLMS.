@@ -80,6 +80,11 @@ export type Chapter = Prisma.ChapterModel
  */
 export type Lesson = Prisma.LessonModel
 /**
+ * Model LessonVideo
+ * 
+ */
+export type LessonVideo = Prisma.LessonVideoModel
+/**
  * Model LessonDocument
  * 
  */
