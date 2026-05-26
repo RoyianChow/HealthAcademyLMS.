@@ -17,8 +17,18 @@ export async function getLessonContent(lessonId: string) {
       description: true,
       content: true,
       thumbnailKey: true,
-      videoKey: true,
-      youtubeUrl: true,
+      videos: {
+        select: {
+          id: true,
+          title: true,
+          videoKey: true,
+          youtubeUrl: true,
+          position: true,
+        },
+        orderBy: {
+          position: "asc",
+        },
+      },
       documents: true,
       position: true,
       isPublished: true,
