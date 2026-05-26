@@ -14,9 +14,9 @@ import {
   type LessonSchemaType,
   type LessonDocumentSchemaType,
 } from "@/lib/zodSchemas";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Form,
@@ -29,7 +29,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { RichTextEditor } from "@/components/rich-text-editor/Editor";
 import { Uploader } from "@/components/file-uploader/Uploader";
-import { useTransition } from "react";
+import { useTransition, useState } from "react";
 import { tryCatch } from "@/hooks/try-catch";
 import { updateLesson } from "../actions";
 import { toast } from "sonner";
@@ -41,6 +41,117 @@ type LessonFormProps = {
   chapterId: string;
   courseId: string;
 };
+
+function VideoItem({
+  index,
+  form,
+  remove,
+}: {
+  index: number;
+  form: any;
+  remove: (index: number) => void;
+}) {
+  // If youtubeUrl has a value initially, default the switch to true (YouTube mode)
+  const [isYoutube, setIsYoutube] = useState(() => {
+    const initialYoutubeUrl = form.getValues(`videos.${index}.youtubeUrl`);
+    return !!initialYoutubeUrl;
+  });
+
+  return (
+    <div className="relative space-y-4 rounded-md border bg-muted/20 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-2">
+        <div className="flex flex-wrap items-center gap-4">
+          <span className="text-sm font-bold text-foreground">Video #{index + 1}</span>
+          
+          {/* Toggle Switch Component */}
+          <div className="flex items-center space-x-2 bg-background px-3 py-1.5 rounded-full border shadow-sm select-none">
+            <span className={`text-xs font-semibold ${!isYoutube ? "text-primary" : "text-muted-foreground"}`}>
+              Native Upload
+            </span>
+            <Switch
+              checked={isYoutube}
+              onCheckedChange={(checked) => {
+                setIsYoutube(checked);
+                // Clear out the opposite field completely to preserve database data integrity
+                if (checked) {
+                  form.setValue(`videos.${index}.videoKey`, "");
+                } else {
+                  form.setValue(`videos.${index}.youtubeUrl`, "");
+                }
+              }}
+            />
+            <span className={`text-xs font-semibold ${isYoutube ? "text-primary" : "text-muted-foreground"}`}>
+              YouTube Link
+            </span>
+          </div>
+        </div>
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="text-destructive hover:bg-destructive/10"
+          onClick={() => remove(index)}
+        >
+          <Trash2 className="size-4" />
+        </Button>
+      </div>
+
+      <FormField
+        control={form.control}
+        name={`videos.${index}.title`}
+        render={({ field: inputField }) => (
+          <FormItem>
+            <FormLabel>Video Title (Optional)</FormLabel>
+            <FormControl>
+              <Input placeholder="e.g. Introduction" {...inputField} value={inputField.value ?? ""} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      {/* Conditional Content Rendering */}
+      {!isYoutube ? (
+        <FormField
+          control={form.control}
+          name={`videos.${index}.videoKey`}
+          render={({ field: inputField }) => (
+            <FormItem>
+              <FormLabel>Video File Upload</FormLabel>
+              <FormControl>
+                <Uploader
+                  fileTypeAccepted="video"
+                  value={inputField.value ?? ""}
+                  onChange={inputField.onChange}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      ) : (
+        <FormField
+          control={form.control}
+          name={`videos.${index}.youtubeUrl`}
+          render={({ field: inputField }) => (
+            <FormItem>
+              <FormLabel>YouTube URL</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  {...inputField}
+                  value={inputField.value ?? ""}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
+    </div>
+  );
+}
 
 export function LessonForm({ data, chapterId, courseId }: LessonFormProps) {
   const [pending, startTransition] = useTransition();
@@ -54,12 +165,21 @@ export function LessonForm({ data, chapterId, courseId }: LessonFormProps) {
       description: data.description ?? "",
       content: data.content ?? "",
       thumbnailKey: data.thumbnailKey ?? "",
-      videoKey: data.videoKey ?? "",
-      youtubeUrl: data.youtubeUrl ?? "",
       isPublished: data.isPublished ?? false,
       isFreePreview: data.isFreePreview ?? false,
       documents: data.documents ?? [],
+      videos: data.videos?.map((video) => ({
+        id: video.id,
+        title: video.title ?? "",
+        videoKey: video.videoKey ?? "",
+        youtubeUrl: video.youtubeUrl ?? "",
+      })) ?? [],
     },
+  });
+
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: "videos",
   });
 
   const isPublished = form.watch("isPublished");
@@ -165,41 +285,32 @@ export function LessonForm({ data, chapterId, courseId }: LessonFormProps) {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="videoKey"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Video File</FormLabel>
-                    <FormControl>
-                      <Uploader
-                        fileTypeAccepted="video"
-                        value={field.value ?? ""}
-                        onChange={field.onChange}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="space-y-4 rounded-lg border p-4">
+                <div className="flex items-center justify-between">
+                  <FormLabel className="text-base font-semibold">Lesson Videos</FormLabel>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => append({ title: "", videoKey: "", youtubeUrl: "" })}
+                  >
+                    <Plus className="mr-2 size-4" /> Add Video
+                  </Button>
+                </div>
 
-              <FormField
-                control={form.control}
-                name="youtubeUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>YouTube URL</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="https://www.youtube.com/watch?v=..."
-                        {...field}
-                        value={field.value ?? ""}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                {fields.length === 0 && (
+                  <p className="text-sm text-muted-foreground italic">No videos added yet.</p>
                 )}
-              />
+
+                {fields.map((field, index) => (
+                  <VideoItem 
+                    key={field.id} 
+                    index={index} 
+                    form={form} 
+                    remove={remove} 
+                  />
+                ))}
+              </div>
 
               <FormField
                 control={form.control}
