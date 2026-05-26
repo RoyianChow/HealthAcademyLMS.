@@ -15,12 +15,15 @@ export async function adminGetRecentCourses() {
       id: true,
       title: true,
       smallDescription: true,
+      description: true,
+      category: true,
       duration: true,
       level: true,
       status: true,
       price: true,
       fileKey: true,
       slug: true,
+      enrollments: true
     },
   });
 
