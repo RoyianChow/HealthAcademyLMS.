@@ -77,6 +77,24 @@ export const chapterSchema = z.object({
   courseId: z.string().uuid({ message: "Invalid course id" }),
 });
 
+export const lessonVideoSchema = z.object({
+  id: z.string().optional(),
+  title: z.string().optional().or(z.literal("")),
+  videoKey: z.string().optional().or(z.literal("")),
+  youtubeUrl: z
+    .string()
+    .refine(
+      (url) =>
+        url === "" ||
+        url.includes("youtube.com/watch?v=") ||
+        url.includes("youtu.be/") ||
+        url.includes("youtube.com/embed/"),
+      "Please enter a valid YouTube URL"
+    )
+    .optional()
+    .or(z.literal("")),
+});
+
 export const lessonDocumentSchema = z.object({
   id: z.string().optional(),
 
@@ -111,28 +129,17 @@ export const lessonSchema = z.object({
   content: z.string().optional().or(z.literal("")),
 
   thumbnailKey: z.string().optional().or(z.literal("")),
-  videoKey: z.string().optional().or(z.literal("")),
-
-  youtubeUrl: z
-    .string()
-    .url("Please enter a valid URL")
-    .refine(
-      (url) =>
-        url.includes("youtube.com/watch?v=") ||
-        url.includes("youtu.be/") ||
-        url.includes("youtube.com/embed/"),
-      "Please enter a valid YouTube URL"
-    )
-    .optional()
-    .or(z.literal("")),
-
+    
   isPublished: z.boolean().default(false).optional(),
   isFreePreview: z.boolean().default(false).optional(),
 
   documents: z.array(lessonDocumentSchema).default([]).optional(),
+  
+  videos: z.array(lessonVideoSchema).default([]).optional(), 
 });
 
 export type CourseSchemaType = z.infer<typeof courseSchema>;
 export type ChapterSchemaType = z.infer<typeof chapterSchema>;
 export type LessonDocumentSchemaType = z.infer<typeof lessonDocumentSchema>;
+export type LessonVideoSchemaType = z.infer<typeof lessonVideoSchema>;
 export type LessonSchemaType = z.infer<typeof lessonSchema>;
