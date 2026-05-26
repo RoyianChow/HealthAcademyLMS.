@@ -195,6 +195,11 @@ export function CourseContent({ data, userId }: CourseContentProps) {
     [data.description]
   );
 
+  const contentJson = useMemo(
+  () => parseDescription(data.content),
+  [data.content]
+);
+
   const isCompleted = Array.isArray(data.lessonProgress)
     ? data.lessonProgress.some(
         (progress: any) => progress.completed && progress.userId === userId
@@ -264,6 +269,12 @@ export function CourseContent({ data, userId }: CourseContentProps) {
             </p>
           ) : null}
         </div>
+
+        {contentJson && (
+          <div className="pt-4 border-t border-muted">
+            <RenderDescription json={contentJson} />
+          </div>
+        )}
 
         {data.documents.length > 0 && (
           <div className="space-y-3">
