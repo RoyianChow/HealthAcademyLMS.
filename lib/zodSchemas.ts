@@ -1,5 +1,17 @@
 import { z } from "zod";
 
+export const ACCEPTED_DOCUMENT_TYPES: string[] = [
+  "application/pdf",
+  "text/csv",
+  "text/plain",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+];
+
 export const courseLevels = ["Beginner", "Intermediate", "Advanced"] as const;
 
 export const courseStatus = ["Draft", "Published", "Archived"] as const;
