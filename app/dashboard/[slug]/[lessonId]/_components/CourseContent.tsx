@@ -227,13 +227,7 @@ export function CourseContent({ data, userId }: CourseContentProps) {
   }
 
   return (
-    <main className="flex h-full w-full flex-col bg-background px-4 pb-8 md:px-6">
-      <VideoPlayer
-        thumbnailKey={data.thumbnailKey}
-        videoKey={data.videoKey}
-        youtubeUrl={data.youtubeUrl}
-      />
-
+    <main className="flex h-full w-full flex-col bg-background px-4 pb-8 md:px-6 overflow-y-auto">
       <div className="border-b py-4">
         <Button
           type="button"
@@ -280,6 +274,25 @@ export function CourseContent({ data, userId }: CourseContentProps) {
                 <LessonDocumentItem key={document.id} document={document} />
               ))}
             </div>
+          </div>
+        )}
+
+        {data.videos && data.videos.length > 0 && (
+          <div className="flex flex-col gap-6 w-full mb-4">
+            {data.videos.map((video) => (
+              <div key={video.id} className="space-y-2">
+                {video.title && (
+                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider px-1">
+                    {video.title}
+                  </h3>
+                )}
+                <VideoPlayer
+                  thumbnailKey={data.thumbnailKey}
+                  videoKey={video.videoKey}
+                  youtubeUrl={video.youtubeUrl}
+                />
+              </div>
+            ))}
           </div>
         )}
       </section>
