@@ -397,6 +397,7 @@ export const ModelName = {
   Course: 'Course',
   Chapter: 'Chapter',
   Lesson: 'Lesson',
+  LessonVideo: 'LessonVideo',
   LessonDocument: 'LessonDocument',
   Enrollment: 'Enrollment',
   CourseProgress: 'CourseProgress',
@@ -424,7 +425,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "course" | "chapter" | "lesson" | "lessonDocument" | "enrollment" | "courseProgress" | "lessonProgress" | "quiz" | "quizQuestion" | "quizOption" | "quizAttempt" | "quizAnswer" | "communityPost" | "communityComment" | "communityLike"
+    modelProps: "user" | "session" | "account" | "verification" | "course" | "chapter" | "lesson" | "lessonVideo" | "lessonDocument" | "enrollment" | "courseProgress" | "lessonProgress" | "quiz" | "quizQuestion" | "quizOption" | "quizAttempt" | "quizAnswer" | "communityPost" | "communityComment" | "communityLike"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -943,6 +944,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.LessonCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.LessonCountAggregateOutputType> | number
+        }
+      }
+    }
+    LessonVideo: {
+      payload: Prisma.$LessonVideoPayload<ExtArgs>
+      fields: Prisma.LessonVideoFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.LessonVideoFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LessonVideoPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.LessonVideoFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LessonVideoPayload>
+        }
+        findFirst: {
+          args: Prisma.LessonVideoFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LessonVideoPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.LessonVideoFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LessonVideoPayload>
+        }
+        findMany: {
+          args: Prisma.LessonVideoFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LessonVideoPayload>[]
+        }
+        create: {
+          args: Prisma.LessonVideoCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LessonVideoPayload>
+        }
+        createMany: {
+          args: Prisma.LessonVideoCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.LessonVideoCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LessonVideoPayload>[]
+        }
+        delete: {
+          args: Prisma.LessonVideoDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LessonVideoPayload>
+        }
+        update: {
+          args: Prisma.LessonVideoUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LessonVideoPayload>
+        }
+        deleteMany: {
+          args: Prisma.LessonVideoDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.LessonVideoUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.LessonVideoUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LessonVideoPayload>[]
+        }
+        upsert: {
+          args: Prisma.LessonVideoUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$LessonVideoPayload>
+        }
+        aggregate: {
+          args: Prisma.LessonVideoAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateLessonVideo>
+        }
+        groupBy: {
+          args: Prisma.LessonVideoGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LessonVideoGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.LessonVideoCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.LessonVideoCountAggregateOutputType> | number
         }
       }
     }
@@ -1976,8 +2051,6 @@ export const LessonScalarFieldEnum = {
   title: 'title',
   description: 'description',
   thumbnailKey: 'thumbnailKey',
-  videoKey: 'videoKey',
-  youtubeUrl: 'youtubeUrl',
   position: 'position',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
@@ -1988,6 +2061,20 @@ export const LessonScalarFieldEnum = {
 } as const
 
 export type LessonScalarFieldEnum = (typeof LessonScalarFieldEnum)[keyof typeof LessonScalarFieldEnum]
+
+
+export const LessonVideoScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  videoKey: 'videoKey',
+  youtubeUrl: 'youtubeUrl',
+  position: 'position',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  lessonId: 'lessonId'
+} as const
+
+export type LessonVideoScalarFieldEnum = (typeof LessonVideoScalarFieldEnum)[keyof typeof LessonVideoScalarFieldEnum]
 
 
 export const LessonDocumentScalarFieldEnum = {
@@ -2381,6 +2468,7 @@ export type GlobalOmitConfig = {
   course?: Prisma.CourseOmit
   chapter?: Prisma.ChapterOmit
   lesson?: Prisma.LessonOmit
+  lessonVideo?: Prisma.LessonVideoOmit
   lessonDocument?: Prisma.LessonDocumentOmit
   enrollment?: Prisma.EnrollmentOmit
   courseProgress?: Prisma.CourseProgressOmit
