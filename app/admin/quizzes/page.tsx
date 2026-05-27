@@ -13,7 +13,7 @@ export default async function AdminQuizzesPage() {
     <div className="min-h-[calc(100vh-8rem)] space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-4">
-          <h1 className="text-4xl font-bold tracking-tight">Your Quizzes</h1>
+          <h1 className="text-4xl font-bold tracking-tight">Administrate Quizzes</h1>
           <p className="text-xl text-muted-foreground">
             Manage all your quizzes and review student quiz results
           </p>
