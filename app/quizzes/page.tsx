@@ -182,17 +182,30 @@ async function RenderQuizzes() {
                   </span>
 
                   {isCompleted ? (
-                    <QuizResultDialog quiz={quiz} />
+                    <div className="flex gap-2">
+                      <QuizResultDialog quiz={quiz} />
+
+                      <Link
+                        href={`/quizzes/${quiz.id}`}
+                        className={buttonVariants({
+                          size: "sm",
+                          variant: "outline",
+                          className: "rounded-full",
+                        })}
+                      >
+                        Retake Quiz
+                      </Link>
+                    </div>
                   ) : (
                     <Link
                       href={`/quizzes/${quiz.id}`}
                       className={buttonVariants({
                         size: "sm",
                         className: "rounded-full",
-                      })}
-                    >
-                      Start Quiz
-                    </Link>
+                    })}
+                  >
+                    Start Quiz
+                  </Link>
                   )}
                 </div>
               </CardContent>
