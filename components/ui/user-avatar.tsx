@@ -1,5 +1,5 @@
 // components/ui/user-avatar.tsx
-import React from "react";
+import React, { useState } from "react";
 
 type AvatarProps = {
   name: string | null;
@@ -9,16 +9,23 @@ type AvatarProps = {
 };
 
 export function UserAvatar({ name, image, userId, className = "size-10" }: AvatarProps) {
-  if (image) {
+  const [imageError, setImageError] = useState(false);
+
+  if (image && !imageError) {
     return (
-      <img 
-        src={image} 
-        alt={name ?? "User"} 
-        className={`${className} rounded-full object-cover`}
-      />
+      <div className={`${className} relative shrink-0 overflow-hidden rounded-full`}>
+        <img 
+          src={image} 
+          alt={name ?? "User"} 
+          className="h-full w-full object-cover"
+          onError={() => setImageError(true)}
+          referrerPolicy="no-referrer"
+        />
+      </div>
     );
   }
 
+  // Fallback initial layout if image is missing or breaks
   const initial = name?.trim().charAt(0).toUpperCase() || "U";
   
   let hash = 0;
@@ -34,7 +41,7 @@ export function UserAvatar({ name, image, userId, className = "size-10" }: Avata
   const bgClass = googleColors[Math.abs(hash) % googleColors.length];
 
   return (
-    <div className={`${className} flex items-center justify-center rounded-full text-white font-medium shadow-sm ${bgClass}`}>
+    <div className={`${className} flex shrink-0 items-center justify-center rounded-full text-white font-medium shadow-sm ${bgClass}`}>
       {initial}
     </div>
   );
