@@ -20,13 +20,14 @@ import {
   Redo,
   Strikethrough,
   Undo,
-  Table as TableIcon, // Added icon for insert table
-  Trash2, // Added icon for delete table
-  Plus, // Added icon for columns
-  ArrowDown // Added icon for rows
+  Table as TableIcon,
+  Trash2,
+  Plus,
+  ArrowDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
+import { TiptapImageUpload } from "./TiptapImageUpload";
 
 interface iAppProps {
   editor: Editor | null;
@@ -41,7 +42,6 @@ export function Menubar({ editor }: iAppProps) {
     <div className="border border-input border-t-0 border-x-0  rounded-t-lg p-2 bg-card flex flex-wrap gap-1 items-center">
       <TooltipProvider>
         <div className="flex flex-wrap gap-1">
-          {/* ... Your existing toggles (Bold, Italic, Strike, Headings, Lists) ... */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Toggle
@@ -194,7 +194,6 @@ export function Menubar({ editor }: iAppProps) {
 
         <div className="w-px h-6 bg-border mx-2"></div>
         <div className="flex flex-wrap gap-1">
-          {/* ... Your existing toggles (Alignments) ... */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Toggle
@@ -253,7 +252,11 @@ export function Menubar({ editor }: iAppProps) {
           </Tooltip>
         </div>
 
-        {/* --- NEW TABLE CONTROLS START HERE --- */}
+        <div className="w-px h-6 bg-border mx-2"></div>
+
+        <TiptapImageUpload editor={editor} />
+
+        {/* --- TABLE CONTROLS--- */}
         <div className="w-px h-6 bg-border mx-2"></div>
         <div className="flex flex-wrap gap-1">
           <Tooltip>
@@ -320,7 +323,7 @@ export function Menubar({ editor }: iAppProps) {
             </>
           )}
         </div>
-        {/* --- NEW TABLE CONTROLS END HERE --- */}
+        {/* --- TABLE CONTROLS --- */}
 
         <div className="w-px h-6 bg-border mx-2"></div>
 
