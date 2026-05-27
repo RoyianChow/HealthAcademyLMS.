@@ -74,6 +74,7 @@ export function TiptapImageUpload({ editor }: { editor: Editor }) {
         accept="image/*"
         className="hidden"
         onChange={handleFileChange}
+        aria-label="Upload image"
       />
       <Button
         type="button"
