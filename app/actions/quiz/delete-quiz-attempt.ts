@@ -9,11 +9,12 @@ export async function deleteQuizAttempt(attemptId: string) {
   try {
     const user = await requireUser();
 
+    const whereClause = user.role === "admin" 
+      ? { id: attemptId } 
+      : { id: attemptId, userId: user.id };
+
     const attempt = await prisma.quizAttempt.findFirst({
-      where: {
-        id: attemptId,
-        userId: user.id,
-      },
+      where: whereClause,
       select: {
         id: true,
         quizId: true,
@@ -39,6 +40,7 @@ export async function deleteQuizAttempt(attemptId: string) {
     ]);
 
     revalidatePath("/quizzes");
+    revalidatePath("/admin/quizzes");
 
     return { status: "success" };
   } catch (error) {
