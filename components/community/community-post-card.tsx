@@ -17,7 +17,6 @@ import {
   MessageCircle,
   Pin,
   Trash2,
-  UserCircle,
 } from "lucide-react";
 import { toggleLike } from "@/app/actions/community/toggle-like";
 import { deleteCommunityPost } from "@/app/actions/community/delete-post";
