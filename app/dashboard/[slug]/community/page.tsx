@@ -108,6 +108,18 @@ export default async function CommunityPage({ params }: PageProps) {
           </div>
         )}
 
+        <Card className="border-primary/20 bg-primary/5 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg">
+              Community Guidelines
+            </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Please keep discussions respectful, supportive, and related to the course content. Spam, harassment, offensive language, misinformation, or inappropriate content
+                will not be tolerated and may result in a temporary or permanent ban from the community. 
+              </p>
+          </CardHeader>
+        </Card>
+
         <div className={cn(isBanned && "pointer-events-none opacity-50 select-none")}>
           <Card className="shadow-sm">
             <CardHeader>
