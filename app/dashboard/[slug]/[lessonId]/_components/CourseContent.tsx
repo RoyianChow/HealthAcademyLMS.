@@ -1,7 +1,8 @@
+// app\dashboard\[slug]\[lessonId]\_components\CourseContent.tsx
 "use client";
 
 import type { ComponentProps } from "react";
-import { useMemo, useTransition } from "react";
+import { useMemo, useTransition, useEffect, useRef } from "react";
 import {
   CheckCircle,
   Download,
@@ -186,6 +187,37 @@ function LessonDocumentItem({
   );
 }
 
+function InteractiveScriptPlayer({ html }: { html: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    // Find all script tags within the injected HTML container
+    const scriptTags = containerRef.current.querySelectorAll("script");
+    
+    scriptTags.forEach((oldScript) => {
+      const newScript = document.createElement("script");
+      
+      Array.from(oldScript.attributes).forEach((attr) => {
+        newScript.setAttribute(attr.name, attr.value);
+      });
+      
+      newScript.textContent = oldScript.textContent;
+      
+      oldScript.parentNode?.replaceChild(newScript, oldScript);
+    });
+  }, [html]);
+
+  return (
+    <div 
+      ref={containerRef}
+      className="w-full overflow-hidden rounded-xl bg-muted/10"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+}
+
 export function CourseContent({ data, userId }: CourseContentProps) {
   const [pending, startTransition] = useTransition();
   const { triggerConfetti } = useConfetti();
@@ -196,9 +228,9 @@ export function CourseContent({ data, userId }: CourseContentProps) {
   );
 
   const contentJson = useMemo(
-  () => parseDescription(data.content),
-  [data.content]
-);
+    () => parseDescription(data.content),
+    [data.content]
+  );
 
   const isCompleted = Array.isArray(data.lessonProgress)
     ? data.lessonProgress.some(
@@ -273,6 +305,16 @@ export function CourseContent({ data, userId }: CourseContentProps) {
         {contentJson && (
           <div className="pt-4 border-t border-muted">
             <RenderDescription json={contentJson} />
+          </div>
+        )}
+
+        {/* INTERACTIVE SCRIPT DISPLAY SECTION */}
+        {data.interactiveScript && (
+          <div className="space-y-3 pt-4 border-t border-muted">
+            <h2 className="text-xl font-semibold tracking-tight text-foreground">
+              Interactive Activity
+            </h2>
+            <InteractiveScriptPlayer html={data.interactiveScript} />
           </div>
         )}
 
