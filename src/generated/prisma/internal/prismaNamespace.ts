@@ -2057,7 +2057,8 @@ export const LessonScalarFieldEnum = {
   chapterId: 'chapterId',
   content: 'content',
   isFreePreview: 'isFreePreview',
-  isPublished: 'isPublished'
+  isPublished: 'isPublished',
+  interactiveScript: 'interactiveScript'
 } as const
 
 export type LessonScalarFieldEnum = (typeof LessonScalarFieldEnum)[keyof typeof LessonScalarFieldEnum]
@@ -2543,4 +2544,5 @@ export type PrismaAction =
  * `PrismaClient` proxy available in interactive transactions.
  */
 export type TransactionClient = Omit<DefaultPrismaClient, runtime.ITXClientDenyList>
+
 
