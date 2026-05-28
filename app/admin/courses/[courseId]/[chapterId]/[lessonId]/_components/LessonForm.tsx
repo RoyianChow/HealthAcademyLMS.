@@ -27,6 +27,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { RichTextEditor } from "@/components/rich-text-editor/Editor";
 import { Uploader } from "@/components/file-uploader/Uploader";
 import { useTransition, useState } from "react";
@@ -155,6 +156,7 @@ function VideoItem({
 
 export function LessonForm({ data, chapterId, courseId }: LessonFormProps) {
   const [pending, startTransition] = useTransition();
+  const [activityMode, setActivityMode] = useState<"builder" | "script">("script");
 
   const form = useForm<LessonSchemaType>({
     resolver: zodResolver(lessonSchema),
@@ -167,6 +169,7 @@ export function LessonForm({ data, chapterId, courseId }: LessonFormProps) {
       thumbnailKey: data.thumbnailKey ?? "",
       isPublished: data.isPublished ?? false,
       isFreePreview: data.isFreePreview ?? false,
+      interactiveScript: data.interactiveScript ?? "",
       documents: data.documents ?? [],
       videos: data.videos?.map((video) => ({
         id: video.id,
@@ -330,6 +333,56 @@ export function LessonForm({ data, chapterId, courseId }: LessonFormProps) {
                   </FormItem>
                 )}
               />
+
+              {/* Interactive Activity Section */}
+              <div className="space-y-4 rounded-lg border border-primary/20 bg-primary/5 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <FormLabel className="text-base font-semibold">Interactive Activity</FormLabel>
+                    <p className="text-xs text-muted-foreground">Add interactive modules (flashcards, matching, etc.)</p>
+                  </div>
+                  
+                  {/* Toggle Component */}
+                  <div className="flex items-center space-x-2 bg-background px-3 py-1.5 rounded-full border shadow-sm select-none">
+                    <span className={`text-xs font-semibold ${activityMode === "builder" ? "text-primary" : "text-muted-foreground"}`}>
+                      Builder UI
+                    </span>
+                    <Switch
+                      checked={activityMode === "script"}
+                      onCheckedChange={(checked) => {
+                        setActivityMode(checked ? "script" : "builder");
+                      }}
+                    />
+                    <span className={`text-xs font-semibold ${activityMode === "script" ? "text-primary" : "text-muted-foreground"}`}>
+                      Raw Script (WP)
+                    </span>
+                  </div>
+                </div>
+
+                {activityMode === "builder" ? (
+                  <div className="flex items-center justify-center rounded-md border border-dashed p-8 text-center bg-background/50">
+                    <p className="text-sm text-muted-foreground font-medium">Standard Activity Builder coming soon. Switch to Raw Script to paste embeds.</p>
+                  </div>
+                ) : (
+                  <FormField
+                    control={form.control}
+                    name="interactiveScript"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Textarea
+                            placeholder=""
+                            className="min-h-[200px] font-mono text-xs bg-background"
+                            {...field}
+                            value={field.value ?? ""}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <FormField
