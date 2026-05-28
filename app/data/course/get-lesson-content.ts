@@ -17,6 +17,7 @@ export async function getLessonContent(lessonId: string) {
       description: true,
       content: true,
       thumbnailKey: true,
+      interactiveScript: true,
       videos: {
         select: {
           id: true,
