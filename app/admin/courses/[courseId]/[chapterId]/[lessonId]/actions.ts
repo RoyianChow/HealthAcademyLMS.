@@ -70,6 +70,7 @@ export async function updateLesson(
           thumbnailKey: data.thumbnailKey || null,
           isPublished: data.isPublished ?? false,
           isFreePreview: data.isFreePreview ?? false,
+          interactiveScript: data.interactiveScript || null,
         },
       });
     });
