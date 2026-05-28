@@ -144,6 +144,7 @@ export const lessonSchema = z.object({
     
   isPublished: z.boolean().default(false).optional(),
   isFreePreview: z.boolean().default(false).optional(),
+  interactiveScript: z.string().optional().or(z.literal("")),
 
   documents: z.array(lessonDocumentSchema).default([]).optional(),
   
