@@ -196,7 +196,8 @@ export const LessonScalarFieldEnum = {
   chapterId: 'chapterId',
   content: 'content',
   isFreePreview: 'isFreePreview',
-  isPublished: 'isPublished'
+  isPublished: 'isPublished',
+  interactiveScript: 'interactiveScript'
 } as const
 
 export type LessonScalarFieldEnum = (typeof LessonScalarFieldEnum)[keyof typeof LessonScalarFieldEnum]
@@ -401,5 +402,6 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
+
 
 
