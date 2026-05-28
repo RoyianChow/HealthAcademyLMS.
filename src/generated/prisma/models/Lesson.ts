@@ -46,6 +46,7 @@ export type LessonMinAggregateOutputType = {
   content: string | null
   isFreePreview: boolean | null
   isPublished: boolean | null
+  interactiveScript: string | null
 }
 
 export type LessonMaxAggregateOutputType = {
@@ -60,6 +61,7 @@ export type LessonMaxAggregateOutputType = {
   content: string | null
   isFreePreview: boolean | null
   isPublished: boolean | null
+  interactiveScript: string | null
 }
 
 export type LessonCountAggregateOutputType = {
@@ -74,6 +76,7 @@ export type LessonCountAggregateOutputType = {
   content: number
   isFreePreview: number
   isPublished: number
+  interactiveScript: number
   _all: number
 }
 
@@ -98,6 +101,7 @@ export type LessonMinAggregateInputType = {
   content?: true
   isFreePreview?: true
   isPublished?: true
+  interactiveScript?: true
 }
 
 export type LessonMaxAggregateInputType = {
@@ -112,6 +116,7 @@ export type LessonMaxAggregateInputType = {
   content?: true
   isFreePreview?: true
   isPublished?: true
+  interactiveScript?: true
 }
 
 export type LessonCountAggregateInputType = {
@@ -126,6 +131,7 @@ export type LessonCountAggregateInputType = {
   content?: true
   isFreePreview?: true
   isPublished?: true
+  interactiveScript?: true
   _all?: true
 }
 
@@ -227,6 +233,7 @@ export type LessonGroupByOutputType = {
   content: string | null
   isFreePreview: boolean
   isPublished: boolean
+  interactiveScript: string | null
   _count: LessonCountAggregateOutputType | null
   _avg: LessonAvgAggregateOutputType | null
   _sum: LessonSumAggregateOutputType | null
@@ -264,6 +271,7 @@ export type LessonWhereInput = {
   content?: Prisma.StringNullableFilter<"Lesson"> | string | null
   isFreePreview?: Prisma.BoolFilter<"Lesson"> | boolean
   isPublished?: Prisma.BoolFilter<"Lesson"> | boolean
+  interactiveScript?: Prisma.StringNullableFilter<"Lesson"> | string | null
   videos?: Prisma.LessonVideoListRelationFilter
   lessonProgress?: Prisma.LessonProgressListRelationFilter
   chapter?: Prisma.XOR<Prisma.ChapterScalarRelationFilter, Prisma.ChapterWhereInput>
@@ -282,6 +290,7 @@ export type LessonOrderByWithRelationInput = {
   content?: Prisma.SortOrderInput | Prisma.SortOrder
   isFreePreview?: Prisma.SortOrder
   isPublished?: Prisma.SortOrder
+  interactiveScript?: Prisma.SortOrderInput | Prisma.SortOrder
   videos?: Prisma.LessonVideoOrderByRelationAggregateInput
   lessonProgress?: Prisma.LessonProgressOrderByRelationAggregateInput
   chapter?: Prisma.ChapterOrderByWithRelationInput
@@ -304,6 +313,7 @@ export type LessonWhereUniqueInput = Prisma.AtLeast<{
   content?: Prisma.StringNullableFilter<"Lesson"> | string | null
   isFreePreview?: Prisma.BoolFilter<"Lesson"> | boolean
   isPublished?: Prisma.BoolFilter<"Lesson"> | boolean
+  interactiveScript?: Prisma.StringNullableFilter<"Lesson"> | string | null
   videos?: Prisma.LessonVideoListRelationFilter
   lessonProgress?: Prisma.LessonProgressListRelationFilter
   chapter?: Prisma.XOR<Prisma.ChapterScalarRelationFilter, Prisma.ChapterWhereInput>
@@ -322,6 +332,7 @@ export type LessonOrderByWithAggregationInput = {
   content?: Prisma.SortOrderInput | Prisma.SortOrder
   isFreePreview?: Prisma.SortOrder
   isPublished?: Prisma.SortOrder
+  interactiveScript?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.LessonCountOrderByAggregateInput
   _avg?: Prisma.LessonAvgOrderByAggregateInput
   _max?: Prisma.LessonMaxOrderByAggregateInput
@@ -344,6 +355,7 @@ export type LessonScalarWhereWithAggregatesInput = {
   content?: Prisma.StringNullableWithAggregatesFilter<"Lesson"> | string | null
   isFreePreview?: Prisma.BoolWithAggregatesFilter<"Lesson"> | boolean
   isPublished?: Prisma.BoolWithAggregatesFilter<"Lesson"> | boolean
+  interactiveScript?: Prisma.StringNullableWithAggregatesFilter<"Lesson"> | string | null
 }
 
 export type LessonCreateInput = {
@@ -357,6 +369,7 @@ export type LessonCreateInput = {
   content?: string | null
   isFreePreview?: boolean
   isPublished?: boolean
+  interactiveScript?: string | null
   videos?: Prisma.LessonVideoCreateNestedManyWithoutLessonInput
   lessonProgress?: Prisma.LessonProgressCreateNestedManyWithoutLessonInput
   chapter: Prisma.ChapterCreateNestedOneWithoutLessonsInput
@@ -375,6 +388,7 @@ export type LessonUncheckedCreateInput = {
   content?: string | null
   isFreePreview?: boolean
   isPublished?: boolean
+  interactiveScript?: string | null
   videos?: Prisma.LessonVideoUncheckedCreateNestedManyWithoutLessonInput
   lessonProgress?: Prisma.LessonProgressUncheckedCreateNestedManyWithoutLessonInput
   documents?: Prisma.LessonDocumentUncheckedCreateNestedManyWithoutLessonInput
@@ -391,6 +405,7 @@ export type LessonUpdateInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  interactiveScript?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   videos?: Prisma.LessonVideoUpdateManyWithoutLessonNestedInput
   lessonProgress?: Prisma.LessonProgressUpdateManyWithoutLessonNestedInput
   chapter?: Prisma.ChapterUpdateOneRequiredWithoutLessonsNestedInput
@@ -409,6 +424,7 @@ export type LessonUncheckedUpdateInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  interactiveScript?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   videos?: Prisma.LessonVideoUncheckedUpdateManyWithoutLessonNestedInput
   lessonProgress?: Prisma.LessonProgressUncheckedUpdateManyWithoutLessonNestedInput
   documents?: Prisma.LessonDocumentUncheckedUpdateManyWithoutLessonNestedInput
@@ -426,6 +442,7 @@ export type LessonCreateManyInput = {
   content?: string | null
   isFreePreview?: boolean
   isPublished?: boolean
+  interactiveScript?: string | null
 }
 
 export type LessonUpdateManyMutationInput = {
@@ -439,6 +456,7 @@ export type LessonUpdateManyMutationInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  interactiveScript?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type LessonUncheckedUpdateManyInput = {
@@ -453,6 +471,7 @@ export type LessonUncheckedUpdateManyInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  interactiveScript?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type LessonListRelationFilter = {
@@ -482,6 +501,7 @@ export type LessonCountOrderByAggregateInput = {
   content?: Prisma.SortOrder
   isFreePreview?: Prisma.SortOrder
   isPublished?: Prisma.SortOrder
+  interactiveScript?: Prisma.SortOrder
 }
 
 export type LessonAvgOrderByAggregateInput = {
@@ -500,6 +520,7 @@ export type LessonMaxOrderByAggregateInput = {
   content?: Prisma.SortOrder
   isFreePreview?: Prisma.SortOrder
   isPublished?: Prisma.SortOrder
+  interactiveScript?: Prisma.SortOrder
 }
 
 export type LessonMinOrderByAggregateInput = {
@@ -514,6 +535,7 @@ export type LessonMinOrderByAggregateInput = {
   content?: Prisma.SortOrder
   isFreePreview?: Prisma.SortOrder
   isPublished?: Prisma.SortOrder
+  interactiveScript?: Prisma.SortOrder
 }
 
 export type LessonSumOrderByAggregateInput = {
@@ -620,6 +642,7 @@ export type LessonCreateWithoutChapterInput = {
   content?: string | null
   isFreePreview?: boolean
   isPublished?: boolean
+  interactiveScript?: string | null
   videos?: Prisma.LessonVideoCreateNestedManyWithoutLessonInput
   lessonProgress?: Prisma.LessonProgressCreateNestedManyWithoutLessonInput
   documents?: Prisma.LessonDocumentCreateNestedManyWithoutLessonInput
@@ -636,6 +659,7 @@ export type LessonUncheckedCreateWithoutChapterInput = {
   content?: string | null
   isFreePreview?: boolean
   isPublished?: boolean
+  interactiveScript?: string | null
   videos?: Prisma.LessonVideoUncheckedCreateNestedManyWithoutLessonInput
   lessonProgress?: Prisma.LessonProgressUncheckedCreateNestedManyWithoutLessonInput
   documents?: Prisma.LessonDocumentUncheckedCreateNestedManyWithoutLessonInput
@@ -682,6 +706,7 @@ export type LessonScalarWhereInput = {
   content?: Prisma.StringNullableFilter<"Lesson"> | string | null
   isFreePreview?: Prisma.BoolFilter<"Lesson"> | boolean
   isPublished?: Prisma.BoolFilter<"Lesson"> | boolean
+  interactiveScript?: Prisma.StringNullableFilter<"Lesson"> | string | null
 }
 
 export type LessonCreateWithoutVideosInput = {
@@ -695,6 +720,7 @@ export type LessonCreateWithoutVideosInput = {
   content?: string | null
   isFreePreview?: boolean
   isPublished?: boolean
+  interactiveScript?: string | null
   lessonProgress?: Prisma.LessonProgressCreateNestedManyWithoutLessonInput
   chapter: Prisma.ChapterCreateNestedOneWithoutLessonsInput
   documents?: Prisma.LessonDocumentCreateNestedManyWithoutLessonInput
@@ -712,6 +738,7 @@ export type LessonUncheckedCreateWithoutVideosInput = {
   content?: string | null
   isFreePreview?: boolean
   isPublished?: boolean
+  interactiveScript?: string | null
   lessonProgress?: Prisma.LessonProgressUncheckedCreateNestedManyWithoutLessonInput
   documents?: Prisma.LessonDocumentUncheckedCreateNestedManyWithoutLessonInput
 }
@@ -743,6 +770,7 @@ export type LessonUpdateWithoutVideosInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  interactiveScript?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lessonProgress?: Prisma.LessonProgressUpdateManyWithoutLessonNestedInput
   chapter?: Prisma.ChapterUpdateOneRequiredWithoutLessonsNestedInput
   documents?: Prisma.LessonDocumentUpdateManyWithoutLessonNestedInput
@@ -760,6 +788,7 @@ export type LessonUncheckedUpdateWithoutVideosInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  interactiveScript?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lessonProgress?: Prisma.LessonProgressUncheckedUpdateManyWithoutLessonNestedInput
   documents?: Prisma.LessonDocumentUncheckedUpdateManyWithoutLessonNestedInput
 }
@@ -775,6 +804,7 @@ export type LessonCreateWithoutDocumentsInput = {
   content?: string | null
   isFreePreview?: boolean
   isPublished?: boolean
+  interactiveScript?: string | null
   videos?: Prisma.LessonVideoCreateNestedManyWithoutLessonInput
   lessonProgress?: Prisma.LessonProgressCreateNestedManyWithoutLessonInput
   chapter: Prisma.ChapterCreateNestedOneWithoutLessonsInput
@@ -792,6 +822,7 @@ export type LessonUncheckedCreateWithoutDocumentsInput = {
   content?: string | null
   isFreePreview?: boolean
   isPublished?: boolean
+  interactiveScript?: string | null
   videos?: Prisma.LessonVideoUncheckedCreateNestedManyWithoutLessonInput
   lessonProgress?: Prisma.LessonProgressUncheckedCreateNestedManyWithoutLessonInput
 }
@@ -823,6 +854,7 @@ export type LessonUpdateWithoutDocumentsInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  interactiveScript?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   videos?: Prisma.LessonVideoUpdateManyWithoutLessonNestedInput
   lessonProgress?: Prisma.LessonProgressUpdateManyWithoutLessonNestedInput
   chapter?: Prisma.ChapterUpdateOneRequiredWithoutLessonsNestedInput
@@ -840,6 +872,7 @@ export type LessonUncheckedUpdateWithoutDocumentsInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  interactiveScript?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   videos?: Prisma.LessonVideoUncheckedUpdateManyWithoutLessonNestedInput
   lessonProgress?: Prisma.LessonProgressUncheckedUpdateManyWithoutLessonNestedInput
 }
@@ -855,6 +888,7 @@ export type LessonCreateWithoutLessonProgressInput = {
   content?: string | null
   isFreePreview?: boolean
   isPublished?: boolean
+  interactiveScript?: string | null
   videos?: Prisma.LessonVideoCreateNestedManyWithoutLessonInput
   chapter: Prisma.ChapterCreateNestedOneWithoutLessonsInput
   documents?: Prisma.LessonDocumentCreateNestedManyWithoutLessonInput
@@ -872,6 +906,7 @@ export type LessonUncheckedCreateWithoutLessonProgressInput = {
   content?: string | null
   isFreePreview?: boolean
   isPublished?: boolean
+  interactiveScript?: string | null
   videos?: Prisma.LessonVideoUncheckedCreateNestedManyWithoutLessonInput
   documents?: Prisma.LessonDocumentUncheckedCreateNestedManyWithoutLessonInput
 }
@@ -903,6 +938,7 @@ export type LessonUpdateWithoutLessonProgressInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  interactiveScript?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   videos?: Prisma.LessonVideoUpdateManyWithoutLessonNestedInput
   chapter?: Prisma.ChapterUpdateOneRequiredWithoutLessonsNestedInput
   documents?: Prisma.LessonDocumentUpdateManyWithoutLessonNestedInput
@@ -920,6 +956,7 @@ export type LessonUncheckedUpdateWithoutLessonProgressInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  interactiveScript?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   videos?: Prisma.LessonVideoUncheckedUpdateManyWithoutLessonNestedInput
   documents?: Prisma.LessonDocumentUncheckedUpdateManyWithoutLessonNestedInput
 }
@@ -935,6 +972,7 @@ export type LessonCreateManyChapterInput = {
   content?: string | null
   isFreePreview?: boolean
   isPublished?: boolean
+  interactiveScript?: string | null
 }
 
 export type LessonUpdateWithoutChapterInput = {
@@ -948,6 +986,7 @@ export type LessonUpdateWithoutChapterInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  interactiveScript?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   videos?: Prisma.LessonVideoUpdateManyWithoutLessonNestedInput
   lessonProgress?: Prisma.LessonProgressUpdateManyWithoutLessonNestedInput
   documents?: Prisma.LessonDocumentUpdateManyWithoutLessonNestedInput
@@ -964,6 +1003,7 @@ export type LessonUncheckedUpdateWithoutChapterInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  interactiveScript?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   videos?: Prisma.LessonVideoUncheckedUpdateManyWithoutLessonNestedInput
   lessonProgress?: Prisma.LessonProgressUncheckedUpdateManyWithoutLessonNestedInput
   documents?: Prisma.LessonDocumentUncheckedUpdateManyWithoutLessonNestedInput
@@ -980,6 +1020,7 @@ export type LessonUncheckedUpdateManyWithoutChapterInput = {
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   isFreePreview?: Prisma.BoolFieldUpdateOperationsInput | boolean
   isPublished?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  interactiveScript?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -1043,6 +1084,7 @@ export type LessonSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   content?: boolean
   isFreePreview?: boolean
   isPublished?: boolean
+  interactiveScript?: boolean
   videos?: boolean | Prisma.Lesson$videosArgs<ExtArgs>
   lessonProgress?: boolean | Prisma.Lesson$lessonProgressArgs<ExtArgs>
   chapter?: boolean | Prisma.ChapterDefaultArgs<ExtArgs>
@@ -1062,6 +1104,7 @@ export type LessonSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   content?: boolean
   isFreePreview?: boolean
   isPublished?: boolean
+  interactiveScript?: boolean
   chapter?: boolean | Prisma.ChapterDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["lesson"]>
 
@@ -1077,6 +1120,7 @@ export type LessonSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   content?: boolean
   isFreePreview?: boolean
   isPublished?: boolean
+  interactiveScript?: boolean
   chapter?: boolean | Prisma.ChapterDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["lesson"]>
 
@@ -1092,9 +1136,10 @@ export type LessonSelectScalar = {
   content?: boolean
   isFreePreview?: boolean
   isPublished?: boolean
+  interactiveScript?: boolean
 }
 
-export type LessonOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "description" | "thumbnailKey" | "position" | "createdAt" | "updatedAt" | "chapterId" | "content" | "isFreePreview" | "isPublished", ExtArgs["result"]["lesson"]>
+export type LessonOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "description" | "thumbnailKey" | "position" | "createdAt" | "updatedAt" | "chapterId" | "content" | "isFreePreview" | "isPublished" | "interactiveScript", ExtArgs["result"]["lesson"]>
 export type LessonInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   videos?: boolean | Prisma.Lesson$videosArgs<ExtArgs>
   lessonProgress?: boolean | Prisma.Lesson$lessonProgressArgs<ExtArgs>
@@ -1129,6 +1174,7 @@ export type $LessonPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     content: string | null
     isFreePreview: boolean
     isPublished: boolean
+    interactiveScript: string | null
   }, ExtArgs["result"]["lesson"]>
   composites: {}
 }
@@ -1567,6 +1613,7 @@ export interface LessonFieldRefs {
   readonly content: Prisma.FieldRef<"Lesson", 'String'>
   readonly isFreePreview: Prisma.FieldRef<"Lesson", 'Boolean'>
   readonly isPublished: Prisma.FieldRef<"Lesson", 'Boolean'>
+  readonly interactiveScript: Prisma.FieldRef<"Lesson", 'String'>
 }
     
 
