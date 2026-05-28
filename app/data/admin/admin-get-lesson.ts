@@ -17,6 +17,7 @@ export async function adminGetLesson(id: string) {
       thumbnailKey: true,
       isPublished: true,
       isFreePreview: true,
+      interactiveScript: true,
       position: true,
       documents: {
         select: {
