@@ -82,9 +82,9 @@ export const courseSchema = z.object({
 });
 
 export const chapterSchema = z.object({
-  name: z
+  title: z
     .string()
-    .min(3, { message: "Name must be at least 3 characters long" }),
+    .min(3, { message: "Title must be at least 3 characters long" }),
 
   courseId: z.string().uuid({ message: "Invalid course id" }),
 });
