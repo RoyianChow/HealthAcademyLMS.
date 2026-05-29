@@ -194,7 +194,6 @@ function InteractiveScriptPlayer({ html }: { html: string }) {
     const iframe = iframeRef.current;
     if (!iframe) return;
 
-    // Create a fully valid standalone document shell
     const completeHtml = `
       <!DOCTYPE html>
       <html lang="en">
@@ -202,37 +201,64 @@ function InteractiveScriptPlayer({ html }: { html: string }) {
           <meta charset="UTF-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <style>
-            body {
+            html, body {
               margin: 0;
               padding: 0;
-              font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              overflow: hidden;
               background-color: transparent;
+            }
+            #interactive-container {
+              width: 100%;
+              height: auto;
+              position: absolute;
+              top: 0;
+              left: 0;
             }
           </style>
         </head>
         <body>
-          ${html}
+          <div id="interactive-container">
+            ${html}
+          </div>
           <script>
-            // Automatically adjust the iframe height to match internal body height changes
+            let currentHeight = 0;
             function resizeIframe() {
-              window.parent.postMessage({
-                type: 'RESIZE_IFRAME',
-                height: document.body.scrollHeight
-              }, '*');
+              const container = document.getElementById('interactive-container');
+              if (!container) return;
+              
+              const height = container.getBoundingClientRect().height;
+              
+              if (Math.abs(height - currentHeight) > 4) {
+                currentHeight = height;
+                window.parent.postMessage({
+                  type: 'RESIZE_IFRAME',
+                  height: Math.ceil(height)
+                }, '*');
+              }
             }
             
-            // Watch for DOM changes (loading images, expanding elements)
-            const observer = new MutationObserver(resizeIframe);
-            observer.observe(document.body, { attributes: true, childList: true, subtree: true });
+            if (window.ResizeObserver) {
+              const ro = new ResizeObserver(() => {
+                // Request animation frame prevents rapid loop synchronization crashes
+                window.requestAnimationFrame(resizeIframe);
+              });
+              ro.observe(document.getElementById('interactive-container'));
+            } else {
+              const observer = new MutationObserver(resizeIframe);
+              observer.observe(document.body, { attributes: true, childList: true, subtree: true });
+            }
             
             window.addEventListener('load', resizeIframe);
-            resizeIframe();
+            window.addEventListener('resize', resizeIframe);
+            
+            // Safety sweeps for late framework executions
+            setTimeout(resizeIframe, 200);
+            setTimeout(resizeIframe, 800);
           </script>
         </body>
       </html>
     `;
 
-    // Inject the string source safely into the iframe document context
     const doc = iframe.contentDocument || iframe.contentWindow?.document;
     if (doc) {
       doc.open();
@@ -241,11 +267,16 @@ function InteractiveScriptPlayer({ html }: { html: string }) {
     }
   }, [html]);
 
-  // Listen for the iframe's message events to set responsive height values dynamically
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
       if (event.data?.type === 'RESIZE_IFRAME' && iframeRef.current) {
-        iframeRef.current.style.height = `${event.data.height}px`;
+        const newHeight = event.data.height + 16;
+        const cachedHeight = parseInt(iframeRef.current.style.height || "0", 10);
+        
+        // Parent guard rule: Only mutation-paint DOM if structural changes pass a delta threshold
+        if (Math.abs(newHeight - cachedHeight) > 5) {
+          iframeRef.current.style.height = `${newHeight}px`;
+        }
       }
     }
 
@@ -258,10 +289,10 @@ function InteractiveScriptPlayer({ html }: { html: string }) {
       <iframe
         ref={iframeRef}
         title="Interactive Script Frame"
-        className="w-full border-0 transition-[height] duration-150 ease-in-out"
+        className="w-full border-0"
         sandbox="allow-scripts allow-same-origin allow-popups"
         scrolling="no"
-        style={{ height: '300px' }}
+        style={{ height: '350px' }}
       />
     </div>
   );
