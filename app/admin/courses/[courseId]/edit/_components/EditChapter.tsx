@@ -27,7 +27,7 @@ export function EditChapter({
   initialTitle: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState(initialTitle);
+  const [title, setTitle] = useState(initialTitle);
   const [pending, startTransition] = useTransition();
 
   async function onSubmit(e: React.FormEvent) {
@@ -35,7 +35,7 @@ export function EditChapter({
     
     startTransition(async () => {
       const { data: result, error } = await tryCatch(
-        editChapter({ chapterId, courseId, name })
+        editChapter({ chapterId, courseId, title })
       );
 
       if (error) {
@@ -64,16 +64,16 @@ export function EditChapter({
           <DialogHeader>
             <DialogTitle>Edit Chapter</DialogTitle>
             <DialogDescription>
-              Update the name of this chapter. Click save when you are finished.
+              Update the title of this chapter. Click save when you are finished.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="name">Chapter Title</Label>
+              <Label htmlFor="title">Chapter Title</Label>
               <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
                 disabled={pending}
                 placeholder="e.g. Introduction to the Course"
               />
