@@ -188,33 +188,82 @@ function LessonDocumentItem({
 }
 
 function InteractiveScriptPlayer({ html }: { html: string }) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    const iframe = iframeRef.current;
+    if (!iframe) return;
 
-    // Find all script tags within the injected HTML container
-    const scriptTags = containerRef.current.querySelectorAll("script");
-    
-    scriptTags.forEach((oldScript) => {
-      const newScript = document.createElement("script");
-      
-      Array.from(oldScript.attributes).forEach((attr) => {
-        newScript.setAttribute(attr.name, attr.value);
-      });
-      
-      newScript.textContent = oldScript.textContent;
-      
-      oldScript.parentNode?.replaceChild(newScript, oldScript);
-    });
+    // Create a fully valid standalone document shell
+    const completeHtml = `
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body {
+              margin: 0;
+              padding: 0;
+              font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              background-color: transparent;
+            }
+          </style>
+        </head>
+        <body>
+          ${html}
+          <script>
+            // Automatically adjust the iframe height to match internal body height changes
+            function resizeIframe() {
+              window.parent.postMessage({
+                type: 'RESIZE_IFRAME',
+                height: document.body.scrollHeight
+              }, '*');
+            }
+            
+            // Watch for DOM changes (loading images, expanding elements)
+            const observer = new MutationObserver(resizeIframe);
+            observer.observe(document.body, { attributes: true, childList: true, subtree: true });
+            
+            window.addEventListener('load', resizeIframe);
+            resizeIframe();
+          </script>
+        </body>
+      </html>
+    `;
+
+    // Inject the string source safely into the iframe document context
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (doc) {
+      doc.open();
+      doc.write(completeHtml);
+      doc.close();
+    }
   }, [html]);
 
+  // Listen for the iframe's message events to set responsive height values dynamically
+  useEffect(() => {
+    function handleMessage(event: MessageEvent) {
+      if (event.data?.type === 'RESIZE_IFRAME' && iframeRef.current) {
+        iframeRef.current.style.height = `${event.data.height}px`;
+      }
+    }
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
   return (
-    <div 
-      ref={containerRef}
-      className="w-full overflow-hidden rounded-xl bg-muted/10"
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <div className="w-full overflow-hidden rounded-xl bg-card border border-muted shadow-sm">
+      <iframe
+        ref={iframeRef}
+        title="Interactive Script Frame"
+        className="w-full border-0 transition-[height] duration-150 ease-in-out"
+        sandbox="allow-scripts allow-same-origin allow-popups"
+        scrolling="no"
+        style={{ height: '300px' }}
+      />
+    </div>
   );
 }
 
@@ -308,15 +357,6 @@ export function CourseContent({ data, userId }: CourseContentProps) {
           </div>
         )}
 
-        {/* INTERACTIVE SCRIPT DISPLAY SECTION */}
-        {data.interactiveScript && (
-          <div className="space-y-3 pt-4 border-t border-muted">
-            <h2 className="text-xl font-semibold tracking-tight text-foreground">
-              Interactive Activity
-            </h2>
-            <InteractiveScriptPlayer html={data.interactiveScript} />
-          </div>
-        )}
 
         {data.documents.length > 0 && (
           <div className="space-y-3">
@@ -346,6 +386,16 @@ export function CourseContent({ data, userId }: CourseContentProps) {
                 />
               </div>
             ))}
+          </div>
+        )}
+
+        {/* INTERACTIVE SCRIPT DISPLAY SECTION */}
+        {data.interactiveScript && (
+          <div className="space-y-3 pt-4 border-t border-muted">
+            <h2 className="text-xl font-semibold tracking-tight text-foreground">
+              Interactive Activity
+            </h2>
+            <InteractiveScriptPlayer html={data.interactiveScript} />
           </div>
         )}
       </section>
