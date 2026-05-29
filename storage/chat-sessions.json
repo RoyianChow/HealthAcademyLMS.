@@ -1,0 +1,15 @@
+{
+  "conversations": {
+    "user-alex::c252875b-5dd4-412c-8ea5-1d587333e26e": {
+      "id": "c252875b-5dd4-412c-8ea5-1d587333e26e",
+      "userId": "user-alex",
+      "title": "New chat",
+      "preview": "No messages yet",
+      "createdAt": "2026-04-29T04:23:32.522Z",
+      "updatedAt": "2026-04-29T04:23:32.522Z",
+      "messageCount": 0,
+      "isAutoTitle": true,
+      "messages": []
+    }
+  }
+}
