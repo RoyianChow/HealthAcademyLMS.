@@ -213,7 +213,7 @@ export async function createChapter(
 
       await tx.chapter.create({
         data: {
-          title: result.data.name,
+          title: result.data.title,
           courseId: result.data.courseId,
           position: (maxPos?.position ?? 0) + 1,
         },
@@ -477,15 +477,15 @@ export async function deleteChapter({
 export async function editChapter({
   chapterId,
   courseId,
-  name,
+  title,
 }: {
   chapterId: string;
   courseId: string;
-  name: string;
+  title: string;
 }): Promise<ApiResponse> {
   await requireAdmin();
   try {
-    if (!name || name.trim() === "") {
+    if (!title || title.trim() === "") {
       return {
         status: "error",
         message: "Chapter title cannot be empty",
@@ -497,7 +497,7 @@ export async function editChapter({
         id: chapterId,
       },
       data: {
-        title: name,
+        title: title,
       },
     });
 
