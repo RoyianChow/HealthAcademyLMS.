@@ -649,7 +649,7 @@ describe("Admin server actions — user role access (integration)", () => {
       });
 
       const chapterInput = {
-        name: "New chapter name",
+        title: "New chapter title",
         courseId: "00000000-0000-4000-8000-000000000001",
       };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
