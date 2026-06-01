@@ -122,7 +122,8 @@ export function BanForm({
         <div className="grid gap-4 py-4">
           {/* Reason Field */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Reason for ban</label>
+            <label 
+              className="text-sm font-medium text-foreground">Reason for ban</label>
             <input
               type="text"
               value={reason}
@@ -135,8 +136,11 @@ export function BanForm({
 
           {/* Calendar Picker Field */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Ban expires (Select Date)</label>
+            <label 
+            htmlFor="ban-expiry"
+            className="text-sm font-medium text-foreground">Ban expires (Select Date)</label>
             <input
+              id="ban-expiry"
               type="date"
               value={dateValue}
               min={new Date().toISOString().split("T")[0]}
