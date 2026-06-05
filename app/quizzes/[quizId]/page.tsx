@@ -32,11 +32,21 @@ export default async function QuizDetailsPage({ params }: PageProps) {
   const canAttempt = !attempt.blocked;
   const previousAttempts = Math.max(0, attempt.attemptNumber - 1);
 
+  const displayAttemptNumber = attempt.attemptId
+    ? attempt.attemptNumber
+    : Math.max(1, attempt.attemptNumber - 1);
+
   const lastResult = await getLastQuizResult(
     quizId,
     quiz.passingScore,
     totalQuestions
   );
+
+  const isTimerRunning =
+    !!attempt.attemptId &&
+    quiz.timeLimitMinutes !== null &&
+    !!attempt.startedAt &&
+    new Date().getTime() < new Date(attempt.startedAt).getTime() + quiz.timeLimitMinutes * 60 * 1000;
 
   return (
     <main className="min-h-[calc(100vh-5rem)] bg-muted/20 px-4 py-6 md:px-8">
@@ -45,14 +55,14 @@ export default async function QuizDetailsPage({ params }: PageProps) {
           <QuizBackButton
             href={`/dashboard/${quiz.course.slug}`}
             label={`Back to ${quiz.course.title}`}
-            shouldWarn={canAttempt && quiz.timeLimitMinutes !== null}
+            shouldWarn={isTimerRunning}
           />
 
           <Badge variant={canAttempt ? "default" : "secondary"}>
             {canAttempt ? "Available" : "Attempt Locked"}
           </Badge>
         </div>
-
+        
         <section className="overflow-hidden rounded-3xl border bg-background shadow-sm">
           <div className="border-b bg-gradient-to-br from-primary/10 via-background to-background p-6 md:p-8">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
@@ -117,7 +127,7 @@ export default async function QuizDetailsPage({ params }: PageProps) {
                 <InfoCard
                   icon={<RotateCcw className="size-5" />}
                   label="Attempt"
-                  value={`#${attempt.attemptNumber}`}
+                  value={`#${displayAttemptNumber}`}
                 />
               </div>
             </div>
@@ -157,7 +167,7 @@ export default async function QuizDetailsPage({ params }: PageProps) {
             attemptId={attempt.attemptId ?? ""}
             startedAt={attempt.startedAt ? attempt.startedAt.toISOString() : ""}
             canAttempt={canAttempt}
-            nextAttemptNumber={attempt.attemptNumber}
+            nextAttemptNumber={displayAttemptNumber}
             lastResult={lastResult}
           />
         </section>
