@@ -2,7 +2,7 @@
 "use server";
 
 // Alternative terminal back-up command:
-// & "C:\Program Files\PostgreSQL\18\bin\pg_dump.exe" --clean --if-exists --no-owner --no-privileges -f "full_transfer_utf8.sql" "postgresql://neondb_owner:npg_uVvx9q5RYbDz@ep-polished-unit-adqc7e01.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
+// & "C:\Program Files\PostgreSQL\18\bin\pg_dump.exe" --clean --if-exists --no-owner --no-privileges -f "full_transfer_utf8.sql" "your_current_db_string"
 
 import { prisma } from "@/lib/db";
 import { headers } from "next/headers";
