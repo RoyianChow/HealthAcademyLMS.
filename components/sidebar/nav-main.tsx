@@ -12,8 +12,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
-import { ArchiveButton } from "./archive-button";
-
 export function NavMain({
   items,
 }: {
@@ -31,7 +29,6 @@ export function NavMain({
       <SidebarGroupContent className="flex flex-col gap-2">
         {pathname.startsWith("/admin") && (
           <SidebarMenu className="flex flex-col gap-2">
-            <ArchiveButton />
             <SidebarMenuItem className="flex items-center gap-2">
               <SidebarMenuButton
                 asChild
