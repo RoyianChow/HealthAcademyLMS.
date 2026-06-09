@@ -252,6 +252,16 @@ export default async function ProfilePage() {
                           {attempt.isGraded ? "Graded" : "Pending"}
                         </span>
                       </Badge>
+                      
+                      {attempt.isGraded && attempt.score !== null && attempt.quiz.passingScore !== null ? (
+                      <Badge
+                        variant={
+                          attempt.score >= attempt.quiz.passingScore ? "default" : "destructive"
+                        }
+                      >
+                        {attempt.score >= attempt.quiz.passingScore ? "Passed" : "Failed"}
+                        </Badge>
+                      ) : null}
 
                       <Badge variant="outline" className="flex items-center gap-1">
                         <span>Score:</span>
