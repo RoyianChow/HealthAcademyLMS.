@@ -90,7 +90,7 @@ export async function CreateCourse(
           unit_amount: Math.round(validation.data.price * 100),
         },
       });
-    } catch (stripeError) {
+    } catch {
       return {
         status: "error",
         message: "Failed to connect to payment provider (Stripe).",

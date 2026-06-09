@@ -3,13 +3,13 @@ import "server-only";
 import { getChatConfig } from "@/lib/chat/config";
 import type { AttachedPdfContext, RelevantCourseExcerpt } from "@/lib/chat/types";
 
-type OpenAIMessage = {
+type LLMMessage = {
   role: "system" | "user" | "assistant";
   content: string;
 };
 
 type GenerateReplyInput = {
-  messages: OpenAIMessage[];
+  messages: LLMMessage[];
   question: string;
   relevantExcerpts: RelevantCourseExcerpt[];
   attachedPdfs: AttachedPdfContext[];
@@ -17,23 +17,23 @@ type GenerateReplyInput = {
 };
 
 export async function generateNutritionReply(input: GenerateReplyInput) {
-  const { openAiApiKey, openAiModel } = await getChatConfig();
+  const { baseUrl, apiKey, model } = await getChatConfig();
 
-  if (!openAiApiKey) {
+  if (!apiKey) {
     return buildFallbackReply(input);
   }
 
   try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    const response = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${openAiApiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: openAiModel,
+        model,
         messages: input.messages,
-        max_tokens: 260,
+        max_tokens: 700,
         temperature: 0.35,
       }),
     });
@@ -56,7 +56,7 @@ export async function generateNutritionReply(input: GenerateReplyInput) {
       return buildFallbackReply(input);
     }
 
-    return trimWords(reply, 130);
+    return reply;
   } catch {
     return buildFallbackReply(input);
   }
@@ -101,7 +101,7 @@ function buildFallbackReply(input: GenerateReplyInput) {
   }
 
   return trimWords(
-    "I can help with the nutrition courses available to this user, but I do not have a strong source match for that question yet. Try asking about meal planning, protein balance, hydration, gut health, or workout fueling for a more targeted answer.",
+    "I can help with your enrolled nutrition courses, but I do not have a strong source match for that question yet. Try asking about topics covered in your courses for a more targeted answer.",
     130
   );
 }

@@ -1,7 +1,9 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
-import pdfParse from "pdf-parse/lib/pdf-parse";
+// pdf-parse ships CommonJS only; use require for compatibility with Next.js webpack
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pdfParse = require("pdf-parse") as (buffer: Buffer) => Promise<{ text: string; numpages: number }>;
 import type { AttachedPdfContext } from "@/lib/chat/types";
 
 const maxPdfBytes = 8 * 1024 * 1024;

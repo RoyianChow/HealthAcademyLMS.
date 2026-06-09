@@ -93,7 +93,7 @@ export function CourseSidebar({ course, isEnrolled }: iAppProps) {
       </div>
 
       <div className="flex-1 space-y-3 overflow-y-auto py-4 pr-4">
-        {course.chapters.map((chapter, index) => (
+        {course.chapters.map((chapter) => (
           <Collapsible 
             key={chapter.id} 
             open={!!openChapters[chapter.id]} // 👈 Controlled open binding

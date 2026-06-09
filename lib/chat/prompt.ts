@@ -11,12 +11,14 @@ export function buildChatMessages(params: {
   context: ChatRuntimeContext;
   question: string;
   history: ChatMessage[];
+  conversationSummary?: string | null;
   relevantExcerpts: RelevantCourseExcerpt[];
   attachedPdfs: AttachedPdfContext[];
   safetyPromptBlock: string;
 }) {
   const systemPrompt = buildSystemPrompt({
     context: params.context,
+    conversationSummary: params.conversationSummary ?? null,
     relevantExcerpts: params.relevantExcerpts,
     attachedPdfs: params.attachedPdfs,
     safetyPromptBlock: params.safetyPromptBlock,
@@ -37,6 +39,7 @@ export function buildChatMessages(params: {
 
 function buildSystemPrompt(params: {
   context: ChatRuntimeContext;
+  conversationSummary: string | null;
   relevantExcerpts: RelevantCourseExcerpt[];
   attachedPdfs: AttachedPdfContext[];
   safetyPromptBlock: string;
@@ -52,12 +55,17 @@ function buildSystemPrompt(params: {
     "Do not present your replies as medical advice, diagnosis, or treatment.",
     "When a user needs personalized medical guidance, recommend a qualified clinician, registered dietitian, or functional medicine practitioner.",
     "Stay warm, accurate, and grounded in the supplied user context, course context, and any attached PDF text.",
+    "IMPORTANT: Only make claims that are supported by the provided course excerpts, PDF text, or widely accepted nutritional science.",
+    "If the course catalog or lesson content does not yet cover a topic the user asks about, say so clearly — do not invent or assume course content that has not been provided to you.",
+    "If a user asks about course content that is not in the Relevant course excerpts below, tell them the topic may not be in their currently accessible courses and suggest they explore the available material or contact support.",
     buildStyleInstruction(preferences),
     buildModeInstruction(preferences),
     buildSourceInstruction(preferences),
     "When source-backed material is available, answer from it rather than inventing new specifics.",
+    "FORMAT YOUR REPLIES IN MARKDOWN: use bullet points or numbered lists for multiple items, **bold** for key terms, and short paragraphs separated by blank lines. Never write a single dense paragraph — break topics into clearly separated sections. Avoid padding, filler phrases, and unnecessary repetition.",
     params.safetyPromptBlock,
     "",
+    formatEarlierConversationBlock(params.conversationSummary),
     formatUserBlock(user),
     "",
     formatCourseBlock(accessibleCourses, activeCourse, preferences),
@@ -73,10 +81,10 @@ function buildSystemPrompt(params: {
 function buildStyleInstruction(preferences: ChatPreferences) {
   const styleLine =
     preferences.responseStyle === "concise"
-      ? "Keep responses to the point and usually under 60 words."
+      ? "Keep responses concise — aim for 2–4 short bullet points or sentences. Stop when the point is made."
       : preferences.responseStyle === "detailed"
-        ? "Provide fuller explanations with practical detail when useful, but stay readable."
-        : "Use balanced replies with enough context to be helpful without rambling.";
+        ? "Give a complete explanation with practical detail, but organise it into labelled sections or lists — do not write walls of text."
+        : "Be thorough but scannable: use short paragraphs or bullet lists, and stop when the answer is complete.";
 
   const toneLine =
     preferences.tone === "direct"
@@ -116,12 +124,23 @@ function buildSourceInstruction(preferences: ChatPreferences) {
   return "Blend the strongest available sources across course context and attached PDFs when it helps the user.";
 }
 
+function formatEarlierConversationBlock(summary: string | null) {
+  if (!summary) {
+    return "";
+  }
+
+  return [
+    "Earlier conversation summary (older turns condensed to save context; the most recent turns appear verbatim below):",
+    summary,
+  ].join("\n");
+}
+
 function formatUserBlock(user: ChatRuntimeContext["user"]) {
   return [
     "Current user context:",
     `- Name: ${user.name}`,
-    `- Goals: ${user.goals.join(", ")}`,
-    `- Dietary focus: ${user.dietaryFocus.join(", ")}`,
+    user.goals.length > 0 ? `- Goals: ${user.goals.join(", ")}` : "",
+    user.dietaryFocus.length > 0 ? `- Dietary focus: ${user.dietaryFocus.join(", ")}` : "",
     user.notes ? `- Notes: ${user.notes}` : "",
   ]
     .filter(Boolean)
@@ -153,7 +172,7 @@ function formatCourseBlock(
 
 function formatRelevantExcerptBlock(relevantExcerpts: RelevantCourseExcerpt[]) {
   if (relevantExcerpts.length === 0) {
-    return "Relevant course excerpts: none matched strongly.";
+    return "Relevant course excerpts: none matched strongly. Do not invent course content — acknowledge the gap and suggest the user explore their enrolled courses or attach a PDF.";
   }
 
   return [

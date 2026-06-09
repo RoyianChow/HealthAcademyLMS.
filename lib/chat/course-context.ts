@@ -1,6 +1,7 @@
 import "server-only";
 
-import { mockCourses } from "@/app/data/mock-chat-data";
+import { prisma } from "@/lib/db";
+import { EnrollmentStatus } from "@/src/generated/prisma/client";
 import type {
   ChatBootstrapCourseSummary,
   ChatCourse,
@@ -29,7 +30,95 @@ const stopWords = new Set([
 export async function getAccessibleCoursesForUser(
   user: ChatUserContext
 ): Promise<ChatCourse[]> {
-  return mockCourses.filter((course) => user.enrolledCourseIds.includes(course.id));
+  const enrollments = await prisma.enrollment.findMany({
+    where: {
+      userId: user.id,
+      status: EnrollmentStatus.Active,
+    },
+    select: {
+      course: {
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          description: true,
+          smallDescription: true,
+          category: true,
+          level: true,
+          duration: true,
+          status: true,
+          courseProgress: {
+            where: { userId: user.id },
+            select: { completed: true },
+          },
+          chapters: {
+            orderBy: { position: "asc" },
+            select: {
+              id: true,
+              title: true,
+              position: true,
+              lessons: {
+                where: { isPublished: true },
+                orderBy: { position: "asc" },
+                select: {
+                  id: true,
+                  title: true,
+                  description: true,
+                  lessonProgress: {
+                    where: { userId: user.id },
+                    select: { completed: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return enrollments.map(({ course }) => {
+    const totalLessons = course.chapters.reduce(
+      (sum, chapter) => sum + chapter.lessons.length,
+      0
+    );
+    const completedLessons = course.chapters.reduce(
+      (sum, chapter) =>
+        sum + chapter.lessons.filter((l) => l.lessonProgress[0]?.completed).length,
+      0
+    );
+    const percentage =
+      totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+    const isCompleted = course.courseProgress[0]?.completed ?? false;
+
+    return {
+      id: course.id,
+      title: course.title,
+      slug: course.slug,
+      description: course.description,
+      smallDescription: course.smallDescription,
+      category: course.category,
+      level: course.level.toUpperCase() as ChatCourse["level"],
+      duration: course.duration,
+      status: course.status.toUpperCase() as ChatCourse["status"],
+      progress: {
+        percentage,
+        completedLessons,
+        totalLessons,
+        isCompleted,
+      },
+      chapters: course.chapters.map((chapter) => ({
+        id: chapter.id,
+        title: chapter.title,
+        position: chapter.position,
+        lessons: chapter.lessons.map((lesson) => ({
+          id: lesson.id,
+          title: lesson.title,
+          description: lesson.description ?? undefined,
+        })),
+      })),
+    } satisfies ChatCourse;
+  });
 }
 
 export function buildCourseSummaries(
@@ -37,6 +126,7 @@ export function buildCourseSummaries(
 ): ChatBootstrapCourseSummary[] {
   return courses.map((course) => ({
     id: course.id,
+    slug: course.slug,
     title: course.title,
     progressLabel: course.progress
       ? `${course.progress.percentage}% complete`

@@ -9,28 +9,20 @@ import {
 } from "@/lib/chat/store";
 import type { ChatConversationSummary } from "@/lib/chat/types";
 import { resolveChatUserContext } from "@/lib/chat/user-context";
+import { requireUser } from "@/app/data/user/require-user";
 
 export const runtime = "nodejs";
 
-const getQuerySchema = z.object({
-  userId: z.string().optional(),
-});
-
 const mutationSchema = z.object({
   action: z.enum(["create", "rename", "delete", "clear"]),
-  userId: z.string().optional(),
   conversationId: z.string().min(1).optional(),
   title: z.string().trim().max(60).optional(),
   activeConversationId: z.string().min(1).optional(),
 });
 
-export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const query = getQuerySchema.parse({
-    userId: url.searchParams.get("userId") ?? undefined,
-  });
-
-  const user = await resolveChatUserContext(query.userId);
+export async function GET() {
+  const sessionUser = await requireUser();
+  const user = await resolveChatUserContext(sessionUser.id);
   const summaries = await listConversationSummariesForUser(user.id);
 
   return NextResponse.json({
@@ -41,8 +33,9 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const sessionUser = await requireUser();
     const body = mutationSchema.parse(await request.json());
-    const user = await resolveChatUserContext(body.userId);
+    const user = await resolveChatUserContext(sessionUser.id);
 
     let conversation: ChatConversationSummary | undefined;
     let summaries: ChatConversationSummary[];

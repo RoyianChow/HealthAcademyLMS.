@@ -312,14 +312,15 @@ export function CourseContent({ data, userId }: CourseContentProps) {
     [data.content]
   );
 
+  type ProgressItem = { completed: boolean; userId: string };
   const isCompleted = Array.isArray(data.lessonProgress)
     ? data.lessonProgress.some(
-        (progress: any) => progress.completed && progress.userId === userId
+        (progress: ProgressItem) => progress.completed && progress.userId === userId
       )
     : Boolean(
-        data.lessonProgress && 
-        (data.lessonProgress as any).completed && 
-        (data.lessonProgress as any).userId === userId
+        data.lessonProgress &&
+        (data.lessonProgress as ProgressItem).completed &&
+        (data.lessonProgress as ProgressItem).userId === userId
       );
 
   function onSubmit() {

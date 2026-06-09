@@ -1,14 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowUp,
   Bot,
   Copy,
   Download,
+  History,
   Menu,
   MessageSquarePlus,
   Paperclip,
+  Plus,
   Settings2,
   Trash2,
   X,
@@ -27,6 +30,7 @@ import type {
   ChatPreferences,
   ChatUserContext,
 } from "@/lib/chat/types";
+import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -36,6 +40,10 @@ type FloatingChatProps = {
   courseSummaries: ChatBootstrapCourseSummary[];
   initialConversationSummaries: ChatConversationSummary[];
   initialConversationId: string;
+  variant?: "fullscreen" | "floating" | "sidebar";
+  onClose?: () => void;
+  courseSlug?: string | null;
+  chatSessionKey?: number;
 };
 
 type StatusMessage = {
@@ -51,10 +59,41 @@ export function FloatingChat({
   courseSummaries,
   initialConversationSummaries,
   initialConversationId,
+  variant = "fullscreen",
+  onClose,
+  courseSlug = null,
+  chatSessionKey = 0,
 }: FloatingChatProps) {
+  const isFullscreen = variant === "fullscreen";
+  const isSidebar = variant === "sidebar";
+  const router = useRouter();
+
+  function handleClose() {
+    if (onClose) {
+      onClose();
+    } else if (isFullscreen) {
+      router.back();
+    } else {
+      setIsOpen(false);
+    }
+  }
+
+  const shellClassName = cn(
+    "chat-widget z-50",
+    isSidebar
+      ? "flex h-full w-full"
+      : isFullscreen
+        ? "fixed inset-0 h-dvh w-full"
+        : "fixed bottom-2 right-2 h-[min(860px,calc(100vh-1rem))] w-[min(1040px,calc(100vw-1rem))]"
+  );
+  const panelClassName = cn(
+    "relative flex h-full w-full overflow-hidden border border-border bg-background/96 backdrop-blur",
+    !isFullscreen && !isSidebar && "rounded-[2rem] chat-shadow"
+  );
   const [isOpen, setIsOpen] = useState(true);
   const [showSidebar, setShowSidebar] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [conversationSummaries, setConversationSummaries] = useState(
     initialConversationSummaries
   );
@@ -74,8 +113,19 @@ export function FloatingChat({
   const [isSending, setIsSending] = useState(false);
   const [status, setStatus] = useState<StatusMessage>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [streamingId, setStreamingId] = useState<string | null>(null);
+  const [streamingContent, setStreamingContent] = useState("");
   const transcriptRef = useRef<HTMLDivElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const streamingRef = useRef<{
+    full: string;
+    pos: number;
+    timer: ReturnType<typeof setInterval>;
+  } | null>(null);
+  const conversationSummariesRef = useRef(conversationSummaries);
+  const activeConversationIdRef = useRef(activeConversationId);
+  conversationSummariesRef.current = conversationSummaries;
+  activeConversationIdRef.current = activeConversationId;
 
   useEffect(() => {
     try {
@@ -113,7 +163,7 @@ export function FloatingChat({
 
       try {
         const response = await fetch(
-          `/api/chat/history?conversationId=${encodeURIComponent(activeConversationId)}&userId=${encodeURIComponent(initialUser.id)}`
+          `/api/chat/history?conversationId=${encodeURIComponent(activeConversationId)}`
         );
         const data = (await response.json()) as {
           messages?: ChatMessage[];
@@ -155,7 +205,26 @@ export function FloatingChat({
     const node = transcriptRef.current;
     if (!node) return;
     node.scrollTop = node.scrollHeight;
-  }, [messages, isLoadingHistory, isSending]);
+  }, [messages, isLoadingHistory, isSending, streamingContent]);
+
+  // Stop streaming when switching conversations
+  useEffect(() => {
+    if (streamingRef.current) {
+      clearInterval(streamingRef.current.timer);
+      streamingRef.current = null;
+    }
+    setStreamingId(null);
+    setStreamingContent("");
+  }, [activeConversationId]);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (streamingRef.current) {
+        clearInterval(streamingRef.current.timer);
+      }
+    };
+  }, []);
 
   const activeConversation =
     conversationSummaries.find((summary) => summary.id === activeConversationId) ??
@@ -211,7 +280,6 @@ export function FloatingChat({
     try {
       const body = new FormData();
       body.append("message", message);
-      body.append("userId", initialUser.id);
       body.append("conversationId", activeConversationId);
       body.append("activeCourseId", activeCourseId);
       body.append("mode", preferences.mode);
@@ -240,6 +308,7 @@ export function FloatingChat({
         );
         return [...withoutOptimistic, data.userMessage, data.assistantMessage];
       });
+      startStreaming(data.assistantMessage.content, data.assistantMessage.id);
       setConversationSummaries((current) =>
         [data.conversationSummary, ...current.filter((item) => item.id !== data.conversationSummary.id)].sort(
           (left, right) => right.updatedAt.localeCompare(left.updatedAt)
@@ -273,7 +342,6 @@ export function FloatingChat({
         },
         body: JSON.stringify({
           action,
-          userId: initialUser.id,
           conversationId: payload?.conversationId,
           title: payload?.title,
           activeConversationId,
@@ -305,6 +373,39 @@ export function FloatingChat({
       });
     }
   }
+
+  // Sidebar: on dashboard or course navigation, reuse the most recent empty chat
+  // or start fresh; set course dropdown to "all" on dashboard, or the active course.
+  useEffect(() => {
+    if (!isSidebar || chatSessionKey === 0) return;
+    if (!isDisclaimerReady || !hasAcceptedDisclaimer) return;
+
+    if (courseSlug) {
+      const course = courseSummaries.find((summary) => summary.slug === courseSlug);
+      if (course) {
+        setActiveCourseId(course.id);
+      }
+    } else {
+      setActiveCourseId("all");
+    }
+
+    const mostRecent = conversationSummariesRef.current[0];
+    if (mostRecent?.messageCount === 0) {
+      if (activeConversationIdRef.current !== mostRecent.id) {
+        setActiveConversationId(mostRecent.id);
+      }
+      return;
+    }
+
+    void mutateConversation("create");
+  }, [
+    chatSessionKey,
+    courseSlug,
+    courseSummaries,
+    hasAcceptedDisclaimer,
+    isDisclaimerReady,
+    isSidebar,
+  ]);
 
   async function copyMessage(message: ChatMessage) {
     try {
@@ -366,6 +467,37 @@ export function FloatingChat({
     setStatus(null);
   }
 
+  function startStreaming(content: string, messageId: string) {
+    if (streamingRef.current) {
+      clearInterval(streamingRef.current.timer);
+      streamingRef.current = null;
+    }
+    // max_tokens = 700 ≈ 2800 chars at ~4 chars/token; markdown overhead can push ~3200.
+    // Hard cap of 8 chars/tick keeps each frame to ≈1–2 words so streaming never looks
+    // chunky. Timing across the full range (interval = 35 ms):
+    //   200 chars  → 2 chars/tick → ~3.5 s
+    //   700 chars  → 5 chars/tick → ~4.9 s
+    //   1280 chars → 8 chars/tick (cap) → ~5.6 s
+    //   2800 chars → 8 chars/tick → ~12.25 s
+    //   3200 chars → 8 chars/tick → ~14 s
+    const charsPerTick = Math.max(2, Math.min(8, Math.ceil(content.length / 160)));
+    setStreamingId(messageId);
+    setStreamingContent("");
+    const timer = setInterval(() => {
+      const state = streamingRef.current;
+      if (!state) return;
+      const nextPos = Math.min(state.pos + charsPerTick, state.full.length);
+      state.pos = nextPos;
+      setStreamingContent(state.full.slice(0, nextPos));
+      if (nextPos >= state.full.length) {
+        clearInterval(state.timer);
+        streamingRef.current = null;
+        setStreamingId(null);
+      }
+    }, 35);
+    streamingRef.current = { full: content, pos: 0, timer };
+  }
+
   function acceptDisclaimer() {
     try {
       window.localStorage.setItem(disclaimerKey, "true");
@@ -391,8 +523,8 @@ export function FloatingChat({
 
   if (!isDisclaimerReady || !hasAcceptedDisclaimer) {
     return (
-      <div className="chat-widget fixed bottom-2 right-2 z-50 h-[min(860px,calc(100vh-1rem))] w-[min(1040px,calc(100vw-1rem))]">
-        <div className="relative flex h-full overflow-hidden rounded-[2rem] border border-border bg-white/96 chat-shadow backdrop-blur">
+      <div className={shellClassName}>
+        <div className={panelClassName}>
           <section className="flex min-w-0 flex-1 flex-col">
             <header className="border-b border-border px-4 py-3 sm:px-5">
               <div className="flex items-start justify-between gap-3">
@@ -405,7 +537,7 @@ export function FloatingChat({
                   </h3>
                 </div>
 
-                <Button onClick={() => setIsOpen(false)} size="icon" variant="ghost">
+                <Button onClick={handleClose} size="icon" variant="ghost">
                   <X className="h-5 w-5" />
                 </Button>
               </div>
@@ -433,14 +565,14 @@ export function FloatingChat({
                   personalized care from a licensed professional.
                 </p>
 
-                <div className="mt-5 rounded-2xl border border-border bg-white px-4 py-4 text-sm leading-7 text-muted-foreground">
+                <div className="mt-5 rounded-2xl border border-border bg-background px-4 py-4 text-sm leading-7 text-muted-foreground">
                   By clicking &quot;I understand,&quot; you acknowledge this
                   chatbot is only a learning tool and you will not treat its
                   responses as medical advice.
                 </div>
 
                 <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                  <Button onClick={() => setIsOpen(false)} variant="ghost">
+                  <Button onClick={handleClose} variant="ghost">
                     Close
                   </Button>
                   <Button onClick={acceptDisclaimer}>I understand</Button>
@@ -454,11 +586,12 @@ export function FloatingChat({
   }
 
   return (
-    <div className="chat-widget fixed bottom-2 right-2 z-50 h-[min(860px,calc(100vh-1rem))] w-[min(1040px,calc(100vw-1rem))]">
-      <div className="relative flex h-full overflow-hidden rounded-[2rem] border border-border bg-white/96 chat-shadow backdrop-blur">
+    <div className={shellClassName}>
+      <div className={panelClassName}>
+        {!isSidebar && (
         <aside
           className={cn(
-            "absolute inset-y-0 left-0 z-20 flex w-[min(18rem,86vw)] flex-col border-r border-border bg-white transition-transform md:static md:w-64",
+            "absolute inset-y-0 left-0 z-20 flex w-[min(18rem,86vw)] flex-col border-r border-border bg-background transition-transform md:static md:w-64",
             showSidebar ? "translate-x-0" : "-translate-x-full md:translate-x-0"
           )}
         >
@@ -505,7 +638,7 @@ export function FloatingChat({
                     "rounded-2xl border p-3 transition-colors",
                     isActive
                       ? "border-primary/25 bg-primary/5"
-                      : "border-transparent bg-muted/50 hover:border-border hover:bg-white"
+                      : "border-transparent bg-muted/50 hover:border-border hover:bg-card"
                   )}
                   key={summary.id}
                 >
@@ -572,8 +705,9 @@ export function FloatingChat({
             <p className="mt-1 line-clamp-2">Goals: {initialUser.goals.join(", ")}</p>
           </div>
         </aside>
+        )}
 
-        {showSidebar ? (
+        {!isSidebar && showSidebar ? (
           <button
             aria-label="Close sidebar overlay"
             className="absolute inset-0 z-10 bg-black/20 md:hidden"
@@ -587,14 +721,16 @@ export function FloatingChat({
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <Button
-                    className="md:hidden"
-                    onClick={() => setShowSidebar(true)}
-                    size="icon"
-                    variant="ghost"
-                  >
-                    <Menu className="h-5 w-5" />
-                  </Button>
+                  {!isSidebar && (
+                    <Button
+                      className="md:hidden"
+                      onClick={() => setShowSidebar(true)}
+                      size="icon"
+                      variant="ghost"
+                    >
+                      <Menu className="h-5 w-5" />
+                    </Button>
+                  )}
                   <div className="min-w-0">
                     <h3 className="truncate font-heading text-[1.5rem] font-semibold">
                       {activeConversation?.title ?? "Nutrition coach"}
@@ -608,6 +744,122 @@ export function FloatingChat({
               </div>
 
               <div className="relative flex items-center gap-2">
+                {isSidebar ? (
+                  <>
+                    <Button
+                      onClick={() => {
+                        setShowHistory(false);
+                        void mutateConversation("create");
+                      }}
+                      size="icon"
+                      variant="ghost"
+                      title="New chat"
+                    >
+                      <Plus className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      onClick={() => setShowHistory((current) => !current)}
+                      size="icon"
+                      variant={showHistory ? "secondary" : "ghost"}
+                      title="Chat history"
+                    >
+                      <History className="h-5 w-5" />
+                    </Button>
+
+                    {showHistory ? (
+                      <div className="absolute right-0 top-12 z-30 w-[min(22rem,90vw)] overflow-hidden rounded-3xl border border-border bg-card shadow-2xl shadow-primary/10">
+                        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                          <p className="text-sm font-semibold">Previous chats</p>
+                          <Button
+                            className="h-7 w-7"
+                            onClick={() => setShowHistory(false)}
+                            size="icon"
+                            variant="ghost"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="scrollbar-subtle max-h-[min(28rem,60vh)] space-y-1.5 overflow-y-auto p-2">
+                          {conversationSummaries.length === 0 ? (
+                            <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+                              No previous chats yet.
+                            </p>
+                          ) : (
+                            conversationSummaries.map((summary) => {
+                              const isActive = summary.id === activeConversationId;
+
+                              return (
+                                <div
+                                  className={cn(
+                                    "rounded-2xl border p-3 transition-colors",
+                                    isActive
+                                      ? "border-primary/25 bg-primary/5"
+                                      : "border-transparent hover:border-border hover:bg-muted/50"
+                                  )}
+                                  key={summary.id}
+                                >
+                                  <button
+                                    className="block w-full text-left"
+                                    onClick={() => {
+                                      setActiveConversationId(summary.id);
+                                      setShowHistory(false);
+                                    }}
+                                    type="button"
+                                  >
+                                    <p className="line-clamp-1 text-sm font-semibold">
+                                      {summary.title}
+                                    </p>
+                                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
+                                      {summary.preview}
+                                    </p>
+                                    <div className="mt-1.5 flex items-center justify-between text-[0.68rem] uppercase tracking-[0.18em] text-muted-foreground/80">
+                                      <span>{formatShortDate(summary.updatedAt)}</span>
+                                      <span>{summary.messageCount} msg</span>
+                                    </div>
+                                  </button>
+                                  <div className="mt-2 flex gap-1">
+                                    <Button
+                                      className="h-7 px-2 text-xs"
+                                      onClick={() => {
+                                        const title = window.prompt(
+                                          "Rename this chat",
+                                          summary.title
+                                        );
+                                        if (!title?.trim()) return;
+                                        void mutateConversation("rename", {
+                                          conversationId: summary.id,
+                                          title,
+                                        });
+                                      }}
+                                      size="sm"
+                                      variant="ghost"
+                                    >
+                                      Rename
+                                    </Button>
+                                    <Button
+                                      className="h-7 px-2 text-xs text-red-600 hover:bg-red-50 hover:text-red-600"
+                                      onClick={() => {
+                                        if (!window.confirm("Delete this chat thread?"))
+                                          return;
+                                        void mutateConversation("delete", {
+                                          conversationId: summary.id,
+                                        });
+                                      }}
+                                      size="sm"
+                                      variant="ghost"
+                                    >
+                                      Delete
+                                    </Button>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+                    ) : null}
+                  </>
+                ) : null}
                 <Button onClick={exportTranscript} size="icon" variant="ghost">
                   <Download className="h-5 w-5" />
                 </Button>
@@ -629,17 +881,17 @@ export function FloatingChat({
                 >
                   <Settings2 className="h-5 w-5" />
                 </Button>
-                <Button onClick={() => setIsOpen(false)} size="icon" variant="ghost">
+                <Button onClick={handleClose} size="icon" variant="ghost">
                   <X className="h-5 w-5" />
                 </Button>
 
                 {showSettings ? (
-                  <div className="absolute right-0 top-12 z-30 w-[min(20rem,88vw)] rounded-3xl border border-border bg-white p-4 shadow-2xl shadow-primary/10">
+                  <div className="absolute right-0 top-12 z-30 w-[min(20rem,88vw)] rounded-3xl border border-border bg-card p-4 shadow-2xl shadow-primary/10">
                     <div className="space-y-4">
                       <label className="block space-y-1.5">
                         <span className="text-sm font-medium">Mode</span>
                         <select
-                          className="h-11 w-full rounded-2xl border border-border bg-white px-3 text-base outline-none focus-visible:ring-4 focus-visible:ring-ring/70"
+                          className="h-11 w-full rounded-2xl border border-border bg-background px-3 text-base outline-none focus-visible:ring-4 focus-visible:ring-ring/70"
                           onChange={(event) =>
                             setPreferences((current) => ({
                               ...current,
@@ -659,7 +911,7 @@ export function FloatingChat({
                       <label className="block space-y-1.5">
                         <span className="text-sm font-medium">Reply style</span>
                         <select
-                          className="h-11 w-full rounded-2xl border border-border bg-white px-3 text-base outline-none focus-visible:ring-4 focus-visible:ring-ring/70"
+                          className="h-11 w-full rounded-2xl border border-border bg-background px-3 text-base outline-none focus-visible:ring-4 focus-visible:ring-ring/70"
                           onChange={(event) =>
                             setPreferences((current) => ({
                               ...current,
@@ -680,7 +932,7 @@ export function FloatingChat({
                       <label className="block space-y-1.5">
                         <span className="text-sm font-medium">Tone</span>
                         <select
-                          className="h-11 w-full rounded-2xl border border-border bg-white px-3 text-base outline-none focus-visible:ring-4 focus-visible:ring-ring/70"
+                          className="h-11 w-full rounded-2xl border border-border bg-background px-3 text-base outline-none focus-visible:ring-4 focus-visible:ring-ring/70"
                           onChange={(event) =>
                             setPreferences((current) => ({
                               ...current,
@@ -715,7 +967,7 @@ export function FloatingChat({
                       <label className="block space-y-1.5">
                         <span className="text-sm font-medium">PDF preference</span>
                         <select
-                          className="h-11 w-full rounded-2xl border border-border bg-white px-3 text-base outline-none focus-visible:ring-4 focus-visible:ring-ring/70"
+                          className="h-11 w-full rounded-2xl border border-border bg-background px-3 text-base outline-none focus-visible:ring-4 focus-visible:ring-ring/70"
                           onChange={(event) =>
                             setPreferences((current) => ({
                               ...current,
@@ -736,7 +988,7 @@ export function FloatingChat({
 
             <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
               <select
-                className="h-11 min-w-0 flex-1 rounded-2xl border border-border bg-white px-4 text-base outline-none focus-visible:ring-4 focus-visible:ring-ring/70"
+                className="h-11 min-w-0 flex-1 rounded-2xl border border-border bg-background px-4 text-base outline-none focus-visible:ring-4 focus-visible:ring-ring/70"
                 onChange={(event) => setActiveCourseId(event.target.value)}
                 value={activeCourseId}
               >
@@ -773,14 +1025,14 @@ export function FloatingChat({
                   Ask about lessons, goals, or attached PDFs
                 </h4>
                 <p className="mx-auto mt-2 max-w-2xl text-base leading-7 text-muted-foreground">
-                  This standalone version is already wired for threads, course
-                  scope, and PDF reading. It is using local mock data for now.
+                  Ask questions about your enrolled courses, explore lesson
+                  topics, or upload a PDF to get targeted answers.
                 </p>
 
                 <div className="mt-5 flex flex-wrap justify-center gap-2.5">
                   {suggestedPrompts.map((prompt) => (
                     <button
-                      className="rounded-full border border-border bg-white px-4 py-2 text-[0.98rem] transition-colors hover:bg-primary/5"
+                      className="rounded-full border border-border bg-background px-4 py-2 text-[0.98rem] transition-colors hover:bg-primary/5"
                       key={prompt}
                       onClick={() => setDraft(prompt)}
                       type="button"
@@ -795,6 +1047,9 @@ export function FloatingChat({
                 {messages.map((message) => {
                   const isAssistant = message.role === "assistant";
 
+                  const isStreaming = streamingId === message.id;
+                  const displayContent = isStreaming ? streamingContent : message.content;
+
                   return (
                     <article
                       className={cn("message-in flex", isAssistant ? "justify-start" : "justify-end")}
@@ -804,15 +1059,26 @@ export function FloatingChat({
                         className={cn(
                           "max-w-[90%] rounded-[1.7rem] border px-4 py-3 sm:max-w-[78%]",
                           isAssistant
-                            ? "border-border bg-white"
+                            ? "border-border bg-card"
                             : "border-primary/15 bg-primary text-primary-foreground"
                         )}
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="min-w-0">
-                            <p className="whitespace-pre-wrap text-[1rem] leading-8">
-                              {message.content}
-                            </p>
+                            {isAssistant ? (
+                              <>
+                                <div className="prose prose-sm dark:prose-invert max-w-none text-[1rem] leading-7 prose-p:my-1.5 prose-ul:my-1.5 prose-ol:my-1.5 prose-li:my-0.5 prose-headings:mb-1 prose-headings:mt-3 prose-strong:font-semibold prose-code:rounded prose-code:bg-muted prose-code:px-1 prose-code:py-0.5 prose-code:text-[0.9em]">
+                                  <ReactMarkdown>{displayContent}</ReactMarkdown>
+                                </div>
+                                {isStreaming && (
+                                  <span className="mt-0.5 inline-block h-4 w-0.5 animate-pulse rounded-full bg-foreground/50" />
+                                )}
+                              </>
+                            ) : (
+                              <p className="whitespace-pre-wrap text-[1rem] leading-7">
+                                {displayContent}
+                              </p>
+                            )}
                             <p
                               className={cn(
                                 "mt-2 text-[0.75rem] uppercase tracking-[0.24em]",
@@ -894,7 +1160,7 @@ export function FloatingChat({
                           <div className="mt-3 flex flex-wrap gap-2">
                             {message.followUps.map((prompt) => (
                               <button
-                                className="rounded-full border border-border bg-white px-3 py-1.5 text-sm transition-colors hover:bg-primary/5"
+                                className="rounded-full border border-border bg-background px-3 py-1.5 text-sm transition-colors hover:bg-primary/5"
                                 key={prompt}
                                 onClick={() => void sendMessage(prompt)}
                                 type="button"
@@ -911,8 +1177,21 @@ export function FloatingChat({
 
                 {isSending ? (
                   <div className="flex justify-start">
-                    <div className="rounded-[1.7rem] border border-border bg-white px-4 py-3 text-muted-foreground">
-                      Thinking...
+                    <div className="rounded-[1.7rem] border border-border bg-card px-5 py-4">
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className="h-2 w-2 rounded-full bg-muted-foreground/60 animate-bounce"
+                          style={{ animationDelay: "0ms" }}
+                        />
+                        <span
+                          className="h-2 w-2 rounded-full bg-muted-foreground/60 animate-bounce"
+                          style={{ animationDelay: "160ms" }}
+                        />
+                        <span
+                          className="h-2 w-2 rounded-full bg-muted-foreground/60 animate-bounce"
+                          style={{ animationDelay: "320ms" }}
+                        />
+                      </div>
                     </div>
                   </div>
                 ) : null}
@@ -920,7 +1199,7 @@ export function FloatingChat({
             )}
           </div>
 
-          <footer className="border-t border-border bg-white px-4 py-4 sm:px-5">
+          <footer className="border-t border-border bg-background px-4 py-4 sm:px-5">
             {pendingPdfs.length > 0 ? (
               <div className="mb-3 flex flex-wrap gap-2">
                 {pendingPdfs.map((file, index) => (

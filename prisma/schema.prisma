@@ -22,16 +22,17 @@ model User {
   banReason        String?
   banExpires       DateTime?
 
-  communityComments CommunityComment[]
-  communityLikes    CommunityLike[]
-  communityPosts    CommunityPost[]
-  courses           Course[]
-  courseProgress    CourseProgress[]
-  lessonProgress    LessonProgress[]
-  enrollments       Enrollment[]
-  quizAttempts      QuizAttempt[]
-  accounts          Account[]
-  sessions          Session[]
+  communityComments  CommunityComment[]
+  communityLikes     CommunityLike[]
+  communityPosts     CommunityPost[]
+  courses            Course[]
+  courseProgress     CourseProgress[]
+  lessonProgress     LessonProgress[]
+  enrollments        Enrollment[]
+  quizAttempts       QuizAttempt[]
+  accounts           Account[]
+  sessions           Session[]
+  chatConversations  ChatConversation[]
 
   @@map("user")
 }
@@ -377,6 +378,41 @@ model CommunityLike {
   @@unique([postId, userId])
   @@index([postId])
   @@index([userId])
+}
+
+model ChatConversation {
+  id          String        @id @default(uuid())
+  userId      String
+  title       String
+  isAutoTitle Boolean       @default(true)
+  preview     String        @default("No messages yet")
+  messageCount Int          @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@index([userId])
+}
+
+model ChatMessage {
+  id             String   @id @default(uuid())
+  conversationId String
+  role           String
+  content        String
+  sources        Json?
+  attachments    Json?
+  followUps      Json?
+  safetyFlags    Json?
+  mode           String?
+  responseStyle  String?
+  createdAt      DateTime @default(now())
+
+  conversation ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([conversationId, createdAt])
 }
 
 enum CourseLevel {

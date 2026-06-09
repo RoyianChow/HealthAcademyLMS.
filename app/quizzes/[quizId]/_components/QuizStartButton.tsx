@@ -22,7 +22,7 @@ export function QuizStartButton({
       try {
         await startQuizAttempt(quizId, attemptNumber);
         toast.success(`Attempt #${attemptNumber} has started!`);
-      } catch (error) {
+      } catch {
         toast.error("Failed to start quiz attempt.");
       }
     });

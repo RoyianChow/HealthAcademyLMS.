@@ -113,6 +113,7 @@ export type ChatCourse = {
 
 export type ChatBootstrapCourseSummary = {
   id: string;
+  slug: string;
   title: string;
   progressLabel: string;
 };

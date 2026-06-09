@@ -6,6 +6,7 @@ import {
   IconDashboard,
   IconGlobe,
   IconListDetails,
+  IconRobot,
   IconUser,
 } from "@tabler/icons-react";
 import Image from "next/image";
@@ -50,6 +51,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       title: "Community",
       url: "/dashboard/community",
       icon: IconGlobe,
+      isChild: true,
+    },
+    {
+      title: "AI Advisor",
+      url: "/chatbot",
+      icon: IconRobot,
       isChild: true,
     },
     ...(session?.user?.role === "admin"

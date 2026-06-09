@@ -16,7 +16,7 @@ import {
 } from "@/lib/zodSchemas";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Form,
@@ -49,7 +49,8 @@ function VideoItem({
   remove,
 }: {
   index: number;
-  form: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  form: UseFormReturn<any>;
   remove: (index: number) => void;
 }) {
 
@@ -156,7 +157,6 @@ function VideoItem({
 
 export function LessonForm({ data, chapterId, courseId }: LessonFormProps) {
   const [pending, startTransition] = useTransition();
-  const [activityMode, setActivityMode] = useState<"builder" | "script">("script");
 
   const form = useForm<LessonSchemaType>({
     resolver: zodResolver(lessonSchema),

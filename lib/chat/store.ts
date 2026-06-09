@@ -1,8 +1,6 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
+import { prisma } from "@/lib/db";
 import type {
   ChatAttachment,
   ChatConversationSummary,
@@ -11,45 +9,49 @@ import type {
   ChatSafetyFlag,
   ChatSourceBadge,
   ChatMode,
-  StoredConversation,
 } from "@/lib/chat/types";
 
-type StorageShape = {
-  conversations: Record<string, StoredConversation>;
-};
-
-type RawStoredConversation = Partial<StoredConversation> & {
-  conversationId?: string;
-};
-
-const storagePath = path.join(process.cwd(), "storage", "chat-sessions.json");
 const defaultConversationTitle = "New chat";
+const maxMessagesPerConversation = 40;
+// Only the most recent messages are sent to the LLM verbatim. Older turns are
+// condensed into a lightweight running summary to keep input token cost bounded
+// on long threads while preserving topical continuity.
+const promptHistoryWindow = 16;
+const maxSummaryPoints = 12;
 
-export async function listConversationSummariesForUser(userId: string) {
-  const storage = await readStorage();
-  const conversations = getUserConversations(storage, userId);
+export async function listConversationSummariesForUser(
+  userId: string
+): Promise<ChatConversationSummary[]> {
+  const conversations = await prisma.chatConversation.findMany({
+    where: { userId },
+    orderBy: { updatedAt: "desc" },
+  });
 
   if (conversations.length > 0) {
-    return sortConversationSummaries(conversations);
+    return conversations.map(toConversationSummary);
   }
 
-  const conversation = createEmptyConversation(userId);
-  storage.conversations[getConversationKey(userId, conversation.id)] = conversation;
-  await writeStorage(storage);
+  const created = await prisma.chatConversation.create({
+    data: {
+      userId,
+      title: defaultConversationTitle,
+      isAutoTitle: true,
+    },
+  });
 
-  return [toConversationSummary(conversation)];
+  return [toConversationSummary(created)];
 }
 
 export async function createConversation(params: {
   userId: string;
   title?: string;
-}) {
-  const storage = await readStorage();
-  const title = params.title?.trim();
-  const conversation = createEmptyConversation(params.userId, title);
-  storage.conversations[getConversationKey(params.userId, conversation.id)] =
-    conversation;
-  await writeStorage(storage);
+}): Promise<ChatConversationSummary> {
+  const title = params.title?.trim() || defaultConversationTitle;
+  const isAutoTitle = !params.title?.trim();
+
+  const conversation = await prisma.chatConversation.create({
+    data: { userId: params.userId, title, isAutoTitle },
+  });
 
   return toConversationSummary(conversation);
 }
@@ -58,15 +60,11 @@ export async function renameConversation(params: {
   userId: string;
   conversationId: string;
   title: string;
-}) {
-  const storage = await readStorage();
-  const conversation = getConversationOrThrow(storage, params.userId, params.conversationId);
-
-  conversation.title = params.title.trim();
-  conversation.isAutoTitle = false;
-  conversation.updatedAt = new Date().toISOString();
-
-  await writeStorage(storage);
+}): Promise<ChatConversationSummary> {
+  const conversation = await prisma.chatConversation.update({
+    where: { id: params.conversationId, userId: params.userId },
+    data: { title: params.title.trim(), isAutoTitle: false },
+  });
 
   return toConversationSummary(conversation);
 }
@@ -74,54 +72,94 @@ export async function renameConversation(params: {
 export async function deleteConversation(params: {
   userId: string;
   conversationId: string;
-}) {
-  const storage = await readStorage();
-  const key = getConversationKey(params.userId, params.conversationId);
+}): Promise<ChatConversationSummary[]> {
+  await prisma.chatConversation.deleteMany({
+    where: { id: params.conversationId, userId: params.userId },
+  });
 
-  if (!storage.conversations[key]) {
-    return listConversationSummariesForUser(params.userId);
-  }
+  const remaining = await prisma.chatConversation.findMany({
+    where: { userId: params.userId },
+    orderBy: { updatedAt: "desc" },
+  });
 
-  delete storage.conversations[key];
-
-  const remaining = getUserConversations(storage, params.userId);
   if (remaining.length === 0) {
-    const conversation = createEmptyConversation(params.userId);
-    storage.conversations[getConversationKey(params.userId, conversation.id)] =
-      conversation;
+    const fallback = await prisma.chatConversation.create({
+      data: { userId: params.userId, title: defaultConversationTitle, isAutoTitle: true },
+    });
+    return [toConversationSummary(fallback)];
   }
 
-  await writeStorage(storage);
-  return sortConversationSummaries(getUserConversations(storage, params.userId));
+  return remaining.map(toConversationSummary);
 }
 
 export async function clearConversationMessages(params: {
   userId: string;
   conversationId: string;
-}) {
-  const storage = await readStorage();
-  const conversation = getConversationOrThrow(storage, params.userId, params.conversationId);
+}): Promise<ChatConversationSummary> {
+  await prisma.chatMessage.deleteMany({
+    where: { conversationId: params.conversationId },
+  });
 
-  conversation.messages = [];
-  conversation.messageCount = 0;
-  conversation.preview = "No messages yet";
-  conversation.updatedAt = new Date().toISOString();
+  const conversation = await prisma.chatConversation.update({
+    where: { id: params.conversationId, userId: params.userId },
+    data: {
+      preview: "No messages yet",
+      messageCount: 0,
+      title: undefined,
+    },
+  });
 
   if (conversation.isAutoTitle) {
-    conversation.title = defaultConversationTitle;
+    await prisma.chatConversation.update({
+      where: { id: params.conversationId },
+      data: { title: defaultConversationTitle },
+    });
   }
 
-  await writeStorage(storage);
-  return toConversationSummary(conversation);
+  const refreshed = await prisma.chatConversation.findUniqueOrThrow({
+    where: { id: params.conversationId },
+  });
+
+  return toConversationSummary(refreshed);
 }
 
 export async function getConversationMessages(params: {
   userId: string;
   conversationId: string;
-}) {
-  const storage = await readStorage();
-  const conversation = storage.conversations[getConversationKey(params.userId, params.conversationId)];
-  return conversation?.messages ?? [];
+}): Promise<ChatMessage[]> {
+  const conversation = await prisma.chatConversation.findFirst({
+    where: { id: params.conversationId, userId: params.userId },
+  });
+
+  if (!conversation) {
+    return [];
+  }
+
+  const rows = await prisma.chatMessage.findMany({
+    where: { conversationId: params.conversationId },
+    orderBy: { createdAt: "asc" },
+    take: maxMessagesPerConversation,
+  });
+
+  return rows.map(rowToMessage);
+}
+
+export async function getConversationContext(params: {
+  userId: string;
+  conversationId: string;
+}): Promise<{ recentMessages: ChatMessage[]; earlierSummary: string | null }> {
+  const messages = await getConversationMessages(params);
+
+  if (messages.length <= promptHistoryWindow) {
+    return { recentMessages: messages, earlierSummary: null };
+  }
+
+  const splitAt = messages.length - promptHistoryWindow;
+
+  return {
+    recentMessages: messages.slice(splitAt),
+    earlierSummary: buildEarlierConversationSummary(messages.slice(0, splitAt)),
+  };
 }
 
 export async function appendConversationTurn(params: {
@@ -136,170 +174,158 @@ export async function appendConversationTurn(params: {
   responseStyle: ChatResponseStyle;
   safetyFlags?: ChatSafetyFlag[];
 }) {
-  const storage = await readStorage();
-  const conversation = getConversationOrCreate(storage, params.userId, params.conversationId);
-  const existingUserMessages = conversation.messages.filter(
-    (message) => message.role === "user"
-  ).length;
-
-  const userMessage = buildMessage({
-    attachments: params.userAttachments,
-    content: params.userMessage,
-    role: "user",
+  let conversation = await prisma.chatConversation.findFirst({
+    where: { id: params.conversationId, userId: params.userId },
   });
-
-  const assistantMessage = buildMessage({
-    content: params.assistantMessage,
-    followUps: params.assistantFollowUps,
-    mode: params.mode,
-    responseStyle: params.responseStyle,
-    role: "assistant",
-    safetyFlags: params.safetyFlags,
-    sources: params.assistantSources,
-  });
-
-  conversation.messages = [...conversation.messages, userMessage, assistantMessage].slice(-40);
-  conversation.messageCount = conversation.messages.length;
-  conversation.preview = truncatePreview(assistantMessage.content);
-  conversation.updatedAt = assistantMessage.createdAt;
-
-  if (conversation.isAutoTitle && existingUserMessages === 0) {
-    conversation.title = buildConversationTitle(params.userMessage);
-  }
-
-  storage.conversations[getConversationKey(params.userId, conversation.id)] =
-    conversation;
-  await writeStorage(storage);
-
-  return {
-    userMessage,
-    assistantMessage,
-    conversationSummary: toConversationSummary(conversation),
-  };
-}
-
-async function readStorage(): Promise<StorageShape> {
-  await mkdir(path.dirname(storagePath), { recursive: true });
-
-  try {
-    const fileContents = await readFile(storagePath, "utf8");
-    const parsed = JSON.parse(fileContents) as Partial<StorageShape>;
-    const { storage, changed } = normalizeStorage(parsed);
-
-    if (changed) {
-      await writeStorage(storage);
-    }
-
-    return storage;
-  } catch {
-    const emptyStorage = { conversations: {} } satisfies StorageShape;
-    await writeStorage(emptyStorage);
-    return emptyStorage;
-  }
-}
-
-async function writeStorage(storage: StorageShape) {
-  await writeFile(storagePath, JSON.stringify(storage, null, 2), "utf8");
-}
-
-function buildMessage(params: {
-  role: ChatMessage["role"];
-  content: string;
-  attachments?: ChatAttachment[];
-  followUps?: string[];
-  sources?: ChatSourceBadge[];
-  mode?: ChatMode;
-  responseStyle?: ChatResponseStyle;
-  safetyFlags?: ChatSafetyFlag[];
-}) {
-  return {
-    id: randomUUID(),
-    role: params.role,
-    content: params.content,
-    createdAt: new Date().toISOString(),
-    attachments: params.attachments,
-    followUps: params.followUps,
-    sources: params.sources,
-    mode: params.mode,
-    responseStyle: params.responseStyle,
-    safetyFlags: params.safetyFlags,
-  } satisfies ChatMessage;
-}
-
-function getConversationOrCreate(
-  storage: StorageShape,
-  userId: string,
-  conversationId: string
-) {
-  const key = getConversationKey(userId, conversationId);
-  const existingConversation = storage.conversations[key];
-
-  if (existingConversation) {
-    return existingConversation;
-  }
-
-  const conversation = createEmptyConversation(userId, undefined, conversationId);
-  storage.conversations[key] = conversation;
-  return conversation;
-}
-
-function getConversationOrThrow(
-  storage: StorageShape,
-  userId: string,
-  conversationId: string
-) {
-  const conversation = storage.conversations[getConversationKey(userId, conversationId)];
 
   if (!conversation) {
-    throw new Error("Conversation not found.");
+    conversation = await prisma.chatConversation.create({
+      data: {
+        id: params.conversationId,
+        userId: params.userId,
+        title: defaultConversationTitle,
+        isAutoTitle: true,
+      },
+    });
   }
 
-  return conversation;
-}
+  const existingUserCount = await prisma.chatMessage.count({
+    where: { conversationId: params.conversationId, role: "user" },
+  });
 
-function getUserConversations(storage: StorageShape, userId: string) {
-  return Object.values(storage.conversations).filter(
-    (conversation) => conversation.userId === userId
-  );
-}
+  const userRow = await prisma.chatMessage.create({
+    data: {
+      conversationId: params.conversationId,
+      role: "user",
+      content: params.userMessage,
+      attachments: (params.userAttachments as object[] | undefined) ?? undefined,
+    },
+  });
 
-function sortConversationSummaries(conversations: StoredConversation[]) {
-  return conversations
-    .map(toConversationSummary)
-    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
-}
+  const assistantRow = await prisma.chatMessage.create({
+    data: {
+      conversationId: params.conversationId,
+      role: "assistant",
+      content: params.assistantMessage,
+      sources: (params.assistantSources as object[] | undefined) ?? undefined,
+      followUps: params.assistantFollowUps ?? undefined,
+      safetyFlags: (params.safetyFlags as object[] | undefined) ?? undefined,
+      mode: params.mode,
+      responseStyle: params.responseStyle,
+    },
+  });
 
-function toConversationSummary(conversation: StoredConversation): ChatConversationSummary {
+  const totalMessages = await prisma.chatMessage.count({
+    where: { conversationId: params.conversationId },
+  });
+
+  if (totalMessages > maxMessagesPerConversation) {
+    const oldest = await prisma.chatMessage.findMany({
+      where: { conversationId: params.conversationId },
+      orderBy: { createdAt: "asc" },
+      take: totalMessages - maxMessagesPerConversation,
+      select: { id: true },
+    });
+    await prisma.chatMessage.deleteMany({
+      where: { id: { in: oldest.map((m) => m.id) } },
+    });
+  }
+
+  const newTitle =
+    conversation.isAutoTitle && existingUserCount === 0
+      ? buildConversationTitle(params.userMessage)
+      : undefined;
+
+  const updatedConversation = await prisma.chatConversation.update({
+    where: { id: params.conversationId },
+    data: {
+      preview: truncatePreview(params.assistantMessage),
+      messageCount: Math.min(totalMessages, maxMessagesPerConversation),
+      ...(newTitle ? { title: newTitle, isAutoTitle: false } : {}),
+    },
+  });
+
   return {
-    id: conversation.id,
-    title: conversation.title,
-    preview: conversation.preview,
-    createdAt: conversation.createdAt,
-    updatedAt: conversation.updatedAt,
-    messageCount: conversation.messageCount,
-    isAutoTitle: conversation.isAutoTitle,
+    userMessage: rowToMessage(userRow),
+    assistantMessage: rowToMessage(assistantRow),
+    conversationSummary: toConversationSummary(updatedConversation),
   };
 }
 
-function createEmptyConversation(
-  userId: string,
-  title?: string,
-  forcedId?: string
-): StoredConversation {
-  const now = new Date().toISOString();
-  const trimmedTitle = title?.trim();
-
+function toConversationSummary(row: {
+  id: string;
+  title: string;
+  preview: string;
+  createdAt: Date;
+  updatedAt: Date;
+  messageCount: number;
+  isAutoTitle: boolean;
+}): ChatConversationSummary {
   return {
-    id: forcedId ?? randomUUID(),
-    userId,
-    title: trimmedTitle || defaultConversationTitle,
-    preview: "No messages yet",
-    createdAt: now,
-    updatedAt: now,
-    messageCount: 0,
-    isAutoTitle: !trimmedTitle,
-    messages: [],
+    id: row.id,
+    title: row.title,
+    preview: row.preview,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+    messageCount: row.messageCount,
+    isAutoTitle: row.isAutoTitle,
   };
+}
+
+function rowToMessage(row: {
+  id: string;
+  role: string;
+  content: string;
+  createdAt: Date;
+  sources?: unknown;
+  attachments?: unknown;
+  followUps?: unknown;
+  safetyFlags?: unknown;
+  mode?: string | null;
+  responseStyle?: string | null;
+}): ChatMessage {
+  return {
+    id: row.id,
+    role: row.role as ChatMessage["role"],
+    content: row.content,
+    createdAt: row.createdAt.toISOString(),
+    sources: (row.sources as ChatSourceBadge[] | undefined) ?? undefined,
+    attachments: (row.attachments as ChatAttachment[] | undefined) ?? undefined,
+    followUps: (row.followUps as string[] | undefined) ?? undefined,
+    safetyFlags: (row.safetyFlags as ChatMessage["safetyFlags"]) ?? undefined,
+    mode: (row.mode as ChatMode | undefined) ?? undefined,
+    responseStyle: (row.responseStyle as ChatResponseStyle | undefined) ?? undefined,
+  };
+}
+
+function buildEarlierConversationSummary(earlier: ChatMessage[]): string | null {
+  const userQuestions = earlier
+    .filter((message) => message.role === "user")
+    .map((message) => condenseForSummary(message.content))
+    .filter((point): point is string => point.length > 0);
+
+  if (userQuestions.length === 0) {
+    return null;
+  }
+
+  return userQuestions
+    .slice(-maxSummaryPoints)
+    .map((point) => `- ${point}`)
+    .join("\n");
+}
+
+function condenseForSummary(content: string) {
+  const normalized = content
+    .replace(/^\[Attached PDFs?:.*?\]\s*/i, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!normalized) {
+    return "";
+  }
+
+  const words = normalized.split(" ").slice(0, 16).join(" ");
+  return words.length > 120 ? `${words.slice(0, 117)}...` : words;
 }
 
 function buildConversationTitle(message: string) {
@@ -318,108 +344,4 @@ function buildConversationTitle(message: string) {
 
 function truncatePreview(content: string) {
   return content.length > 80 ? `${content.slice(0, 77)}...` : content;
-}
-
-function getConversationKey(userId: string, conversationId: string) {
-  return `${userId}::${conversationId}`;
-}
-
-function normalizeStorage(parsed: Partial<StorageShape>) {
-  const nextStorage: StorageShape = {
-    conversations: {},
-  };
-  let changed = false;
-
-  for (const [rawKey, rawValue] of Object.entries(parsed.conversations ?? {})) {
-    if (!rawValue || typeof rawValue !== "object") {
-      changed = true;
-      continue;
-    }
-
-    const normalizedConversation = normalizeConversation(rawKey, rawValue);
-
-    if (!normalizedConversation) {
-      changed = true;
-      continue;
-    }
-
-    const normalizedKey = getConversationKey(
-      normalizedConversation.userId,
-      normalizedConversation.id
-    );
-    const existingConversation = nextStorage.conversations[normalizedKey];
-
-    nextStorage.conversations[normalizedKey] = choosePreferredConversation(
-      existingConversation,
-      normalizedConversation
-    );
-
-    if (normalizedKey !== rawKey) {
-      changed = true;
-    }
-  }
-
-  return {
-    storage: nextStorage,
-    changed,
-  };
-}
-
-function normalizeConversation(rawKey: string, rawValue: RawStoredConversation) {
-  const derivedKeyParts = rawKey.split("::");
-  const fallbackUserId = derivedKeyParts.length > 1 ? derivedKeyParts[0] : undefined;
-  const fallbackId = derivedKeyParts.length > 1 ? derivedKeyParts[1] : rawKey;
-  const userId = rawValue.userId ?? fallbackUserId;
-  const id = rawValue.id ?? rawValue.conversationId ?? fallbackId;
-
-  if (!userId || !id) {
-    return null;
-  }
-
-  const messages = Array.isArray(rawValue.messages) ? rawValue.messages : [];
-  const createdAt = rawValue.createdAt ?? messages[0]?.createdAt ?? new Date().toISOString();
-  const updatedAt =
-    rawValue.updatedAt ??
-    messages.at(-1)?.createdAt ??
-    createdAt;
-  const firstUserMessage = messages.find((message) => message.role === "user")?.content ?? "";
-  const fallbackTitle = buildConversationTitle(firstUserMessage);
-  const title = rawValue.title?.trim() || fallbackTitle || defaultConversationTitle;
-  const preview =
-    rawValue.preview ??
-    (messages.length > 0
-      ? truncatePreview(messages.at(-1)?.content ?? "")
-      : "No messages yet");
-  const messageCount = rawValue.messageCount ?? messages.length;
-
-  return {
-    id,
-    userId,
-    title,
-    preview,
-    createdAt,
-    updatedAt,
-    messageCount,
-    isAutoTitle: rawValue.isAutoTitle ?? !rawValue.title,
-    messages,
-  } satisfies StoredConversation;
-}
-
-function choosePreferredConversation(
-  existing: StoredConversation | undefined,
-  candidate: StoredConversation
-) {
-  if (!existing) {
-    return candidate;
-  }
-
-  if (candidate.messageCount > existing.messageCount) {
-    return candidate;
-  }
-
-  if (candidate.updatedAt > existing.updatedAt) {
-    return candidate;
-  }
-
-  return existing;
 }

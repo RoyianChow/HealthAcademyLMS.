@@ -1,18 +1,24 @@
 import "server-only";
 
-import { mockUsers } from "@/app/data/mock-chat-data";
-import { getChatConfig } from "@/lib/chat/config";
+import { prisma } from "@/lib/db";
 import type { ChatUserContext } from "@/lib/chat/types";
 
-export async function resolveChatUserContext(
-  requestedUserId?: string
-): Promise<ChatUserContext> {
-  const { defaultUserId } = await getChatConfig();
-  const targetUserId = requestedUserId ?? defaultUserId;
+export async function resolveChatUserContext(userId: string): Promise<ChatUserContext> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, name: true, email: true },
+  });
 
-  return (
-    mockUsers.find((user) => user.id === targetUserId) ??
-    mockUsers.find((user) => user.id === defaultUserId) ??
-    mockUsers[0]
-  );
+  if (!user) {
+    throw new Error("User not found.");
+  }
+
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    goals: [],
+    dietaryFocus: [],
+    enrolledCourseIds: [],
+  };
 }

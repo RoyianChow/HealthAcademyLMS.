@@ -20,8 +20,15 @@ export const env = createEnv({
   GOOGLE_CLIENT_ID: z.string().min(1),
   GOOGLE_CLIENT_SECRET: z.string().min(1),
 
-  // ✅ ADD THIS
   S3_BUCKET_NAME: z.string().min(1),
+
+  // AI Advisor — at least one of OPENAI_API_KEY or OPENROUTER_API_KEY is needed for live replies.
+  // If neither is set, the advisor falls back to rule-based responses (local dev only).
+  CHAT_PROVIDER: z.enum(["openai", "openrouter"]).optional(),
+  OPENAI_API_KEY: z.string().optional(),
+  OPENAI_MODEL: z.string().optional(),
+  OPENROUTER_API_KEY: z.string().optional(),
+  OPENROUTER_MODEL: z.string().optional(),
 },
 
   client: {

@@ -14,9 +14,10 @@ import {
   buildUserAttachments,
 } from "@/lib/chat/response-meta";
 import { applySafetyPostProcessing, analyzeSafety } from "@/lib/chat/safety";
-import { appendConversationTurn, getConversationMessages } from "@/lib/chat/store";
+import { appendConversationTurn, getConversationContext } from "@/lib/chat/store";
 import type { ChatPreferences } from "@/lib/chat/types";
 import { resolveChatUserContext } from "@/lib/chat/user-context";
+import { requireUser } from "@/app/data/user/require-user";
 
 export const runtime = "nodejs";
 
@@ -27,7 +28,6 @@ const pdfScopeSchema = z.enum(["blend", "focus"]);
 
 const chatRequestSchema = z.object({
   message: z.string().trim().max(1000),
-  userId: z.string().optional(),
   activeCourseId: z.string().nullable().optional(),
   conversationId: z.string().min(1),
   mode: modeSchema.optional(),
@@ -39,6 +39,7 @@ const chatRequestSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    const sessionUser = await requireUser();
     const { body, uploadedPdfs } = await parseRequest(request);
 
     if (!body.message && uploadedPdfs.length === 0) {
@@ -49,11 +50,11 @@ export async function POST(request: Request) {
     const effectiveQuestion =
       body.message || "Please use the attached PDFs as context for this question.";
 
-    const user = await resolveChatUserContext(body.userId);
+    const user = await resolveChatUserContext(sessionUser.id);
     const accessibleCourses = await getAccessibleCoursesForUser(user);
     const attachedPdfs =
       uploadedPdfs.length > 0 ? await extractPdfContexts(uploadedPdfs) : [];
-    const history = await getConversationMessages({
+    const { recentMessages, earlierSummary } = await getConversationContext({
       userId: user.id,
       conversationId: body.conversationId,
     });
@@ -74,7 +75,8 @@ export async function POST(request: Request) {
         preferences,
       },
       question: effectiveQuestion,
-      history,
+      history: recentMessages,
+      conversationSummary: earlierSummary,
       relevantExcerpts,
       attachedPdfs,
       safetyPromptBlock: safety.promptBlock,
@@ -138,7 +140,6 @@ async function parseRequest(request: Request) {
 
     const body = chatRequestSchema.parse({
       message: formData.get("message") ?? "",
-      userId: formData.get("userId") ?? undefined,
       activeCourseId:
         formData.get("activeCourseId") === "all"
           ? null
