@@ -96,7 +96,7 @@ See [GETTING_STARTED.md](./GETTING_STARTED.md) for architecture overview, design
 1. **Clone the repository:**
 
 ```bash
-git clone git@github.com:RoyianChow/HealthAcademyLMS..git
+git clone https://github.com/RoyianChow/HealthAcademyLMS..git
 cd HealthAcademyLMS.
 ```
 
