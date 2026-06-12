@@ -25,10 +25,10 @@ export function LessonItem({ lesson, slug, isActive, completed }: iAppProps) {
           "w-full p-2.5 h-auto justify-start transition-all",
           completed &&
             "bg-green-100 dark:bg-green-900/30 border-green-300 dark:border-green-700 hover:bg-green-200 dark:hover:bg-green-900/50 text-green-800 dark:text-green-200",
-
           isActive &&
             !completed &&
-            "bg-primary/10 dark:bg-primary/20 border-primary/50 hover:bg-primary/20 dark:hover:bg-primary/30 text-primary"
+            "bg-primary/10 dark:bg-primary/20 border-primary/50 hover:bg-primary/20 dark:hover:bg-primary/30 text-primary",
+          !isActive && !completed && "hover:bg-muted"
         ),
       })}
     >
@@ -60,7 +60,7 @@ export function LessonItem({ lesson, slug, isActive, completed }: iAppProps) {
         <div className="flex-1 text-left min-w-0">
           <p
             className={cn(
-              "test-xs font-medium truncate",
+              "text-xs font-medium truncate",
               completed
                 ? "text-green-800 dark:text-green-200"
                 : isActive
@@ -77,7 +77,7 @@ export function LessonItem({ lesson, slug, isActive, completed }: iAppProps) {
           )}
 
           {isActive && !completed && (
-            <p className="text-[10px] text-primary font-mediums">
+            <p className="text-[10px] text-primary font-medium">
               Currently Watching
             </p>
           )}
