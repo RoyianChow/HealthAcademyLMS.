@@ -46,7 +46,8 @@ vi.mock("next/server", () => ({
 vi.mock("@arcjet/next", () => ({
   default: vi.fn(() => ({})),
   createMiddleware: vi.fn(
-    (_aj: unknown, handler: (req: NextRequest) => unknown) => handler
+    (_aj: unknown, handler: (req: NextRequest) => unknown) =>
+      (req: NextRequest) => handler(req)
   ),
   detectBot: vi.fn(() => ({})),
 }));
@@ -70,6 +71,13 @@ function buildRequest(pathname: string): NextRequest {
   } as unknown as NextRequest;
 }
 
+function runMiddleware(pathname: string) {
+  return middleware(
+    buildRequest(pathname),
+    {} as Parameters<typeof middleware>[1]
+  );
+}
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe("middleware", () => {
@@ -91,7 +99,7 @@ describe("middleware", () => {
     ])(
       "passes %s through without inspecting the session cookie",
       async (pathname) => {
-        await middleware(buildRequest(pathname));
+        await runMiddleware(pathname);
 
         expect(mockGetSessionCookie).not.toHaveBeenCalled();
         expect(mockNext).toHaveBeenCalledTimes(1);
@@ -122,7 +130,7 @@ describe("middleware", () => {
     ])(
       "redirects %s to /login when no session cookie exists",
       async (pathname) => {
-        await middleware(buildRequest(pathname));
+        await runMiddleware(pathname);
 
         expect(mockRedirect).toHaveBeenCalledOnce();
         const redirectArg = mockRedirect.mock.calls[0][0] as URL;
@@ -133,7 +141,7 @@ describe("middleware", () => {
     /** Confirms NextResponse.next() is never invoked when redirecting, preventing
      *  a conflicting "continue" response from being sent alongside the redirect. */
     it("does not call NextResponse.next() for an unauthenticated /admin request", async () => {
-      await middleware(buildRequest("/admin/courses"));
+      await runMiddleware("/admin/courses");
 
       expect(mockNext).not.toHaveBeenCalled();
     });
@@ -156,7 +164,7 @@ describe("middleware", () => {
     ])(
       "allows %s through when a session cookie is present",
       async (pathname) => {
-        await middleware(buildRequest(pathname));
+        await runMiddleware(pathname);
 
         expect(mockNext).toHaveBeenCalledTimes(1);
         expect(mockRedirect).not.toHaveBeenCalled();
@@ -174,7 +182,7 @@ describe("middleware", () => {
         // the middleware cannot differentiate them.
         mockGetSessionCookie.mockReturnValue("user-role-session-cookie");
 
-        await middleware(buildRequest("/admin/courses"));
+        await runMiddleware("/admin/courses");
 
         expect(mockNext).toHaveBeenCalledTimes(1);
         expect(mockRedirect).not.toHaveBeenCalled();
@@ -193,7 +201,7 @@ describe("middleware", () => {
       /** A path like `/adminxyz` still begins with `/admin`, so it is gated the
        *  same way as `/admin/courses` — unauthenticated users go to /login. */
       it("redirects /adminxyz to /login when no session cookie exists", async () => {
-        await middleware(buildRequest("/adminxyz"));
+        await runMiddleware("/adminxyz");
 
         expect(mockRedirect).toHaveBeenCalledOnce();
         const redirectArg = mockRedirect.mock.calls[0][0] as URL;
@@ -209,7 +217,7 @@ describe("middleware", () => {
       /** With any session cookie present, `/adminxyz` passes through — same as
        *  legitimate `/admin` children; role is still unchecked here. */
       it("allows /adminxyz through when a session cookie is present", async () => {
-        await middleware(buildRequest("/adminxyz"));
+        await runMiddleware("/adminxyz");
 
         expect(mockNext).toHaveBeenCalledTimes(1);
         expect(mockRedirect).not.toHaveBeenCalled();

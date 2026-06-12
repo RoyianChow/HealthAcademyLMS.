@@ -833,7 +833,7 @@ describe("Admin server actions — user role access (integration)", () => {
 
       const lessonId = "00000000-0000-4000-8000-000000000010";
       
-      const result = await updateLesson(VALID_LESSON as any, lessonId);
+      const result = await updateLesson(VALID_LESSON as never, lessonId);
 
       expect(mockRedirect).not.toHaveBeenCalled();
       expect(result).toEqual({

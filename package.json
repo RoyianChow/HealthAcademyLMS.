@@ -6,14 +6,21 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint app components lib hooks tests middleware.ts prisma/seed-test.ts",
     "postinstall": "prisma generate",
     "test": "vitest run",
     "test:unit": "vitest run --project unit",
     "test:integration": "vitest run --project integration",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:coverage:unit": "vitest run --coverage --project unit"
+    "test:coverage:unit": "vitest run --coverage --project unit",
+    "test:db:up": "docker compose -f docker-compose.test.yml up -d",
+    "test:db:down": "docker compose -f docker-compose.test.yml down",
+    "test:db:reset": "DATABASE_URL=postgresql://test:test@localhost:5433/healthacademy_test prisma migrate reset --force",
+    "test:db:setup": "npm run test:db:up && sleep 2 && npm run test:db:reset"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed-test.ts"
   },
   "dependencies": {
     "@arcjet/inspect": "1.0.0-beta.8",
@@ -93,8 +100,10 @@
     "@vitest/coverage-v8": "^4.1.5",
     "eslint": "^9",
     "eslint-config-next": "15.3.3",
+    "msw": "^2.14.6",
     "prisma": "^6.8.2",
     "tailwindcss": "^4",
+    "tsx": "^4.22.4",
     "tw-animate-css": "^1.3.3",
     "typescript": "^5",
     "vite-tsconfig-paths": "^6.1.1",

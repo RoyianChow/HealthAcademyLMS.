@@ -396,7 +396,7 @@ describe("API routes — user role RBAC (integration)", () => {
             update: vi.fn().mockResolvedValue({}),
           },
         };
-        return (fn as (t: typeof tx) => Promise<unknown>)(tx);
+        return (fn as unknown as (t: typeof tx) => Promise<unknown>)(tx);
       });
 
       const body = {

@@ -380,7 +380,7 @@ describe("PATCH /admin/quizzes/[quizId] — admin can update (unit)", () => {
           update: vi.fn().mockResolvedValue({}),
         },
       };
-      return (fn as (t: typeof tx) => Promise<unknown>)(tx);
+      return (fn as unknown as (t: typeof tx) => Promise<unknown>)(tx);
     });
 
     const body = {
