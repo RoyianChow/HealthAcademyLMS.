@@ -134,7 +134,7 @@ erDiagram
 ### Notes
 
 - `User.role` — only `"admin"` is recognized by the app. All other users (including `null`) are treated as regular learners.
-- `User.banned` — triggers a site-wide block enforced by the `admin()` better-auth plugin. **Do not use this field for community-only bans** — see the implementation roadmap for the distinction issue.
+- `User.banned` — triggers a site-wide block enforced by the `admin()` better-auth plugin. **Do not use this field for community-only bans** — see the  for the distinction issue.
 - `Account` — one row per OAuth provider linked to the user (GitHub, Google). Also used for credential (email/password) accounts.
 - `Verification` — stores OTP codes for email-OTP sign-in. Managed entirely by better-auth; rows are cleaned up on use or expiry.
 
@@ -378,7 +378,7 @@ erDiagram
 - `QuizAttempt` has a unique constraint on `(quizId, userId, attemptNumber)`. If `allowMultipleAttempts` is false, users are blocked from starting a second attempt.
 - `QuizAnswer` has a unique constraint on `(attemptId, questionId)` — one answer per question per attempt.
 - `QuizOption.isCorrect` is the ground truth. `QuizAnswer.isCorrect` is derived on grading.
-- Quizzes are currently attached to chapters via `chapterId`. A `position` field (to allow ordering relative to lessons) is a planned improvement — see the implementation roadmap.
+- Quizzes are currently attached to chapters via `chapterId`. A `position` field (to allow ordering relative to lessons) is a planned improvement.
 
 ---
 
@@ -426,7 +426,7 @@ erDiagram
 - `CommunityLike` has a unique constraint on `(postId, userId)` — one like per user per post. Toggling calls an upsert/delete pattern.
 - Posts are scoped to a `courseId` — learners only see the forum for courses they are enrolled in.
 - `CommunityPost.isPinned` allows admins to highlight important announcements at the top of the feed.
-- User bans are checked before creating posts, comments, or likes (see `app/actions/community/`). Note the current known issue with site-wide vs community-only bans — see the implementation roadmap.
+- User bans are checked before creating posts, comments, or likes (see `app/actions/community/`).
 
 ---
 
