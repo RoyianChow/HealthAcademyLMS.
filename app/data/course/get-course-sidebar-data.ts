@@ -76,9 +76,31 @@ export async function getCourseSidebarData(slug: string) {
                   description: true,
                   isPublished: true,
                   chapterId: true,
+                  passingScore: true,
+                  attempts: {
+                    where: { userId: session.id },
+                    select: { score: true },
+                    orderBy: { score: "desc" },
+                    take: 1,
+                  },
                 },
               }
-            : false,
+            : {
+                where: { id: "none" }, 
+                select: {
+                  id: true,
+                  title: true,
+                  description: true,
+                  isPublished: true,
+                  chapterId: true,
+                  passingScore: true,
+                  attempts: {
+                    where: { id: "none" },
+                    select: { score: true },
+                    take: 1,
+                  }
+                }
+              },
         },
       },
     },
@@ -89,9 +111,9 @@ export async function getCourseSidebarData(slug: string) {
   }
 
   const sanitizedChapters = course.chapters.map((chapter) => ({
-    ...chapter,
-    quizzes: chapter.quizzes || [],
-  }));
+  ...chapter,
+  quizzes: Array.isArray(chapter.quizzes) ? chapter.quizzes : [],
+}));
 
   return {
     course: {
