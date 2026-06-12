@@ -12,7 +12,6 @@ import {
 import { Progress } from "@/components/ui/progress";
 import {
   ChevronDown,
-  ClipboardList,
   MessageCircle,
   Play,
 } from "lucide-react";
