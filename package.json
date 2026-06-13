@@ -18,8 +18,9 @@
     "test:db:down": "docker compose -f docker-compose.test.yml down",
     "test:db:reset": "DATABASE_URL=postgresql://test:test@localhost:5433/healthacademy_test prisma migrate reset --force",
     "test:db:setup": "npm run test:db:up && sleep 2 && npm run test:db:reset",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e": "NODE_OPTIONS='--import tsx' playwright test",
+    "test:e2e:ui": "NODE_OPTIONS='--import tsx' playwright test --ui",
+    "test:all": "bash scripts/test-all.sh"
   },
   "prisma": {
     "seed": "tsx prisma/seed-test.ts"

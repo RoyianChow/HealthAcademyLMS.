@@ -69,7 +69,7 @@ export function CourseProgressCard({ data }: CourseProgressCardProps) {
               <p className="font-semibold">{safeProgress}%</p>
             </div>
 
-            <Progress value={safeProgress} className="h-2" />
+            <Progress value={safeProgress} className="h-2" aria-label="Course progress" />
 
             <p className="text-xs text-muted-foreground">
               {completedLessons} of {totalLessons} lessons completed

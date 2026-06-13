@@ -23,6 +23,13 @@ const IDS = {
 
 const now = new Date("2026-01-01T00:00:00.000Z");
 
+function tipTapDescription(text: string) {
+  return JSON.stringify({
+    type: "doc",
+    content: [{ type: "paragraph", content: [{ type: "text", text }] }],
+  });
+}
+
 async function seedUsers() {
   const userBase = {
     emailVerified: true,
@@ -76,7 +83,9 @@ async function seedCourse() {
     create: {
       id: IDS.course,
       title: "Test Nutrition Course",
-      description: "A seeded course for integration and E2E tests.",
+      description: tipTapDescription(
+        "A seeded course for integration and E2E tests."
+      ),
       fileKey: "courses/test-course.pdf",
       price: 9900,
       duration: 10,
@@ -157,7 +166,9 @@ async function seedSecondCourse() {
     create: {
       id: IDS.course2,
       title: "Advanced Nutrition",
-      description: "A second seeded course for enrollment E2E tests.",
+      description: tipTapDescription(
+        "A second seeded course for enrollment E2E tests."
+      ),
       fileKey: "courses/test-advanced-course.pdf",
       price: 14900,
       duration: 12,

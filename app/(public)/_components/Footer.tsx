@@ -23,7 +23,7 @@ export function Footer() {
         <div className="h-[1px] w-full bg-neutral-200" />
 
         {/* Bottom Row */}
-        <div className="flex items-center justify-between text-xs text-neutral-500">
+        <div className="flex items-center justify-between text-xs text-neutral-600">
           <p>© 2026 Happy Nutrition LTD</p>
           
           {/* Instagram Link Button */}

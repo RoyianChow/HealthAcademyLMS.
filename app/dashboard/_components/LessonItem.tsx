@@ -64,7 +64,7 @@ export function LessonItem({ lesson, slug, isActive, completed }: iAppProps) {
               completed
                 ? "text-green-800 dark:text-green-200"
                 : isActive
-                  ? "text-primary font-semibold"
+                  ? "text-foreground font-semibold"
                   : "text-foreground"
             )}
           >
@@ -77,7 +77,7 @@ export function LessonItem({ lesson, slug, isActive, completed }: iAppProps) {
           )}
 
           {isActive && !completed && (
-            <p className="text-[10px] text-primary font-medium">
+            <p className="text-[10px] text-muted-foreground font-medium">
               Currently Watching
             </p>
           )}

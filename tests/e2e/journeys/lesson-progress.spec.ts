@@ -30,7 +30,7 @@ test.describe("lesson progress journey", () => {
 
     await expect(lessonLink.getByText("Completed")).toBeVisible();
 
-    const progressLabel = page.locator("text=Progress").first().locator("xpath=..");
-    await expect(progressLabel).toContainText(/[1-9]\d*%/);
+    await expect(page.getByText("1/1 lessons")).toBeVisible();
+    await expect(page.getByText("100% complete")).toBeVisible();
   });
 });

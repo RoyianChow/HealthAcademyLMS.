@@ -529,7 +529,7 @@ export function FloatingChat({
             <header className="border-b border-border px-4 py-3 sm:px-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/80">
+                  <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
                     Before you continue
                   </p>
                   <h3 className="mt-2 font-heading text-[1.5rem] font-semibold">
@@ -537,7 +537,12 @@ export function FloatingChat({
                   </h3>
                 </div>
 
-                <Button onClick={handleClose} size="icon" variant="ghost">
+                <Button
+                  aria-label="Close disclaimer"
+                  onClick={handleClose}
+                  size="icon"
+                  variant="ghost"
+                >
                   <X className="h-5 w-5" />
                 </Button>
               </div>
@@ -598,7 +603,7 @@ export function FloatingChat({
           <div className="border-b border-border px-4 py-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary/80">
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
                   Nutrition coach
                 </p>
                 <h2 className="mt-2 truncate font-heading text-[1.45rem] font-semibold">
@@ -609,6 +614,7 @@ export function FloatingChat({
                 </p>
               </div>
               <Button
+                aria-label="Close sidebar"
                 className="md:hidden"
                 onClick={() => setShowSidebar(false)}
                 size="icon"
@@ -723,6 +729,7 @@ export function FloatingChat({
                 <div className="flex items-center gap-2">
                   {!isSidebar && (
                     <Button
+                      aria-label="Open sidebar"
                       className="md:hidden"
                       onClick={() => setShowSidebar(true)}
                       size="icon"
@@ -747,6 +754,7 @@ export function FloatingChat({
                 {isSidebar ? (
                   <>
                     <Button
+                      aria-label="New chat"
                       onClick={() => {
                         setShowHistory(false);
                         void mutateConversation("create");
@@ -758,6 +766,7 @@ export function FloatingChat({
                       <Plus className="h-5 w-5" />
                     </Button>
                     <Button
+                      aria-label="Chat history"
                       onClick={() => setShowHistory((current) => !current)}
                       size="icon"
                       variant={showHistory ? "secondary" : "ghost"}
@@ -771,6 +780,7 @@ export function FloatingChat({
                         <div className="flex items-center justify-between border-b border-border px-4 py-3">
                           <p className="text-sm font-semibold">Previous chats</p>
                           <Button
+                            aria-label="Close chat history"
                             className="h-7 w-7"
                             onClick={() => setShowHistory(false)}
                             size="icon"
@@ -860,10 +870,16 @@ export function FloatingChat({
                     ) : null}
                   </>
                 ) : null}
-                <Button onClick={exportTranscript} size="icon" variant="ghost">
+                <Button
+                  aria-label="Export transcript"
+                  onClick={exportTranscript}
+                  size="icon"
+                  variant="ghost"
+                >
                   <Download className="h-5 w-5" />
                 </Button>
                 <Button
+                  aria-label="Clear conversation"
                   onClick={() =>
                     void mutateConversation("clear", {
                       conversationId: activeConversationId,
@@ -875,13 +891,19 @@ export function FloatingChat({
                   <Trash2 className="h-5 w-5" />
                 </Button>
                 <Button
+                  aria-label="Chat settings"
                   onClick={() => setShowSettings((current) => !current)}
                   size="icon"
                   variant={showSettings ? "secondary" : "ghost"}
                 >
                   <Settings2 className="h-5 w-5" />
                 </Button>
-                <Button onClick={handleClose} size="icon" variant="ghost">
+                <Button
+                  aria-label="Close disclaimer"
+                  onClick={handleClose}
+                  size="icon"
+                  variant="ghost"
+                >
                   <X className="h-5 w-5" />
                 </Button>
 
@@ -1093,6 +1115,7 @@ export function FloatingChat({
 
                           {isAssistant ? (
                             <Button
+                              aria-label="Copy message"
                               className="h-8 w-8 rounded-full"
                               onClick={() => void copyMessage(message)}
                               size="icon"
@@ -1249,6 +1272,7 @@ export function FloatingChat({
               />
 
               <Button
+                aria-label="Attach PDF"
                 className="absolute bottom-4 left-4 rounded-full"
                 onClick={() => fileInputRef.current?.click()}
                 size="icon"

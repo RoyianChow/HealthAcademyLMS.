@@ -9,15 +9,22 @@ test.describe("quiz journey", () => {
     await page.waitForLoadState("networkidle");
 
     await page.getByRole("button", { name: "Start Quiz" }).click();
-    await expect(page.getByText("Attempt #")).toBeVisible();
-    await assertNoA11yViolations(page);
+    await expect(page.getByText("Attempt #1", { exact: true })).toBeVisible();
 
     await page.getByRole("button", { name: /Carbohydrates/ }).click();
     await page.getByRole("button", { name: /Amino acids/ }).click();
+    await expect(page.locator("[data-sonner-toast]")).toHaveCount(0, {
+      timeout: 10_000,
+    });
+    await assertNoA11yViolations(page);
 
     await page.getByRole("button", { name: "Submit Quiz" }).click();
 
-    await expect(page.getByText("Passed")).toBeVisible();
+    await expect(
+      page.locator('[data-slot="card-title"]').filter({
+        hasText: "Quiz submitted successfully. You passed.",
+      })
+    ).toBeVisible();
     await expect(page.getByText("Score: 100%")).toBeVisible();
 
     const attempt = await getLatestQuizAttempt(

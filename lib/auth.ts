@@ -11,6 +11,11 @@ export const auth = betterAuth({
     provider: "postgresql",
   }),
 
+  advanced: {
+    // E2E runs next start over http://localhost — secure cookies would not be sent.
+    useSecureCookies: process.env.E2E_TEST === "true" ? false : undefined,
+  },
+
   socialProviders: {
     github: {
       clientId: env.AUTH_GITHUB_CLIENT_ID,

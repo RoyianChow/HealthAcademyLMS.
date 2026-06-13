@@ -1,15 +1,22 @@
-import { randomBytes } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { chromium } from "@playwright/test";
 import { PrismaClient } from "../../../src/generated/prisma/client";
 import { E2E_SEED } from "../fixtures/seed-ids";
+import {
+  buildSessionCookie,
+  signSessionCookieValue,
+} from "./session-cookie";
 
 const AUTH_DIR = path.join(__dirname, "..", ".auth");
-const SESSION_COOKIE = "better-auth.session_token";
 
-async function upsertSession(prisma: PrismaClient, userId: string, sessionId: string) {
-  const token = randomBytes(32).toString("hex");
+async function upsertSession(
+  prisma: PrismaClient,
+  userId: string,
+  sessionId: string
+) {
+  const crypto = await import("node:crypto");
+  const token = crypto.randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   const now = new Date();
 
@@ -30,23 +37,26 @@ async function upsertSession(prisma: PrismaClient, userId: string, sessionId: st
     },
   });
 
-  return token;
+  return { token, expiresAt };
 }
 
-async function saveStorageState(role: "student" | "admin", token: string) {
+async function saveStorageState(
+  role: "student" | "admin",
+  token: string,
+  expiresAt: Date
+) {
+  const secret = process.env.BETTER_AUTH_SECRET;
+  if (!secret) {
+    throw new Error("BETTER_AUTH_SECRET is required for E2E auth setup.");
+  }
+
+  const signedValue = await signSessionCookieValue(token, secret);
+  const cookie = buildSessionCookie(signedValue, expiresAt);
+
   const browser = await chromium.launch();
   const context = await browser.newContext();
 
-  await context.addCookies([
-    {
-      name: SESSION_COOKIE,
-      value: token,
-      domain: "localhost",
-      path: "/",
-      httpOnly: true,
-      sameSite: "Lax",
-    },
-  ]);
+  await context.addCookies([cookie]);
 
   fs.mkdirSync(AUTH_DIR, { recursive: true });
   await context.storageState({
@@ -57,19 +67,19 @@ async function saveStorageState(role: "student" | "admin", token: string) {
 }
 
 export async function createAuthStorageStates(prisma: PrismaClient) {
-  const studentToken = await upsertSession(
+  const studentSession = await upsertSession(
     prisma,
     E2E_SEED.studentUser,
     "e2e-session-student"
   );
-  const adminToken = await upsertSession(
+  const adminSession = await upsertSession(
     prisma,
     E2E_SEED.adminUser,
     "e2e-session-admin"
   );
 
   await Promise.all([
-    saveStorageState("student", studentToken),
-    saveStorageState("admin", adminToken),
+    saveStorageState("student", studentSession.token, studentSession.expiresAt),
+    saveStorageState("admin", adminSession.token, adminSession.expiresAt),
   ]);
 }

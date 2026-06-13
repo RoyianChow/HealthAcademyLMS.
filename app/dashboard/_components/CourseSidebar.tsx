@@ -84,7 +84,11 @@ export function CourseSidebar({ course, isEnrolled }: iAppProps) {
             </span>
           </div>
 
-          <Progress value={progressPercentage} className="h-1.5" />
+          <Progress
+            value={progressPercentage}
+            className="h-1.5"
+            aria-label="Course progress"
+          />
 
           <p className="text-xs text-muted-foreground">
             {progressPercentage}% complete

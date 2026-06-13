@@ -384,20 +384,28 @@ lib/chat/safety.ts  (implicit via unit tests)
 
 ## 7. Bugs Found and Fixes Applied
 
-The following bugs were identified during test development. All are now fixed and the tests serve as regression guards.
+The following bugs were identified during test development across all layers — unit tests, integration tests, and the first full Playwright E2E run. All are now fixed; the tests serve as regression guards.
 
-### Bug 1 — `requireAdmin()` missing from quiz API routes
+Bugs are grouped by category. **Severity** reflects user impact if shipped to production.
+
+---
+
+### 7.1 Security and authorization
+
+#### Bug 1 — `requireAdmin()` missing from quiz API routes
 
 **Severity:** Critical (auth bypass)  
+**Discovered by:** Integration tests (`tests/integration/rbac/api-routes.test.ts`)  
 **Affected routes:** `POST /api/quizzes`, `PATCH /api/quizzes/[quizId]`  
 **Symptom:** A logged-in user with `role: "user"` could create and modify quizzes.  
 **Root cause:** The route handlers for quiz creation and update were missing the `requireAdmin()` call entirely. Any authenticated request bypassed the admin gate.  
 **Fix:** Added `await requireAdmin()` before the business logic in both handlers.  
 **Regression test:** `tests/integration/rbac/api-routes.test.ts` — "user" role redirected to `/not-admin`.
 
-### Bug 2 — `requireAdmin()` inside `try/catch` in S3 upload route
+#### Bug 2 — `requireAdmin()` inside `try/catch` in S3 upload route
 
 **Severity:** Critical (auth bypass silently returns 500)  
+**Discovered by:** Integration tests (`tests/integration/rbac/api-routes.test.ts`)  
 **Affected route:** `POST /api/s3/upload`  
 **Symptom:** A logged-in user with `role: "user"` who called the S3 presigned URL endpoint received a 500 error instead of a redirect. The `NEXT_REDIRECT` thrown by `requireAdmin()` was caught by the surrounding try/catch and returned as an internal server error.  
 **Root cause:** `requireAdmin()` was placed inside a `try { }` block. Next.js redirects work by throwing a special error (`NEXT_REDIRECT`); catching it silently swallows the redirect.  
@@ -405,28 +413,167 @@ The following bugs were identified during test development. All are now fixed an
 **Regression test:** `tests/integration/rbac/api-routes.test.ts` — dedicated regression note in the test file; asserts NEXT_REDIRECT propagates correctly.  
 **Design rule enforced:** `requireAdmin()` and `requireUser()` must always be called **before** any try/catch block. The test suite documents this explicitly.
 
-### Bug 3 — Case-insensitive role comparison in `deleteCommunityPost` / `deleteCommunityComment`
+#### Bug 3 — Case-insensitive role comparison in community delete actions
 
 **Severity:** Medium (inconsistent authorization)  
+**Discovered by:** Integration tests (`tests/integration/rbac/community-actions.test.ts`)  
 **Affected actions:** `deleteCommunityPost`, `deleteCommunityComment`  
 **Symptom:** The admin check in community delete actions used `String(role).toLowerCase() === "admin"`, meaning `"Admin"` would pass. However, `requireAdmin()` uses strict `=== "admin"`. The inconsistency was not a security hole but created unpredictable behaviour.  
 **Finding:** Test `community-actions.test.ts` documents both `"admin"` and `"Admin"` (uppercase-A) role strings. The `ADMIN_UPPER_SESSION` fixture confirms that the current soft implementation accepts both — this is documented behaviour, not a fix required.  
-**Test:** `tests/integration/rbac/community-actions.test.ts` — `ADMIN_UPPER_SESSION` fixture with `role: "Admin"`.
+**Regression test:** `tests/integration/rbac/community-actions.test.ts` — `ADMIN_UPPER_SESSION` fixture with `role: "Admin"`.
 
-### Design Finding — Middleware checks cookie presence only (not role)
+---
 
-**Type:** Design documentation (not a bug)  
+### 7.2 E2E infrastructure and test environment
+
+These bugs only surfaced when Playwright ran against a real `next start` server and a real Postgres database. Unit and integration tests (mocked I/O) did not catch them.
+
+#### Bug 4 — E2E app connected to the wrong database
+
+**Severity:** Critical (all authenticated E2E tests failed)  
+**Discovered by:** Playwright E2E run — journeys redirected to `/login`; `/courses` showed production data instead of seeded test courses  
+**Symptom:** `global-setup` created sessions in the test DB (`localhost:5433`), but `next start` read `DATABASE_URL` from the developer's `.env` (Neon/production). Auth cookies pointed at sessions the running app could not find.  
+**Root cause:** Playwright's `webServer` inherited the shell environment (or a reused dev server on port 3000) without loading `.env.test`. `reuseExistingServer: !process.env.CI` also allowed an already-running dev server with production config to satisfy health checks.  
+**Fix:**
+- Added `tests/e2e/load-test-env.ts` — loads `.env.test` / `.env.test.example` before Playwright starts
+- `playwright.config.ts` passes explicit test env vars to `webServer.env`
+- Set `reuseExistingServer: false` so E2E always starts a fresh server with test config
+- `scripts/test-all.sh` exports test env before build and E2E  
+**Regression test:** All authenticated E2E journeys and student/admin a11y specs (12/12 passing).
+
+#### Bug 5 — Better Auth session cookies were not signed
+
+**Severity:** Critical (auth bypass in E2E — all logged-in journeys failed)  
+**Discovered by:** Playwright E2E — quiz/lesson journeys landed on `/login` despite `storageState` files  
+**Symptom:** `tests/e2e/helpers/auth.ts` inserted a raw session token into the `better-auth.session_token` cookie. Better Auth expects `token.hmacSignature` (HMAC-SHA256 with `BETTER_AUTH_SECRET`).  
+**Root cause:** Manual DB session seeding without cookie signing.  
+**Fix:**
+- Added `tests/e2e/helpers/session-cookie.ts` using `makeSignature` from `better-auth/crypto`
+- `createAuthStorageStates` now writes properly signed cookies to `tests/e2e/.auth/student.json` and `admin.json`  
+**Regression test:** `tests/e2e/journeys/quiz.spec.ts`, `lesson-progress.spec.ts`, and student a11y specs.
+
+#### Bug 6 — Secure cookies blocked on `http://localhost` during E2E
+
+**Severity:** High (auth cookies not sent in E2E)  
+**Discovered by:** Playwright E2E (in combination with Bug 5)  
+**Symptom:** `next start` runs with `NODE_ENV=production`. Better Auth enables `__Secure-` prefixed cookies and `secure: true` in production, which browsers refuse to send over plain HTTP.  
+**Fix:** `lib/auth.ts` sets `advanced.useSecureCookies: false` when `E2E_TEST=true`. Playwright and CI set `E2E_TEST=true` in `webServer.env` and `.env.test.example`.  
+**Regression test:** Same authenticated E2E specs as Bug 5.
+
+#### Bug 7 — Prisma client failed to load in Playwright global setup
+
+**Severity:** High (E2E suite could not start)  
+**Discovered by:** First local `npm run test:e2e` run  
+**Symptom:** `ReferenceError: exports is not defined in ES module scope` when `global-setup.ts` imported `src/generated/prisma/client`.  
+**Root cause:** Playwright transpiles test files as CommonJS while the Prisma 6 generated client is ESM (`import.meta`).  
+**Fix:** `package.json` `test:e2e` script runs with `NODE_OPTIONS='--import tsx'`. CI sets `NODE_OPTIONS: --import tsx` on the `e2e-tests` job.  
+**Regression test:** `global-setup.ts` completes and all 12 E2E specs run.
+
+---
+
+### 7.3 Data and content
+
+#### Bug 8 — Seeded course descriptions crashed the public course page
+
+**Severity:** High (course detail page 500 in E2E)  
+**Discovered by:** Playwright enrollment journey — `/courses/test-advanced-nutrition` showed "This page couldn't load"  
+**Symptom:** `SyntaxError: Unexpected token 'A', "A second s"... is not valid JSON`  
+**Root cause:** `app/(public)/courses/[slug]/page.tsx` calls `JSON.parse(course.description)` expecting TipTap JSON. `prisma/seed-test.ts` stored plain-text descriptions.  
+**Fix:** Added `tipTapDescription()` helper in `prisma/seed-test.ts` that wraps seed text in valid TipTap document JSON.  
+**Regression test:** `tests/e2e/journeys/enroll.spec.ts` — navigates to course detail and clicks "Enroll Now!".
+
+---
+
+### 7.4 Accessibility (WCAG 2.0/2.1 AA)
+
+Discovered by `@axe-core/playwright` scans in `tests/e2e/a11y/pages.spec.ts` and inline `assertNoA11yViolations` calls in journey specs. Initial E2E run: **12/12 tests failed** on a11y and/or auth; after fixes: **12/12 passing**.
+
+#### Bug 9 — Primary brand color failed contrast on buttons and badges
+
+**Severity:** Serious (WCAG AA violation)  
+**Discovered by:** axe `color-contrast` on home, catalog, login, course cards  
+**Symptom:** White text on `#22c55e` (primary green) = **2.27:1** contrast (required 4.5:1). Affected Login, Get Started, Learn More, and level badges site-wide.  
+**Fix:** Darkened `--primary` (and matching `--ring`, `--sidebar-primary`, `--chart-1`) in `app/globals.css` to `oklch(0.527 0.154 150)` (~green-700).  
+**Regression test:** `tests/e2e/a11y/pages.spec.ts` — public pages (home, catalog, login).
+
+#### Bug 10 — Muted metadata text failed contrast on pills
+
+**Severity:** Serious (WCAG AA violation)  
+**Discovered by:** axe on course catalog cards  
+**Symptom:** `#6b7280` on `#f3f4f6` = **4.39:1** (required 4.5:1) on duration/category pills in `PublicCourseCard`.  
+**Fix:** Darkened `--muted-foreground` in `app/globals.css` to `oklch(0.48 0.025 264)`.  
+**Regression test:** `tests/e2e/a11y/pages.spec.ts` — course catalog; `tests/e2e/journeys/enroll.spec.ts` inline a11y check.
+
+#### Bug 11 — Footer copyright text failed contrast
+
+**Severity:** Serious (WCAG AA violation)  
+**Discovered by:** axe on home and catalog (shared footer)  
+**Symptom:** `text-neutral-500` (`#737373`) on `#f7f7f3` = **4.41:1**.  
+**Fix:** Changed footer bottom row to `text-neutral-600` in `app/(public)/_components/Footer.tsx`.  
+**Regression test:** `tests/e2e/a11y/pages.spec.ts` — home page.
+
+#### Bug 12 — Progress bars had no accessible name
+
+**Severity:** Serious (WCAG AA violation)  
+**Discovered by:** axe `aria-progressbar-name` on dashboard and lesson pages  
+**Symptom:** Radix `<Progress>` rendered `role="progressbar"` without `aria-label`.  
+**Fix:** `components/ui/progress.tsx` accepts `aria-label` (default `"Progress"`). Call sites pass `"Course progress"` in `CourseSidebar.tsx` and `CourseProgressCard.tsx`.  
+**Regression test:** `tests/e2e/a11y/pages.spec.ts` — dashboard, lesson page.
+
+#### Bug 13 — Chat UI icon buttons had no discernible text
+
+**Severity:** Critical (WCAG A violation)  
+**Discovered by:** axe `button-name` on `/chatbot`  
+**Symptom:** Ghost `size="icon"` buttons in `components/chat/floating-chat.tsx` (close, menu, attach, copy, etc.) had no `aria-label`.  
+**Fix:** Added descriptive `aria-label` to every icon-only button in `floating-chat.tsx`. Eyebrow labels changed from `text-primary/80` to `text-muted-foreground` for contrast.  
+**Regression test:** `tests/e2e/a11y/pages.spec.ts` — chatbot page.
+
+#### Bug 14 — Sonner success toast description failed contrast
+
+**Severity:** Serious (WCAG AA violation)  
+**Discovered by:** axe in `tests/e2e/journeys/quiz.spec.ts` after "Start Quiz" toast appeared  
+**Symptom:** Toast description text `#c0c3c8` on white = **1.76:1**.  
+**Fix:** Set `--success-text: var(--foreground)` (and matching bg/border) in `components/ui/sonner.tsx`. Quiz journey waits for toast dismissal before inline a11y scan.  
+**Regression test:** `tests/e2e/journeys/quiz.spec.ts`.
+
+#### Bug 15 — Active lesson sidebar labels failed contrast
+
+**Severity:** Serious (WCAG AA violation)  
+**Discovered by:** axe on lesson page during lesson-progress journey  
+**Symptom:** `text-primary` on `bg-primary/10` for active lesson title and "Currently Watching" label = **4.03:1**.  
+**Fix:** Active lesson title uses `text-foreground font-semibold`; "Currently Watching" uses `text-muted-foreground` in `app/dashboard/_components/LessonItem.tsx`.  
+**Regression test:** `tests/e2e/journeys/lesson-progress.spec.ts` inline a11y check; `tests/e2e/a11y/pages.spec.ts` — lesson page.
+
+---
+
+### 7.5 Design findings (documented, not bugs)
+
+#### Middleware checks cookie presence only (not role)
+
+**Type:** Design documentation  
 **Affected code:** `middleware.ts`  
 **Finding:** The Next.js middleware only checks whether a `better-auth.session_token` cookie exists. It does not verify the user's role. A user with `role: "user"` who has a valid session cookie will pass middleware and reach admin route handlers.  
-**Why this is intentional:** Role enforcement is the responsibility of `requireAdmin()` inside each handler. Middleware checking the full session would require a database round-trip on every request, including static assets and API health checks.  
-**Risk:** If a developer adds a new admin route/action and forgets to call `requireAdmin()`, the middleware provides no backstop. The integration tests in `tests/integration/rbac/` act as the backstop — they verify `requireAdmin()` is called before every DB operation.  
+**Why this is intentional:** Role enforcement is the responsibility of `requireAdmin()` inside each handler. Middleware checking the full session would require a database round-trip on every request.  
+**Risk:** If a developer adds a new admin route/action and forgets to call `requireAdmin()`, the middleware provides no backstop. The integration tests in `tests/integration/rbac/` act as the backstop.  
 **Documented in:** `tests/unit/rbac/middleware.test.ts` header comment.
 
-### Design Finding — `requireUser()` does not block banned users
+#### `requireUser()` does not block banned users
 
-**Type:** Design documentation (not a bug)  
-**Finding:** `requireUser()` returns the session user regardless of their `banned` flag. Banning is enforced per-action (e.g. `createPost` checks `user.banned && user.banExpires > now`). `submitQuizAttempt` does not check the ban flag — a banned student can still submit quizzes.  
+**Type:** Design documentation  
+**Finding:** `requireUser()` returns the session user regardless of their `banned` flag. Banning is enforced per-action (e.g. `createPost` checks `user.banned`). `submitQuizAttempt` does not check the ban flag.  
 **Documented in:** `tests/unit/rbac/require-user.test.ts` and `tests/integration/security/banned-user.test.ts`.
+
+---
+
+### 7.6 E2E test assertion corrections (test code, not app bugs)
+
+These were incorrect Playwright expectations discovered while debugging; the app behaviour was correct.
+
+| Issue | Original assertion | Correction |
+|-------|-------------------|------------|
+| Quiz attempt badge | `getByText('Attempt #')` matched 2 elements | `getByText('Attempt #1', { exact: true })` |
+| Quiz pass result | `getByText('Passed')` matched badge + toast + card | `locator('[data-slot="card-title"]')` with success message |
+| Lesson progress | Expected `%` in progress header row | UI shows `1/1 lessons` + `100% complete` in separate elements — assert both strings |
 
 ---
 
