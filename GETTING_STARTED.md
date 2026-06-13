@@ -225,3 +225,50 @@ const stripe = new Stripe(env.STRIPE_SECRET_KEY);
 | `/admin/quizzes/[quizId]/edit` | Edit quiz questions and options |
 | `/admin/community` | Community moderation (ban users, delete posts) |
 | `/not-admin` | Redirect target for non-admin users who attempt admin routes |
+
+---
+
+## 5. End-to-End (Playwright) Tests
+
+E2E tests live in `tests/e2e/` and use [Playwright](https://playwright.dev/) with a real Postgres test database and production Next.js server (`next build` + `next start`).
+
+### Prerequisites
+
+1. Start the test database: `npm run test:db:setup`
+2. Copy the example env file: `cp .env.test.example .env.test`
+3. Install Chromium (once): `npx playwright install chromium`
+
+### Environment (`.env.test`)
+
+`.env.test` is gitignored. Use `.env.test.example` as the template. Required variables:
+
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | Test Postgres (`postgresql://test:test@localhost:5433/healthacademy_test`) |
+| `BETTER_AUTH_SECRET` | Auth signing secret (min 32 chars) |
+| `BETTER_AUTH_URL` | App URL (`http://localhost:3000`) |
+| `STRIPE_WEBHOOK_SECRET` | Signs simulated checkout webhooks in enrollment E2E |
+| `ARCJET_KEY`, `RESEND_API_KEY`, OAuth keys, S3 vars | Required by `lib/env.ts` at build/runtime |
+| `NEXT_PUBLIC_S3_*` | Client-side S3 URLs for image components |
+
+Load locally before running:
+
+```bash
+set -a && source .env.test && set +a
+npm run build
+npm run test:e2e
+```
+
+### Commands
+
+| Command | Runs |
+|---------|------|
+| `npm run test:e2e` | Full Playwright suite (journeys + a11y) |
+| `npm run test:e2e:ui` | Playwright UI mode |
+
+`global-setup` resets/seeds the DB and writes auth cookies to `tests/e2e/.auth/` (gitignored).
+
+### What E2E covers
+
+- **Journeys:** enrollment webhook activation, quiz completion, lesson progress
+- **Accessibility:** WCAG 2.0/2.1 AA scans on key pages via `@axe-core/playwright`

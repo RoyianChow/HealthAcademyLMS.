@@ -17,6 +17,8 @@ const IDS = {
   option2Correct: "00000000-0000-4000-8000-00000000000a",
   option2Wrong: "00000000-0000-4000-8000-00000000000b",
   communityPost: "community-post-test-001",
+  course2: "00000000-0000-4000-8000-000000000010",
+  enrollment2: "00000000-0000-4000-8000-000000000011",
 } as const;
 
 const now = new Date("2026-01-01T00:00:00.000Z");
@@ -128,7 +130,7 @@ async function seedCourse() {
   });
 }
 
-async function seedEnrollment() {
+async function seedEnrollmentCourse() {
   await prisma.enrollment.upsert({
     where: { id: IDS.enrollment },
     create: {
@@ -144,6 +146,33 @@ async function seedEnrollment() {
     update: {
       status: "Active",
       amount: 9900,
+      updatedAt: now,
+    },
+  });
+}
+
+async function seedSecondCourse() {
+  await prisma.course.upsert({
+    where: { id: IDS.course2 },
+    create: {
+      id: IDS.course2,
+      title: "Advanced Nutrition",
+      description: "A second seeded course for enrollment E2E tests.",
+      fileKey: "courses/test-advanced-course.pdf",
+      price: 14900,
+      duration: 12,
+      level: "Intermediate",
+      stripePriceId: "price_test_advanced_001",
+      category: "Nutrition",
+      smallDescription: "Enrollment E2E course",
+      slug: "test-advanced-nutrition",
+      status: "Published",
+      userId: IDS.adminUser,
+      thumbnailKey: "courses/test-advanced-thumbnail.png",
+    },
+    update: {
+      title: "Advanced Nutrition",
+      status: "Published",
       updatedAt: now,
     },
   });
@@ -267,7 +296,8 @@ async function seedCommunityPost() {
 async function main() {
   await seedUsers();
   await seedCourse();
-  await seedEnrollment();
+  await seedSecondCourse();
+  await seedEnrollmentCourse();
   await seedQuiz();
   await seedCommunityPost();
   console.log("Test database seeded successfully.");

@@ -102,3 +102,76 @@ jobs:
 
       - name: Run integration tests
         run: npm run test:integration
+
+  e2e-tests:
+    name: E2E tests (Playwright)
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: healthacademy_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://test:test@localhost:5433/healthacademy_test
+      BETTER_AUTH_SECRET: test-auth-secret-minimum-32-characters-long
+      BETTER_AUTH_URL: http://localhost:3000
+      AUTH_GITHUB_CLIENT_ID: test-github-client-id
+      AUTH_GITHUB_SECRET: test-github-client-secret
+      GOOGLE_CLIENT_ID: test-google-client-id
+      GOOGLE_CLIENT_SECRET: test-google-client-secret
+      RESEND_API_KEY: re_test_key
+      ARCJET_KEY: ajkey_test_e2e
+      AWS_ACCESS_KEY_ID: test-access-key
+      AWS_SECRET_ACCESS_KEY: test-secret-key
+      AWS_ENDPOINT_URL_S3: https://fly.storage.tigris.dev
+      AWS_ENDPOINT_URL_IAM: https://fly.iam.storage.tigris.dev
+      AWS_REGION: auto
+      S3_BUCKET_NAME: test-bucket
+      STRIPE_SECRET_KEY: sk_test_e2e_placeholder
+      STRIPE_WEBHOOK_SECRET: whsec_test_e2e_webhook_secret
+      NEXT_PUBLIC_S3_BUCKET_NAME_IMAGES: test-images
+      NEXT_PUBLIC_S3_PUBLIC_URL: https://health-academy-lms.fly.storage.tigris.dev
+      PLAYWRIGHT_BASE_URL: http://localhost:3000
+      CI: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build application
+        run: npm run build
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
