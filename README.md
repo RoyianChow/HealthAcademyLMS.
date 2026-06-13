@@ -29,7 +29,7 @@
 - **Getting Started:** See [GETTING_STARTED.md](./GETTING_STARTED.md) for architecture overview, design patterns, and route map.
 - **API Reference:** See [documentation/API_REFERENCE.md](./documentation/API_REFERENCE.md) for all API route handlers and server actions.
 - **Services & Integrations:** See [documentation/SERVICES.md](./documentation/SERVICES.md) for file storage, payments, auth, security, email, and the AI Advisor.
-- **Testing & CI:** See [documentation/TESTING_AND_CI.md](./documentation/TESTING_AND_CI.md) for running tests, environment variables, and CI setup.
+- **Testing & CI:** See [documentation/TESTING_AND_CI.md](./documentation/TESTING_AND_CI.md) for the full testing framework — unit, integration, and E2E tests; setup; coverage; bugs found; and CI pipeline.
 - **Database Schema & ERDs:** See [documentation/DATABASE_ERD.md](./documentation/DATABASE_ERD.md) for full entity relationship diagrams and field reference.
 
 ---
@@ -70,7 +70,7 @@ Health Academy LMS is a web platform that lets administrators create and manage 
 | Security         | Arcjet                                        |
 | AI Chatbot       | OpenAI or OpenRouter (`gpt-4o-mini` default)  |
 | Rich-text editor | TipTap                                        |
-| Testing          | Vitest (unit + integration)                   |
+| Testing          | Vitest (unit + integration), Playwright (E2E) |
 | CI               | GitHub Actions                                |
 
 
@@ -223,7 +223,7 @@ UPDATE "user" SET role = 'admin' WHERE email = 'your@email.com';
 
 - Development happens on feature branches.
 - Pull requests are reviewed and merged into the main integration branch.
-- The GitHub Actions CI pipeline runs unit tests and integration tests automatically on every push and pull request to `main`.
+- The GitHub Actions CI pipeline runs lint, type-checking, unit tests, integration tests, and Playwright E2E tests automatically on every push and pull request to `main`. See [documentation/TESTING_AND_CI.md](./documentation/TESTING_AND_CI.md) for the full pipeline details.
 
 ---
 

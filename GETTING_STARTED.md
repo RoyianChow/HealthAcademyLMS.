@@ -19,7 +19,7 @@ This document contains quick references for contributors to the Health Academy L
 |----------|----------|
 | [documentation/API_REFERENCE.md](./documentation/API_REFERENCE.md) | API route handlers, server actions |
 | [documentation/SERVICES.md](./documentation/SERVICES.md) | File storage (Tigris/S3), payments (Stripe), security (Arcjet), email (Resend), AI Advisor, authentication |
-| [documentation/TESTING_AND_CI.md](./documentation/TESTING_AND_CI.md) | Vitest setup, running tests, environment variables reference, GitHub Actions CI |
+| [documentation/TESTING_AND_CI.md](./documentation/TESTING_AND_CI.md) | Full testing framework — unit tests (Vitest), integration tests (Vitest), E2E tests (Playwright), test database setup, coverage, bugs found, CI pipeline, environment variables reference |
 | [documentation/DATABASE_ERD.md](./documentation/DATABASE_ERD.md) | Full ERD, field reference tables, enum definitions, index documentation |
 
 ---
@@ -68,7 +68,12 @@ HealthAcademyLMS/
 │
 ├── hooks/                      # Custom React hooks (client-side)
 ├── prisma/                     # Schema + migrations
-└── tests/                      # Vitest unit + integration tests
+├── tests/                      # All automated tests
+│   ├── unit/                   # Vitest unit tests (logic, RBAC, schemas)
+│   ├── integration/            # Vitest integration tests (actions, handlers)
+│   └── e2e/                    # Playwright E2E + accessibility tests
+├── playwright.config.ts        # Playwright configuration
+└── docker-compose.test.yml     # Postgres 16 test database
 ```
 
 **Key architectural decisions:**
