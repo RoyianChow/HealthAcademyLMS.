@@ -433,7 +433,7 @@ The following bugs were identified during test development. All are now fixed an
 ## 8. CI Pipeline (GitHub Actions)
 
 **File:** `.github/workflows/test.yml`  
-**Trigger:** Every push to `main` or `testing`; every pull request targeting `main`
+**Trigger:** Every push to `main`, `testing`, or `testing2`; every pull request targeting `main` or `testing2`
 
 ### Job sequence
 
