@@ -81,12 +81,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <Link href="/">
                 <Image
                   src={Logo}
-                  alt="Healthy Academy LMS logo"
+                  alt="Health Academy logo"
                   className="size-5"
                   priority
                 />
                 <span className="text-base font-semibold">
-                  Healthy Academy LMS
+                  Health Academy
                 </span>
               </Link>
             </SidebarMenuButton>

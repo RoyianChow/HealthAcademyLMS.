@@ -69,7 +69,7 @@ export default function PaymentSuccessful() {
           </Link>
 
           <p className="mt-4 text-xs text-muted-foreground">
-            Thank you for enrolling with Healthy Academy LMS.
+            Thank you for enrolling with Health Academy.
           </p>
         </CardContent>
       </Card>

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/app/data/user/require-user";
 import { CourseStatus, EnrollmentStatus } from "@/src/generated/prisma/client";
+import { getCommunityBanStatus, isCommunityBanned } from "@/lib/community-ban";
 
 const POSTS_LIMIT = 50;
 
@@ -54,6 +55,9 @@ export async function getCommunityPageData(slug: string) {
               banned: true,
               banReason: true,
               banExpires: true,
+              communityBanned: true,
+              communityBanReason: true,
+              communityBanExpires: true,
             },
           },
           comments: {
@@ -70,6 +74,9 @@ export async function getCommunityPageData(slug: string) {
                   banned: true,
                   banReason: true,
                   banExpires: true,
+                  communityBanned: true,
+                  communityBanReason: true,
+                  communityBanExpires: true,
                 },
               },
             },
@@ -110,7 +117,15 @@ export async function getCommunityPageData(slug: string) {
     return notFound();
   }
 
-  return { user, course };
+  const banStatus = await getCommunityBanStatus(user.id);
+
+  return {
+    user,
+    course,
+    isCommunityBanned: banStatus ? isCommunityBanned(banStatus) : false,
+    communityBanReason: banStatus?.communityBanReason ?? null,
+    communityBanExpires: banStatus?.communityBanExpires ?? null,
+  };
 }
 
 export type CommunityPageData = Awaited<

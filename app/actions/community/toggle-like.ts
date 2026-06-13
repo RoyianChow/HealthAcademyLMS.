@@ -5,18 +5,27 @@ import { requireUser } from "@/app/data/user/require-user";
 import { revalidatePath } from "next/cache";
 import { EnrollmentStatus } from "@/src/generated/prisma/client";
 import { rethrowIfNextRedirect } from "@/lib/rethrow-next-redirect";
+import { getCommunityBanStatus, isCommunityBanned } from "@/lib/community-ban";
 
 export async function toggleLike(postId: string) {
   try {
     const user = await requireUser();
 
-    if (user.banned && user.banExpires && new Date(user.banExpires) > new Date()) {
+    const banStatus = await getCommunityBanStatus(user.id);
+    if (banStatus && isCommunityBanned(banStatus)) {
       return { error: "You are currently banned from community interactions." };
     }
 
     const post = await prisma.communityPost.findUnique({
       where: { id: postId },
-      select: { courseId: true },
+      select: {
+        courseId: true,
+        course: {
+          select: {
+            slug: true,
+          },
+        },
+      },
     });
 
     if (!post) {
@@ -61,7 +70,7 @@ export async function toggleLike(postId: string) {
       });
     }
 
-    revalidatePath("/dashboard/community");
+    revalidatePath(`/dashboard/${post.course.slug}/community`);
 
     return { success: true };
   } catch (error) {

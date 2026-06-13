@@ -6,7 +6,17 @@ import type { ChatUserContext } from "@/lib/chat/types";
 export async function resolveChatUserContext(userId: string): Promise<ChatUserContext> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, name: true, email: true },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      healthGoals: true,
+      dietaryFocus: true,
+      enrollments: {
+        where: { status: "Active" },
+        select: { courseId: true },
+      },
+    },
   });
 
   if (!user) {
@@ -17,8 +27,8 @@ export async function resolveChatUserContext(userId: string): Promise<ChatUserCo
     id: user.id,
     name: user.name,
     email: user.email,
-    goals: [],
-    dietaryFocus: [],
-    enrolledCourseIds: [],
+    goals: user.healthGoals,
+    dietaryFocus: user.dietaryFocus,
+    enrolledCourseIds: user.enrollments.map((enrollment) => enrollment.courseId),
   };
 }

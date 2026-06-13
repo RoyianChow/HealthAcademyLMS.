@@ -19,6 +19,7 @@ vi.mock("@/lib/auth", () => ({
 vi.mock("@/lib/db", () => ({
   prisma: {
     course: { findUnique: vi.fn() },
+    user: { findUnique: vi.fn() },
   },
 }));
 
@@ -79,6 +80,11 @@ function baseCourse(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(prisma.user.findUnique).mockResolvedValue({
+    communityBanned: false,
+    communityBanExpires: null,
+    communityBanReason: null,
+  } as never);
 });
 
 describe("getCommunityPageData — authentication", () => {

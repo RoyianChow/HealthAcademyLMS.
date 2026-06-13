@@ -1,4 +1,13 @@
 import Image from "next/image";
+import type { Metadata } from "next";
+import { createPageMetadata } from "@/lib/metadata";
+
+export const metadata: Metadata = createPageMetadata({
+  title: "Legal Disclaimer",
+  description:
+    "Legal disclaimer and terms for Health Academy educational content and wellness programs.",
+  path: "/legal",
+});
 
 export default function LegalDisclaimerPage() {
   return (

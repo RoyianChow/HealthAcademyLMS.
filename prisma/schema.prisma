@@ -18,9 +18,14 @@ model User {
   updatedAt        DateTime
   stripeCustomerId String?   @unique
   role             String?
-  banned           Boolean?
-  banReason        String?
-  banExpires       DateTime?
+  banned               Boolean?
+  banReason            String?
+  banExpires           DateTime?
+  communityBanned      Boolean?
+  communityBanReason   String?
+  communityBanExpires  DateTime?
+  healthGoals          String[]  @default([])
+  dietaryFocus         String[]  @default([])
 
   communityComments  CommunityComment[]
   communityLikes     CommunityLike[]
@@ -193,6 +198,7 @@ model Enrollment {
   purchasedAt     DateTime?
   stripePaymentId String?
   stripeSessionId String?
+  completedAt     DateTime?
 
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)

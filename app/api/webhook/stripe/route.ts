@@ -53,6 +53,15 @@ export async function POST(req: Request) {
   }
 
   try {
+    const existingEnrollment = await prisma.enrollment.findUnique({
+      where: { id: enrollmentId },
+      select: { status: true },
+    });
+
+    if (existingEnrollment?.status === "Active") {
+      return new Response("Enrollment already active", { status: 200 });
+    }
+
     const user = await prisma.user.findUnique({
       where: {
         stripeCustomerId: customerId,
@@ -70,6 +79,9 @@ export async function POST(req: Request) {
       return new Response("User not found", { status: 404 });
     }
 
+    const paymentIntentId =
+      typeof session.payment_intent === "string" ? session.payment_intent : null;
+
     await prisma.enrollment.update({
       where: {
         id: enrollmentId,
@@ -79,6 +91,9 @@ export async function POST(req: Request) {
         courseId,
         amount: session.amount_total ?? 0,
         status: "Active",
+        purchasedAt: new Date(),
+        stripeSessionId: session.id,
+        stripePaymentId: paymentIntentId,
       },
     });
 

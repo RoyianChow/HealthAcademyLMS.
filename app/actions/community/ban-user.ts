@@ -5,7 +5,23 @@ import { requireUser } from "@/app/data/user/require-user";
 import { revalidatePath } from "next/cache";
 import { rethrowIfNextRedirect } from "@/lib/rethrow-next-redirect";
 
-export async function banUserAction(userIdToBan: string, reason: string, expiresAt: Date | string) {
+export type BanType = "community" | "site";
+
+function parseBanExpiry(expiresAt: Date | string) {
+  if (typeof expiresAt === "string" && /^\d{4}-\d{2}-\d{2}$/.test(expiresAt)) {
+    const [year, month, day] = expiresAt.split("-").map(Number);
+    return new Date(year, month - 1, day, 23, 59, 59, 999);
+  }
+
+  return new Date(expiresAt);
+}
+
+export async function banUserAction(
+  userIdToBan: string,
+  reason: string,
+  expiresAt: Date | string,
+  banType: BanType = "community"
+) {
   try {
     const admin = await requireUser();
 
@@ -30,14 +46,27 @@ export async function banUserAction(userIdToBan: string, reason: string, expires
       return { error: "Exemption rule active: Administrators cannot be banned." };
     }
 
-    await prisma.user.update({
-      where: { id: userIdToBan },
-      data: {
-        banned: true,
-        banReason: reason,
-        banExpires: new Date(expiresAt),
-      },
-    });
+    const expiry = parseBanExpiry(expiresAt);
+
+    if (banType === "site") {
+      await prisma.user.update({
+        where: { id: userIdToBan },
+        data: {
+          banned: true,
+          banReason: reason,
+          banExpires: expiry,
+        },
+      });
+    } else {
+      await prisma.user.update({
+        where: { id: userIdToBan },
+        data: {
+          communityBanned: true,
+          communityBanReason: reason,
+          communityBanExpires: expiry,
+        },
+      });
+    }
 
     revalidatePath("/dashboard", "layout");
     return { success: true };
@@ -48,7 +77,10 @@ export async function banUserAction(userIdToBan: string, reason: string, expires
   }
 }
 
-export async function unbanUserAction(userIdToUnban: string) {
+export async function unbanUserAction(
+  userIdToUnban: string,
+  banType: BanType = "community"
+) {
   try {
     const admin = await requireUser();
 
@@ -56,14 +88,25 @@ export async function unbanUserAction(userIdToUnban: string) {
       return { error: "Unauthorized access. Only admins can un-ban users." };
     }
 
-    await prisma.user.update({
-      where: { id: userIdToUnban },
-      data: {
-        banned: false,
-        banReason: null,
-        banExpires: null,
-      },
-    });
+    if (banType === "site") {
+      await prisma.user.update({
+        where: { id: userIdToUnban },
+        data: {
+          banned: false,
+          banReason: null,
+          banExpires: null,
+        },
+      });
+    } else {
+      await prisma.user.update({
+        where: { id: userIdToUnban },
+        data: {
+          communityBanned: false,
+          communityBanReason: null,
+          communityBanExpires: null,
+        },
+      });
+    }
 
     revalidatePath("/dashboard", "layout");
     return { success: true };

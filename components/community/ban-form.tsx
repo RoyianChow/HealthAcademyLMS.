@@ -4,7 +4,11 @@ import { useState, useTransition, useEffect } from "react";
 import { Ban, Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { banUserAction, unbanUserAction } from "@/app/actions/community/ban-user";
+import {
+  banUserAction,
+  unbanUserAction,
+  type BanType,
+} from "@/app/actions/community/ban-user";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -22,6 +26,7 @@ type BanFormProps = {
   initialIsBanned?: boolean;
   initialReason?: string | null;
   initialBanExpires?: Date | string | null;
+  initialBanType?: BanType;
 };
 
 export function BanForm({
@@ -30,13 +35,17 @@ export function BanForm({
   initialIsBanned = false,
   initialReason = "",
   initialBanExpires = null,
+  initialBanType = "community",
 }: BanFormProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [pending, startTransition] = useTransition();
-  
+  const [banType, setBanType] = useState<BanType>(initialBanType);
+
   const getDefaultDateString = () => {
     if (initialIsBanned) {
-      return initialBanExpires ? new Date(initialBanExpires).toISOString().split("T")[0] : "";
+      return initialBanExpires
+        ? new Date(initialBanExpires).toISOString().split("T")[0]
+        : "";
     }
     const future = new Date();
     future.setDate(future.getDate() + 7);
@@ -50,8 +59,9 @@ export function BanForm({
     if (isOpen) {
       setReason(initialReason || "");
       setDateValue(getDefaultDateString());
+      setBanType(initialBanType);
     }
-  }, [isOpen, initialReason, initialBanExpires, initialIsBanned]);
+  }, [isOpen, initialReason, initialBanExpires, initialIsBanned, initialBanType]);
 
   const handleBanSubmit = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -65,8 +75,8 @@ export function BanForm({
     }
 
     startTransition(async () => {
-      const result = await banUserAction(userId, reason, dateValue);
-      
+      const result = await banUserAction(userId, reason, dateValue, banType);
+
       if (result?.error) {
         toast.error(result.error);
       } else {
@@ -79,8 +89,8 @@ export function BanForm({
   const handleUnbanSubmit = (e: React.MouseEvent) => {
     e.preventDefault();
     startTransition(async () => {
-      const result = await unbanUserAction(userId);
-      
+      const result = await unbanUserAction(userId, banType);
+
       if (result?.error) {
         toast.error(result.error);
       } else {
@@ -98,8 +108,8 @@ export function BanForm({
           variant="ghost"
           size="icon"
           className={`size-8 ${
-            initialIsBanned 
-              ? "text-red-500 hover:bg-red-500/10 hover:text-red-600" 
+            initialIsBanned
+              ? "text-red-500 hover:bg-red-500/10 hover:text-red-600"
               : "text-muted-foreground hover:bg-orange-500/10 hover:text-orange-500"
           }`}
           title={initialIsBanned ? "Modify / Lift Ban" : "Ban User"}
@@ -113,17 +123,41 @@ export function BanForm({
             {initialIsBanned ? `Manage Ban: ${userName || "User"}` : `Ban ${userName || "User"}?`}
           </AlertDialogTitle>
           <AlertDialogDescription>
-            {initialIsBanned 
+            {initialIsBanned
               ? "This user is currently restricted. You can adjust their parameters below or lift the restriction entirely."
-              : "This will temporarily revoke this user's ability to create posts, comment, and like content."}
+              : banType === "site"
+                ? "This will block the user from signing in and accessing the entire site."
+                : "This will temporarily revoke this user's ability to create posts, comment, and like content."}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
         <div className="grid gap-4 py-4">
-          {/* Reason Field */}
           <div className="space-y-2">
-            <label 
-              className="text-sm font-medium text-foreground">Reason for ban</label>
+            <label className="text-sm font-medium text-foreground">Ban type</label>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={banType === "community" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setBanType("community")}
+                disabled={pending}
+              >
+                Community only
+              </Button>
+              <Button
+                type="button"
+                variant={banType === "site" ? "destructive" : "outline"}
+                size="sm"
+                onClick={() => setBanType("site")}
+                disabled={pending}
+              >
+                Entire site
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Reason for ban</label>
             <input
               type="text"
               value={reason}
@@ -134,11 +168,13 @@ export function BanForm({
             />
           </div>
 
-          {/* Calendar Picker Field */}
           <div className="space-y-2">
-            <label 
-            htmlFor="ban-expiry"
-            className="text-sm font-medium text-foreground">Ban expires (Select Date)</label>
+            <label
+              htmlFor="ban-expiry"
+              className="text-sm font-medium text-foreground"
+            >
+              Ban expires (Select Date)
+            </label>
             <input
               id="ban-expiry"
               type="date"
@@ -173,7 +209,9 @@ export function BanForm({
             )}
 
             <div className="flex gap-2">
-              <AlertDialogCancel disabled={pending} className="mt-0">Cancel</AlertDialogCancel>
+              <AlertDialogCancel disabled={pending} className="mt-0">
+                Cancel
+              </AlertDialogCancel>
               <Button
                 variant={initialIsBanned ? "default" : "destructive"}
                 onClick={handleBanSubmit}

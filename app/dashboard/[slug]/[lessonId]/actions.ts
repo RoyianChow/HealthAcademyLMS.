@@ -102,10 +102,16 @@ export async function markLessonComplete(
           completedAt: new Date(),
         }
       });
+
+      await prisma.enrollment.update({
+        where: { id: enrollment.id },
+        data: { completedAt: new Date() },
+      });
     }
 
     revalidatePath(`/dashboard/${slug}`);
     revalidatePath(`/dashboard/${slug}/${lessonId}`);
+    revalidatePath(`/dashboard/${slug}/certificate`);
 
     return {
       status: "success",

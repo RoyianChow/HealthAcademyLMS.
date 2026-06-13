@@ -14,6 +14,7 @@ import {
   ChevronDown,
   MessageCircle,
   Play,
+  Award,
 } from "lucide-react";
 import { LessonItem } from "./LessonItem";
 import { QuizItem } from "./QuizItem";
@@ -57,6 +58,9 @@ export function CourseSidebar({ course, isEnrolled }: iAppProps) {
     useCourseProgress({ courseData: course });
 
   const isCommunityActive = pathname === `/dashboard/${course.slug}/community`;
+  const isCertificateActive = pathname === `/dashboard/${course.slug}/certificate`;
+  const isCourseComplete =
+    totalLessons > 0 && completedLessons >= totalLessons;
 
   return (
     <div className="flex h-full flex-col">
@@ -167,6 +171,29 @@ export function CourseSidebar({ course, isEnrolled }: iAppProps) {
             </CollapsibleContent>
           </Collapsible>
         ))}
+
+        {isEnrolled && isCourseComplete && (
+          <div className="border-t border-border pt-4">
+            <Link
+              href={`/dashboard/${course.slug}/certificate`}
+              className={cn(
+                "flex items-center gap-3 rounded-lg border px-3 py-3 text-sm font-medium transition hover:bg-muted",
+                isCertificateActive && "border-primary bg-primary/10 text-primary"
+              )}
+            >
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                <Award className="size-4 text-primary" />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <p className="truncate">View Certificate</p>
+                <p className="truncate text-xs font-normal text-muted-foreground">
+                  Download your course completion certificate
+                </p>
+              </div>
+            </Link>
+          </div>
+        )}
 
         {isEnrolled && (
           <div className="border-t border-border pt-4">

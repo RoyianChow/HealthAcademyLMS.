@@ -29,6 +29,7 @@ vi.mock("@/lib/db", () => ({
       findUnique: vi.fn(),
     },
     enrollment: {
+      findUnique: vi.fn(),
       update: vi.fn(),
     },
   },
@@ -41,6 +42,7 @@ import { POST as webhookHandler } from "@/app/api/webhook/stripe/route";
 const mockConstructEvent = vi.mocked(stripe.webhooks.constructEvent);
 const mockHeaders = vi.mocked(headers);
 const mockFindUser = vi.mocked(prisma.user.findUnique);
+const mockFindEnrollment = vi.mocked(prisma.enrollment.findUnique);
 const mockUpdateEnrollment = vi.mocked(prisma.enrollment.update);
 
 const CHECKOUT_SESSION = {
@@ -80,6 +82,7 @@ describe("POST /api/webhook/stripe", () => {
     );
     mockConstructEvent.mockReturnValue(makeCompletedEvent());
     mockFindUser.mockResolvedValue({ id: "student-test-001" } as never);
+    mockFindEnrollment.mockResolvedValue({ status: "Pending" } as never);
     mockUpdateEnrollment.mockResolvedValue({} as never);
   });
 
@@ -158,21 +161,32 @@ describe("POST /api/webhook/stripe", () => {
     expect(await response.text()).toBe("Webhook processed");
     expect(mockUpdateEnrollment).toHaveBeenCalledWith({
       where: { id: CHECKOUT_SESSION.metadata!.enrollmentId },
-      data: {
+      data: expect.objectContaining({
         userId: "student-test-001",
         courseId: CHECKOUT_SESSION.metadata!.courseId,
         amount: CHECKOUT_SESSION.amount_total,
         status: "Active",
-      },
+        purchasedAt: expect.any(Date),
+        stripeSessionId: CHECKOUT_SESSION.id,
+        stripePaymentId: null,
+      }),
     });
   });
 
-  it("calls enrollment.update on each duplicate webhook delivery", async () => {
+  it("skips duplicate webhook delivery when enrollment is already active", async () => {
+    mockFindEnrollment
+      .mockResolvedValueOnce({ status: "Pending" } as never)
+      .mockResolvedValueOnce({ status: "Active" } as never);
+
     const request = makeWebhookRequest('{"id":"evt"}');
 
-    await webhookHandler(request);
-    await webhookHandler(makeWebhookRequest('{"id":"evt"}'));
+    const first = await webhookHandler(request);
+    const second = await webhookHandler(makeWebhookRequest('{"id":"evt"}'));
 
-    expect(mockUpdateEnrollment).toHaveBeenCalledTimes(2);
+    expect(first.status).toBe(200);
+    expect(await first.text()).toBe("Webhook processed");
+    expect(second.status).toBe(200);
+    expect(await second.text()).toBe("Enrollment already active");
+    expect(mockUpdateEnrollment).toHaveBeenCalledTimes(1);
   });
 });

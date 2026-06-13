@@ -1,6 +1,10 @@
 "use server";
 
 import { Resend } from "resend";
+import {
+  buildContactConfirmationEmailHtml,
+  buildContactNotificationEmailHtml,
+} from "@/lib/email/templates";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -19,18 +23,26 @@ export async function sendContactEmail(_prevState: unknown, formData: FormData) 
     const fullName = [firstName, lastName].filter(Boolean).join(" ") || "A User";
 
     await resend.emails.send({
-      from: "onboarding@resend.dev", // change later to your domain
-      to: "happynutritionhealth@gmail.com", // change later to your email
+      from: "onboarding@resend.dev",
+      to: "happynutritionhealth@gmail.com",
       subject: `Natural Health Academy: ${subject}`,
       replyTo: email,
-      html: `
-        <h2>Natural Health Academy Email</h2>
-        <p><strong>Name:</strong> ${fullName}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Subject:</strong> ${subject}</p>
-        <p><strong>Message:</strong></p>
-        <p>${message}</p>
-      `,
+      html: buildContactNotificationEmailHtml({
+        fullName,
+        email,
+        subject,
+        message,
+      }),
+    });
+
+    await resend.emails.send({
+      from: "onboarding@resend.dev",
+      to: email,
+      subject: "We received your message — Health Academy",
+      html: buildContactConfirmationEmailHtml({
+        fullName,
+        subject,
+      }),
     });
 
     return { success: true };

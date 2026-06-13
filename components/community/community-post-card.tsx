@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { BanForm } from "@/components/community/ban-form";
+import { isCommunityBanned } from "@/lib/community-ban";
 
 type TiptapMark = {
   type: string;
@@ -86,6 +87,9 @@ type CommentType = {
     banned?: boolean | null;
     banReason?: string | null;
     banExpires?: Date | string | null;
+    communityBanned?: boolean | null;
+    communityBanReason?: string | null;
+    communityBanExpires?: Date | string | null;
   };
 };
 
@@ -103,6 +107,9 @@ type PostType = {
     banned?: boolean | null;
     banReason?: string | null;
     banExpires?: Date | string | null;
+    communityBanned?: boolean | null;
+    communityBanReason?: string | null;
+    communityBanExpires?: Date | string | null;
   };
   likes: {
     userId: string;
@@ -623,15 +630,16 @@ function CommentItem({
           <div className="flex shrink-0 items-center gap-1">
             {isAdmin && comment.user.id !== userId && comment.user.role !== "admin" && (
               <>
-                {comment.user.banned && (
+                {isCommunityBanned(comment.user) && (
                   <Badge variant="destructive" className="mr-1">Banned</Badge>
                 )}
                 <BanForm 
                   userId={comment.user.id} 
                   userName={comment.user.name} 
-                  initialIsBanned={comment.user.banned ?? false}
-                  initialReason={comment.user.banReason}
-                  initialBanExpires={comment.user.banExpires ? new Date(comment.user.banExpires).toISOString() : null}
+                  initialIsBanned={isCommunityBanned(comment.user)}
+                  initialReason={comment.user.communityBanReason}
+                  initialBanExpires={comment.user.communityBanExpires ? new Date(comment.user.communityBanExpires).toISOString() : null}
+                  initialBanType="community"
                 />
               </>
             )}
@@ -738,15 +746,16 @@ export function CommunityPostCard({
             {/* Admin Ban Action controls for Post Author */}
             {isAdmin && post.user.id !== userId && post.user.role !== "admin" && (
               <>
-                {post.user.banned && (
+                {isCommunityBanned(post.user) && (
                   <Badge variant="destructive">Banned</Badge>
                 )}
                 <BanForm 
                   userId={post.user.id} 
                   userName={post.user.name} 
-                  initialIsBanned={post.user.banned ?? false}
-                  initialReason={post.user.banReason}
-                  initialBanExpires={post.user.banExpires ? new Date(post.user.banExpires).toISOString() : null}
+                  initialIsBanned={isCommunityBanned(post.user)}
+                  initialReason={post.user.communityBanReason}
+                  initialBanExpires={post.user.communityBanExpires ? new Date(post.user.communityBanExpires).toISOString() : null}
+                  initialBanType="community"
                 />
               </>
             )}

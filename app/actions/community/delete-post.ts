@@ -27,6 +27,11 @@ export async function deleteCommunityPost(postId: string) {
       select: {
         id: true,
         userId: true,
+        course: {
+          select: {
+            slug: true,
+          },
+        },
       },
     });
 
@@ -67,7 +72,7 @@ export async function deleteCommunityPost(postId: string) {
       });
     });
 
-    revalidatePath("/community");
+    revalidatePath(`/dashboard/${post.course.slug}/community`);
 
     return {
       status: "success" as const,

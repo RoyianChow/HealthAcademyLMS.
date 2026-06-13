@@ -28,7 +28,7 @@ export function Footer() {
           
           {/* Instagram Link Button */}
           <a 
-            href="https://instagram.com" 
+            href="https://instagram.com/happynutritionhealth/" 
             target="_blank" 
             rel="noopener noreferrer" 
             className="p-1.5 border border-neutral-300 rounded-md hover:bg-neutral-200 transition-colors text-neutral-600"

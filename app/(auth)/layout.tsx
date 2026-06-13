@@ -26,7 +26,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           href="/"
         >
           <Image src={Logo} alt="Logo" width={32} height={32} />
-          Healthy Academy LMS.
+          Health Academy
         </Link>
         {children}
 

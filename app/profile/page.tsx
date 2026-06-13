@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { HealthProfileForm } from "@/app/profile/_components/HealthProfileForm";
 
 export default async function ProfilePage() {
   const session = await auth.api.getSession({
@@ -119,6 +120,18 @@ export default async function ProfilePage() {
                 }
               />
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>AI Advisor Preferences</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <HealthProfileForm
+              initialHealthGoals={user.healthGoals ?? []}
+              initialDietaryFocus={user.dietaryFocus ?? []}
+            />
           </CardContent>
         </Card>
 

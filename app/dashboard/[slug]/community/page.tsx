@@ -17,11 +17,10 @@ type PageProps = {
 
 export default async function CommunityPage({ params }: PageProps) {
   const { slug } = await params;
-  const { user, course } = await getCommunityPageData(slug);
+  const { user, course, isCommunityBanned, communityBanReason, communityBanExpires } =
+    await getCommunityPageData(slug);
 
-  const isBanned = Boolean(
-    user.banned && user.banExpires && new Date(user.banExpires) > new Date()
-  );
+  const isBanned = isCommunityBanned;
 
   return (
     <main className="min-h-screen bg-muted/30">
@@ -98,11 +97,11 @@ export default async function CommunityPage({ params }: PageProps) {
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <span className="font-bold uppercase tracking-wider text-xs">Reason:</span> 
-                {user.banReason || "Violating community guidelines."}
+                {communityBanReason || "Violating community guidelines."}
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <span className="font-bold uppercase tracking-wider text-xs">Expires:</span> 
-                {user.banExpires ? new Date(user.banExpires).toLocaleString() : "N/A"}
+                {communityBanExpires ? new Date(communityBanExpires).toLocaleString() : "N/A"}
               </span>
             </div>
           </div>

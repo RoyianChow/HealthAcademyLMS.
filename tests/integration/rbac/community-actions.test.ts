@@ -78,6 +78,11 @@ const ADMIN_UPPER_SESSION = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.mocked(prisma.user.findUnique).mockResolvedValue({
+    communityBanned: false,
+    communityBanExpires: null,
+    communityBanReason: null,
+  } as never);
 });
 
 describe("createPost — enrollment", () => {
@@ -93,6 +98,7 @@ describe("createPost — enrollment", () => {
     const result = await createPost({
       content: "hello",
       courseId: "course-1",
+      course: { slug: "c-slug" },
       slug: "c-slug",
     });
 
@@ -111,6 +117,7 @@ describe("createPost — enrollment", () => {
     const result = await createPost({
       content: "hello",
       courseId: "course-1",
+      course: { slug: "c-slug" },
       slug: "c-slug",
     });
 
@@ -140,6 +147,7 @@ describe("createComment — enrollment", () => {
   it("blocks when not enrolled in post course", async () => {
     vi.mocked(prisma.communityPost.findUnique).mockResolvedValue({
       courseId: "course-1",
+      course: { slug: "c-slug" },
     } as never);
     vi.mocked(prisma.enrollment.findFirst).mockResolvedValue(null);
 
@@ -156,6 +164,7 @@ describe("createComment — enrollment", () => {
   it("succeeds when enrolled", async () => {
     vi.mocked(prisma.communityPost.findUnique).mockResolvedValue({
       courseId: "course-1",
+      course: { slug: "c-slug" },
     } as never);
     vi.mocked(prisma.enrollment.findFirst).mockResolvedValue({ id: "e1" } as never);
     vi.mocked(prisma.communityComment.create).mockResolvedValue({} as never);
@@ -176,6 +185,7 @@ describe("toggleLike — enrollment", () => {
   it("blocks when not enrolled", async () => {
     vi.mocked(prisma.communityPost.findUnique).mockResolvedValue({
       courseId: "course-1",
+      course: { slug: "c-slug" },
     } as never);
     vi.mocked(prisma.enrollment.findFirst).mockResolvedValue(null);
 
@@ -197,6 +207,7 @@ describe("deleteCommunityPost", () => {
     vi.mocked(prisma.communityPost.findUnique).mockResolvedValue({
       id: "p1",
       userId: "user-b",
+      course: { slug: "c-slug" },
     } as never);
 
     const result = await deleteCommunityPost("p1");
@@ -216,6 +227,7 @@ describe("deleteCommunityPost", () => {
     vi.mocked(prisma.communityPost.findUnique).mockResolvedValue({
       id: "p1",
       userId: "user-a",
+      course: { slug: "c-slug" },
     } as never);
     vi.mocked(prisma.$transaction).mockResolvedValue(undefined);
 
@@ -236,6 +248,7 @@ describe("deleteCommunityPost", () => {
     vi.mocked(prisma.communityPost.findUnique).mockResolvedValue({
       id: "p1",
       userId: "user-b",
+      course: { slug: "c-slug" },
     } as never);
     vi.mocked(prisma.$transaction).mockResolvedValue(undefined);
 
@@ -253,6 +266,7 @@ describe("deleteCommunityPost", () => {
     vi.mocked(prisma.communityPost.findUnique).mockResolvedValue({
       id: "p1",
       userId: "user-b",
+      course: { slug: "c-slug" },
     } as never);
     vi.mocked(prisma.$transaction).mockResolvedValue(undefined);
 
@@ -273,6 +287,7 @@ describe("deleteCommunityComment", () => {
       id: "c1",
       userId: "user-b",
       postId: "p1",
+      post: { course: { slug: "c-slug" } },
     } as never);
 
     const result = await deleteCommunityComment("c1");
@@ -293,6 +308,7 @@ describe("deleteCommunityComment", () => {
       id: "c1",
       userId: "user-a",
       postId: "p1",
+      post: { course: { slug: "c-slug" } },
     } as never);
     vi.mocked(prisma.communityComment.delete).mockResolvedValue({} as never);
 
@@ -311,6 +327,7 @@ describe("deleteCommunityComment", () => {
       id: "c1",
       userId: "user-b",
       postId: "p1",
+      post: { course: { slug: "c-slug" } },
     } as never);
     vi.mocked(prisma.communityComment.delete).mockResolvedValue({} as never);
 
@@ -377,6 +394,7 @@ describe("toggleLike — post not found and success paths", () => {
   it("creates like when enrolled and no existing like", async () => {
     vi.mocked(prisma.communityPost.findUnique).mockResolvedValue({
       courseId: "course-1",
+      course: { slug: "c-slug" },
     } as never);
     vi.mocked(prisma.enrollment.findFirst).mockResolvedValue({ id: "e1" } as never);
     vi.mocked(prisma.communityLike.findUnique).mockResolvedValue(null);
@@ -393,6 +411,7 @@ describe("toggleLike — post not found and success paths", () => {
   it("deletes like when enrolled and like exists", async () => {
     vi.mocked(prisma.communityPost.findUnique).mockResolvedValue({
       courseId: "course-1",
+      course: { slug: "c-slug" },
     } as never);
     vi.mocked(prisma.enrollment.findFirst).mockResolvedValue({ id: "e1" } as never);
     vi.mocked(prisma.communityLike.findUnique).mockResolvedValue({
@@ -418,6 +437,7 @@ describe("createPost — admin still requires active enrollment", () => {
     const result = await createPost({
       content: "hello",
       courseId: "course-1",
+      course: { slug: "c-slug" },
       slug: "c-slug",
     });
 
@@ -435,6 +455,7 @@ describe("createComment — admin still requires active enrollment", () => {
     mockGetSession.mockResolvedValue(ADMIN_SESSION);
     vi.mocked(prisma.communityPost.findUnique).mockResolvedValue({
       courseId: "course-1",
+      course: { slug: "c-slug" },
     } as never);
     vi.mocked(prisma.enrollment.findFirst).mockResolvedValue(null);
 
@@ -454,6 +475,7 @@ describe("toggleLike — admin still requires active enrollment", () => {
     mockGetSession.mockResolvedValue(ADMIN_SESSION);
     vi.mocked(prisma.communityPost.findUnique).mockResolvedValue({
       courseId: "course-1",
+      course: { slug: "c-slug" },
     } as never);
     vi.mocked(prisma.enrollment.findFirst).mockResolvedValue(null);
 

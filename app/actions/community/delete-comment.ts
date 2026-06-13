@@ -28,6 +28,15 @@ export async function deleteCommunityComment(commentId: string) {
         id: true,
         userId: true,
         postId: true,
+        post: {
+          select: {
+            course: {
+              select: {
+                slug: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -54,7 +63,7 @@ export async function deleteCommunityComment(commentId: string) {
       },
     });
 
-    revalidatePath("/community");
+    revalidatePath(`/dashboard/${comment.post.course.slug}/community`);
 
     return {
       status: "success" as const,

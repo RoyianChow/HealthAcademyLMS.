@@ -14,6 +14,7 @@ vi.mock("@/lib/db", () => ({
     quizAttempt: { findFirst: vi.fn() },
     enrollment: { findFirst: vi.fn() },
     communityPost: { create: vi.fn() },
+    user: { findUnique: vi.fn() },
   },
 }));
 
@@ -38,9 +39,9 @@ const BANNED_SESSION = {
     createdAt: new Date("2024-01-01"),
     updatedAt: new Date("2024-01-01"),
     role: "user",
-    banned: true,
-    banReason: "Community violation",
-    banExpires: futureBanExpiry,
+    banned: false,
+    banReason: null,
+    banExpires: null,
   },
   session: {
     id: "sess-banned",
@@ -56,12 +57,16 @@ describe("banned user restrictions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetSession.mockResolvedValue(BANNED_SESSION);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      communityBanned: true,
+      communityBanExpires: futureBanExpiry,
+      communityBanReason: "Community violation",
+    } as never);
   });
 
-  it("requireUser returns the banned user without redirecting", async () => {
+  it("requireUser returns the user without redirecting", async () => {
     const user = await requireUser();
 
-    expect(user.banned).toBe(true);
     expect(user.id).toBe("banned-user");
     expect(mockRedirect).not.toHaveBeenCalled();
   });
