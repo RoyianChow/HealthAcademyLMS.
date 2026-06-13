@@ -12,11 +12,11 @@ import {
 import { Progress } from "@/components/ui/progress";
 import {
   ChevronDown,
-  ClipboardList,
   MessageCircle,
   Play,
 } from "lucide-react";
 import { LessonItem } from "./LessonItem";
+import { QuizItem } from "./QuizItem";
 import { usePathname } from "next/navigation";
 import { useCourseProgress } from "@/hooks/use-course-progress";
 import { cn } from "@/lib/utils";
@@ -96,8 +96,8 @@ export function CourseSidebar({ course, isEnrolled }: iAppProps) {
         {course.chapters.map((chapter) => (
           <Collapsible 
             key={chapter.id} 
-            open={!!openChapters[chapter.id]} // 👈 Controlled open binding
-            onOpenChange={(isOpen) => {       // 👈 Managed manual toggles
+            open={!!openChapters[chapter.id]}
+            onOpenChange={(isOpen) => {
               setOpenChapters((prev) => ({
                 ...prev,
                 [chapter.id]: isOpen,
@@ -143,20 +143,23 @@ export function CourseSidebar({ course, isEnrolled }: iAppProps) {
                 />
               ))}
 
-              {chapter.quizzes.map((quiz) => (
-                <Link
-                  key={quiz.id}
-                  href={`/quizzes/${quiz.id}`}
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition hover:bg-muted",
-                    currentId === quiz.id &&
-                      "border-primary bg-primary/10 text-primary"
-                  )}
-                >
-                  <ClipboardList className="size-4 shrink-0" />
-                  <span className="truncate">{quiz.title}</span>
-                </Link>
-              ))}
+              {chapter.quizzes.map((quiz) => {
+                const highestAttempt = quiz.attempts?.[0];
+                
+                const isPassed = 
+                  highestAttempt && quiz.passingScore !== null
+                    ? (highestAttempt.score ?? 0) >= quiz.passingScore
+                    : false;
+
+                return (
+                  <QuizItem
+                    key={quiz.id}
+                    quiz={quiz}
+                    isActive={currentId === quiz.id}
+                    isPassed={isPassed}
+                  />
+                );
+              })}
             </CollapsibleContent>
           </Collapsible>
         ))}
@@ -187,3 +190,4 @@ export function CourseSidebar({ course, isEnrolled }: iAppProps) {
     </div>
   );
 }
+

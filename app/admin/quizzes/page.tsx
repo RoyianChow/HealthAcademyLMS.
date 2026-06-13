@@ -5,12 +5,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Plus } from "lucide-react";
 import { DeleteQuizAttemptButton } from "./_components/DeleteQuizAttemptButton";
 import { DeleteQuizButton } from "./_components/DeleteQuizButton";
+import { SidebarStateWrapper } from "@/components/chat/sidebar-state-wrapper";
 
 export default async function AdminQuizzesPage() {
   const quizzes = await adminGetQuizList();
 
   return (
-    <div className="min-h-[calc(100vh-8rem)] space-y-6">
+    <SidebarStateWrapper className="min-h-[calc(100vh-8rem)] space-y-6">
+      {/* Restored to original layout structure so size and position remain unchanged */}
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-4">
           <h1 className="text-4xl font-bold tracking-tight">Administrate Quizzes</h1>
@@ -19,7 +21,7 @@ export default async function AdminQuizzesPage() {
           </p>
         </div>
 
-        <Button asChild>
+        <Button asChild className="shrink-0">
           <Link href="/admin/quizzes/create">
             Create Quiz
             <Plus className="ml-2 size-4" />
@@ -36,19 +38,19 @@ export default async function AdminQuizzesPage() {
           </Card>
         ) : (
           quizzes.map((quiz) => (
-            <Card key={quiz.id} className="transition hover:bg-muted/30">
+            <Card key={quiz.id} className="transition hover:bg-muted/30 overflow-hidden">
               <CardContent className="space-y-6 p-6">
                 <div className="flex items-start justify-between gap-6">
-                  <div className="space-y-2">
+                  <div className="space-y-2 flex-1 min-w-0">
                     <div className="flex items-center gap-3">
-                      <h2 className="text-lg font-semibold">{quiz.title}</h2>
+                      <h2 className="text-lg font-semibold truncate">{quiz.title}</h2>
 
-                      <span className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
+                      <span className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground shrink-0">
                         {quiz.isPublished ? "Published" : "Draft"}
                       </span>
                     </div>
 
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground line-clamp-2">
                       {quiz.description || "No description"}
                     </p>
 
@@ -68,7 +70,7 @@ export default async function AdminQuizzesPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     <Button asChild variant="outline" size="sm">
                       <Link href={`/admin/quizzes/${quiz.id}/edit`}>
                         Edit Quiz
@@ -79,7 +81,7 @@ export default async function AdminQuizzesPage() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border">
+                <div className="rounded-xl border overflow-hidden">
                   <div className="border-b bg-muted/40 px-4 py-3">
                     <h3 className="font-medium">Student Results</h3>
                   </div>
@@ -89,18 +91,19 @@ export default async function AdminQuizzesPage() {
                       No students have attempted this quiz yet.
                     </div>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-sm">
+                    /* Removed overflow-x-auto and min-w constraints to prevent scroll bars */
+                    <div className="w-full">
+                      <table className="w-full text-xs md:text-sm table-auto">
                         <thead className="bg-muted/20 text-left">
                           <tr className="border-b">
-                            <th className="px-4 py-3 font-medium">Student</th>
-                            <th className="px-4 py-3 font-medium">Email</th>
-                            <th className="px-4 py-3 font-medium">Attempt</th>
-                            <th className="px-4 py-3 font-medium">Score</th>
-                            <th className="px-4 py-3 font-medium">Status</th>
-                            <th className="px-4 py-3 font-medium">Submitted</th>
-                            <th className="px-4 py-3 font-medium">Graded</th>
-                            <th className="px-4 py-3 font-medium">Actions</th>
+                            <th className="px-2 py-3 font-medium">Student</th>
+                            <th className="px-2 py-3 font-medium">Email</th>
+                            <th className="px-2 py-3 font-medium">Attempt</th>
+                            <th className="px-2 py-3 font-medium">Score</th>
+                            <th className="px-2 py-3 font-medium">Status</th>
+                            <th className="px-2 py-3 font-medium">Submitted</th>
+                            <th className="px-2 py-3 font-medium">Graded</th>
+                            <th className="px-2 py-3 font-medium text-right pr-4">Actions</th>
                           </tr>
                         </thead>
 
@@ -108,33 +111,34 @@ export default async function AdminQuizzesPage() {
                           {quiz.attempts.map((attempt) => (
                             <tr
                               key={attempt.id}
-                              className="border-b last:border-b-0"
+                              className="border-b last:border-b-0 hover:bg-muted/10 transition-colors"
                             >
-                              <td className="px-4 py-3">
+                              {/* Strict max-widths with clean truncation to adapt smoothly */}
+                              <td className="px-2 py-3 truncate max-w-[100px] md:max-w-[150px]">
                                 {attempt.user?.name || "Unknown User"}
                               </td>
 
-                              <td className="px-4 py-3 text-muted-foreground">
+                              <td className="px-2 py-3 text-muted-foreground truncate max-w-[120px] md:max-w-[180px]">
                                 {attempt.user?.email || "No email"}
                               </td>
 
-                              <td className="px-4 py-3">
+                              <td className="px-2 py-3 whitespace-nowrap">
                                 #{attempt.attemptNumber}
                               </td>
 
-                              <td className="px-4 py-3 font-medium">
+                              <td className="px-2 py-3 font-medium whitespace-nowrap">
                                 {attempt.score !== null
                                   ? `${attempt.score}%`
                                   : "Not graded"}
                               </td>
 
-                              <td className="px-4 py-3">
+                              <td className="px-2 py-3 whitespace-nowrap">
                                 {attempt.isComplete
                                   ? "Completed"
                                   : "In Progress"}
                               </td>
 
-                              <td className="px-4 py-3 text-muted-foreground">
+                              <td className="px-2 py-3 text-muted-foreground whitespace-nowrap">
                                 {attempt.submittedAt
                                   ? new Date(
                                       attempt.submittedAt
@@ -142,11 +146,11 @@ export default async function AdminQuizzesPage() {
                                   : "Not submitted"}
                               </td>
 
-                              <td className="px-4 py-3 text-muted-foreground">
+                              <td className="px-2 py-3 text-muted-foreground whitespace-nowrap">
                                 {attempt.isGraded ? "Graded" : "Pending"}
                               </td>
 
-                              <td className="px-4 py-3">
+                              <td className="px-2 py-3 text-right pr-4">
                                 <DeleteQuizAttemptButton
                                   attemptId={attempt.id}
                                 />
@@ -163,6 +167,6 @@ export default async function AdminQuizzesPage() {
           ))
         )}
       </div>
-    </div>
+    </SidebarStateWrapper>
   );
 }

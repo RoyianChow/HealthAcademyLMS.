@@ -176,13 +176,10 @@ async function RenderQuizzes() {
                   )}
                 </div>
 
-                <div className="flex items-center justify-between border-t pt-4">
-                  <span className="text-sm text-muted-foreground">
-                    {isCompleted ? "View your result" : "Ready to start"}
-                  </span>
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
 
                   {isCompleted ? (
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <QuizResultDialog quiz={quiz} />
 
                       <Link
