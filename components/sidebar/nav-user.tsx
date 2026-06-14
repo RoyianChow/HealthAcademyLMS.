@@ -5,6 +5,8 @@ import {
   IconDotsVertical,
   IconLogout,
 } from "@tabler/icons-react";
+import Link from "next/link";
+import { HomeIcon, Tv2 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -22,20 +24,21 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { authClient } from "@/lib/auth-client";
-import Link from "next/link";
-import { HomeIcon, Tv2 } from "lucide-react";
 import { useSignOut } from "@/hooks/use-singout";
 
-export function NavUser() {
-  const { isMobile } = useSidebar();
-  const { data: session, isPending } = authClient.useSession();
-  const handleSignOut = useSignOut();
-  const isAdmin = session?.user?.role == "admin";
+export type SidebarSessionUser = {
+  name: string;
+  email: string;
+  image?: string | null;
+  role?: string | null;
+};
 
-  if (isPending) {
-    return null;
-  }
+export function NavUser({ user }: { user: SidebarSessionUser }) {
+  const { isMobile } = useSidebar();
+  const handleSignOut = useSignOut();
+  const isAdmin = user.role === "admin";
+  const displayName =
+    user.name && user.name.length > 0 ? user.name : user.email.split("@")[0];
 
   return (
     <SidebarMenu>
@@ -48,26 +51,17 @@ export function NavUser() {
             >
               <Avatar className="h-8 w-8 rounded-lg ">
                 <AvatarImage
-                  src={
-                    session?.user.image ??
-                    `https://avatar.vercel.sh/${session?.user.email}`
-                  }
-                  alt={session?.user.name}
+                  src={user.image ?? `https://avatar.vercel.sh/${user.email}`}
+                  alt={user.name}
                 />
                 <AvatarFallback className="rounded-lg">
-                  {session?.user.name && session.user.name.length > 0
-                    ? session.user.name.charAt(0).toUpperCase()
-                    : session?.user.email.charAt(0).toUpperCase()}
+                  {displayName.charAt(0).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">
-                  {session?.user.name && session.user.name.length > 0
-                    ? session.user.name
-                    : session?.user.email.split("@")[0]}
-                </span>
+                <span className="truncate font-medium">{displayName}</span>
                 <span className="text-muted-foreground truncate text-xs">
-                  {session?.user.email}
+                  {user.email}
                 </span>
               </div>
               <IconDotsVertical className="ml-auto size-4" />
@@ -83,27 +77,18 @@ export function NavUser() {
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage
-                    src={
-                      session?.user.image ??
-                      `https://avatar.vercel.sh/${session?.user.email}`
-                    }
-                    alt={session?.user.name}
+                    src={user.image ?? `https://avatar.vercel.sh/${user.email}`}
+                    alt={user.name}
                   />
                   <AvatarFallback className="rounded-lg">
-                    {session?.user.name && session.user.name.length > 0
-                      ? session.user.name.charAt(0).toUpperCase()
-                      : session?.user.email.charAt(0).toUpperCase()}
+                    {displayName.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">
-                    {session?.user.name && session.user.name.length > 0
-                      ? session.user.name
-                      : session?.user.email.split("@")[0]}
+                  <span className="truncate font-medium">{displayName}</span>
+                  <span className="text-muted-foreground truncate text-xs">
+                    {user.email}
                   </span>
-                 <span className="text-muted-foreground truncate text-xs">
-                  {session?.user.email}
-                </span>
                 </div>
               </div>
             </DropdownMenuLabel>
@@ -139,4 +124,3 @@ export function NavUser() {
     </SidebarMenu>
   );
 }
-

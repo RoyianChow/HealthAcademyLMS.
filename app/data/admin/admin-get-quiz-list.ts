@@ -28,20 +28,6 @@ export async function adminGetQuizList() {
           attempts: true,
         },
       },
-      attempts: {
-        orderBy: {
-          createdAt: "desc",
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-        },
-      },
     },
   });
 }

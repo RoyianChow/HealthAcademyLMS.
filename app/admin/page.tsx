@@ -1,4 +1,4 @@
-import { ChartAreaInteractive } from "@/components/sidebar/chart-area-interactive";
+import { ChartAreaInteractive } from "@/components/sidebar/chart-area-interactive-dynamic";
 import { SectionCards } from "@/components/sidebar/section-cards";
 import { adminGetEnrollmentStats } from "../data/admin/admin-get-enrollment-stats";
 import Link from "next/link";

@@ -4,8 +4,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -54,6 +55,7 @@ model Session {
   impersonatedBy String?
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("session")
 }
 
@@ -73,6 +75,7 @@ model Account {
   updatedAt             DateTime
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("account")
 }
 
@@ -154,6 +157,7 @@ model Lesson {
 
   @@unique([chapterId, position])
   @@index([chapterId])
+  @@index([chapterId, isPublished])
 }
 
 model LessonVideo {
@@ -207,6 +211,8 @@ model Enrollment {
   @@index([status])
   @@index([courseId])
   @@index([userId])
+  @@index([createdAt])
+  @@index([userId, status])
 }
 
 model CourseProgress {
@@ -320,6 +326,7 @@ model QuizAttempt {
   @@index([userId])
   @@index([isComplete])
   @@index([isGraded])
+  @@index([quizId, userId, isComplete, createdAt])
 }
 
 model QuizAnswer {
@@ -357,6 +364,7 @@ model CommunityPost {
   @@index([userId])
   @@index([courseId])
   @@index([isPinned])
+  @@index([createdAt])
 }
 
 model CommunityComment {
@@ -400,6 +408,7 @@ model ChatConversation {
   messages ChatMessage[]
 
   @@index([userId])
+  @@index([updatedAt])
 }
 
 model ChatMessage {
@@ -419,6 +428,11 @@ model ChatMessage {
 
   @@index([conversationId])
   @@index([conversationId, createdAt])
+}
+
+model StripeWebhookEvent {
+  id        String   @id
+  createdAt DateTime @default(now())
 }
 
 enum CourseLevel {

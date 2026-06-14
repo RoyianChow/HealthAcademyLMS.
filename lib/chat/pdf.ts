@@ -7,11 +7,17 @@ const pdfParse = require("pdf-parse") as (buffer: Buffer) => Promise<{ text: str
 import type { AttachedPdfContext } from "@/lib/chat/types";
 
 const maxPdfBytes = 8 * 1024 * 1024;
+const maxTotalPdfBytes = 12 * 1024 * 1024;
 const maxPdfTextCharacters = 12000;
 
 export async function extractPdfContexts(files: File[]) {
   if (files.length > 3) {
     throw new Error("Please attach up to 3 PDFs per message.");
+  }
+
+  const totalBytes = files.reduce((sum, file) => sum + file.size, 0);
+  if (totalBytes > maxTotalPdfBytes) {
+    throw new Error("Attached PDFs are too large. Please keep the total upload under 12 MB.");
   }
 
   return Promise.all(files.map(extractPdfContext));

@@ -296,24 +296,89 @@ export function FloatingChat({
         method: "POST",
         body,
       });
-      const data = (await response.json()) as ChatPostResponse;
 
-      if (!response.ok || data.error) {
-        throw new Error(data.error ?? "Unable to send the message.");
-      }
+      const contentType = response.headers.get("content-type") ?? "";
 
-      setMessages((current) => {
-        const withoutOptimistic = current.filter(
-          (item) => item.id !== optimisticUserMessage.id
+      if (contentType.includes("application/x-ndjson") && response.body) {
+        const assistantId = createClientId();
+        setStreamingId(assistantId);
+        setStreamingContent("");
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let donePayload: ChatPostResponse | null = null;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() ?? "";
+
+          for (const line of lines) {
+            if (!line.trim()) continue;
+
+            const event = JSON.parse(line) as
+              | { type: "token"; content: string }
+              | ({ type: "done" } & ChatPostResponse)
+              | { type: "error"; error: string };
+
+            if (event.type === "token") {
+              setStreamingContent((current) => current + event.content);
+            } else if (event.type === "error") {
+              throw new Error(event.error);
+            } else if (event.type === "done") {
+              donePayload = event;
+            }
+          }
+        }
+
+        if (!donePayload) {
+          throw new Error("Unable to send the message.");
+        }
+
+        setStreamingId(null);
+        setStreamingContent("");
+        setMessages((current) => {
+          const withoutOptimistic = current.filter(
+            (item) => item.id !== optimisticUserMessage.id
+          );
+          return [
+            ...withoutOptimistic,
+            donePayload!.userMessage,
+            donePayload!.assistantMessage,
+          ];
+        });
+        setConversationSummaries((current) =>
+          [
+            donePayload!.conversationSummary,
+            ...current.filter(
+              (item) => item.id !== donePayload!.conversationSummary.id
+            ),
+          ].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
         );
-        return [...withoutOptimistic, data.userMessage, data.assistantMessage];
-      });
-      startStreaming(data.assistantMessage.content, data.assistantMessage.id);
-      setConversationSummaries((current) =>
-        [data.conversationSummary, ...current.filter((item) => item.id !== data.conversationSummary.id)].sort(
-          (left, right) => right.updatedAt.localeCompare(left.updatedAt)
-        )
-      );
+      } else {
+        const data = (await response.json()) as ChatPostResponse;
+
+        if (!response.ok || data.error) {
+          throw new Error(data.error ?? "Unable to send the message.");
+        }
+
+        setMessages((current) => {
+          const withoutOptimistic = current.filter(
+            (item) => item.id !== optimisticUserMessage.id
+          );
+          return [...withoutOptimistic, data.userMessage, data.assistantMessage];
+        });
+        startStreaming(data.assistantMessage.content, data.assistantMessage.id);
+        setConversationSummaries((current) =>
+          [data.conversationSummary, ...current.filter((item) => item.id !== data.conversationSummary.id)].sort(
+            (left, right) => right.updatedAt.localeCompare(left.updatedAt)
+          )
+        );
+      }
     } catch (error) {
       setMessages((current) =>
         current.filter((item) => item.id !== optimisticUserMessage.id)

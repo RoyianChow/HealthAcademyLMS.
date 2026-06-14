@@ -33,14 +33,12 @@ export default async function ProfilePage() {
     (enrollment) => enrollment.status === EnrollmentStatus.Active
   );
 
-  const enrolledCoursesWithProgress = user.enrollments.map((enrollment) => {
-    const progress = getCourseProgress(enrollment.course);
-
-    return {
-      enrollment,
-      ...progress,
-    };
-  });
+  const enrolledCoursesWithProgress = user.enrollments.map((enrollment) => ({
+    enrollment,
+    totalLessons: enrollment.course.progress.totalLessons,
+    completedLessons: enrollment.course.progress.completedLessons,
+    progressPercentage: enrollment.course.progress.progressPercentage,
+  }));
 
   const completedCoursesCount = enrolledCoursesWithProgress.filter(
     (item) => item.progressPercentage === 100 && item.totalLessons > 0
@@ -332,40 +330,6 @@ export default async function ProfilePage() {
       </div>
     </div>
   );
-}
-
-function getCourseProgress(course: {
-  chapters: {
-    lessons: {
-      lessonProgress: {
-        completed: boolean;
-      }[];
-    }[];
-  }[];
-}) {
-  let totalLessons = 0;
-  let completedLessons = 0;
-
-  course.chapters.forEach((chapter) => {
-    chapter.lessons.forEach((lesson) => {
-      totalLessons++;
-
-      if (lesson.lessonProgress && lesson.lessonProgress[0]?.completed) {
-        completedLessons++;
-      }
-    });
-  });
-
-  const progressPercentage =
-    totalLessons === 0
-      ? 0
-      : Math.round((completedLessons / totalLessons) * 100);
-
-  return {
-    totalLessons,
-    completedLessons,
-    progressPercentage,
-  };
 }
 
 function Stat({ label, value }: { label: string; value: string | number }) {

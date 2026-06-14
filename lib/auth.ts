@@ -17,6 +17,13 @@ export const auth = betterAuth({
     useSecureCookies: process.env.E2E_TEST === "true" ? false : undefined,
   },
 
+  session: {
+    cookieCache: {
+      enabled: true,
+      maxAge: 5 * 60,
+    },
+  },
+
   socialProviders: {
     github: {
       clientId: env.AUTH_GITHUB_CLIENT_ID,

@@ -4,9 +4,12 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/app/data/user/require-user";
 import { CourseStatus, EnrollmentStatus } from "@/src/generated/prisma/client";
-import { getCommunityBanStatus, isCommunityBanned } from "@/lib/community-ban";
+import { isCommunityBanned } from "@/lib/community-ban";
+import { getCommunityBanStatus } from "@/lib/community-ban-status";
 
 const POSTS_LIMIT = 50;
+
+const COMMENTS_LIMIT = 20;
 
 export async function getCommunityPageData(slug: string) {
   const user = await requireUser();
@@ -64,6 +67,7 @@ export async function getCommunityPageData(slug: string) {
             orderBy: {
               createdAt: "asc",
             },
+            take: COMMENTS_LIMIT,
             include: {
               user: {
                 select: {
@@ -82,9 +86,18 @@ export async function getCommunityPageData(slug: string) {
             },
           },
           likes: {
+            where: {
+              userId: user.id,
+            },
             select: {
               id: true,
               userId: true,
+            },
+          },
+          _count: {
+            select: {
+              comments: true,
+              likes: true,
             },
           },
         },

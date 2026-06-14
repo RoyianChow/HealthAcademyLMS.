@@ -21,12 +21,16 @@ vi.mock("@/lib/db", () => ({
     course: { findUnique: vi.fn() },
     lesson: { findUnique: vi.fn(), findFirst: vi.fn() },
     quiz: { findMany: vi.fn(), findFirst: vi.fn() },
+    $queryRaw: vi.fn(),
   },
 }));
 
 vi.mock("@/src/generated/prisma/client", () => ({
   EnrollmentStatus: { Active: "Active", Inactive: "Inactive", Pending: "Pending" },
   CourseStatus: { Published: "Published", Draft: "Draft" },
+  Prisma: {
+    join: (values: string[]) => values,
+  },
 }));
 
 import { auth } from "@/lib/auth";
@@ -147,10 +151,16 @@ describe("User data loaders — authenticated enrollment rules", () => {
         slug: "my-course",
         duration: "2h",
         courseProgress: [],
-        chapters: [],
       };
       vi.mocked(prisma.enrollment.findMany).mockResolvedValue([
         { course: coursePayload },
+      ] as never);
+      vi.mocked(prisma.$queryRaw).mockResolvedValue([
+        {
+          courseId: "course-1",
+          totalLessons: 10,
+          completedLessons: 4,
+        },
       ] as never);
 
       const result = await getEnrolledCourses();
@@ -163,7 +173,16 @@ describe("User data loaders — authenticated enrollment rules", () => {
           },
         })
       );
-      expect(result).toEqual([coursePayload]);
+      expect(result).toEqual([
+        {
+          ...coursePayload,
+          progress: {
+            totalLessons: 10,
+            completedLessons: 4,
+            progressPercentage: 40,
+          },
+        },
+      ]);
     });
   });
 

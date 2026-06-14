@@ -4,6 +4,11 @@ import { z } from "zod";
 export const env = createEnv({
   server: {
   DATABASE_URL: z.string().url(),
+  /** Direct Postgres URL for migrations (Neon: `DIRECT_URL`); falls back to pooled URL when not using a pooler. */
+  DIRECT_DATABASE_URL: z.preprocess(
+    (value) => value || process.env.DIRECT_URL || process.env.DATABASE_URL,
+    z.string().url()
+  ),
   BETTER_AUTH_SECRET: z.string().min(1),
   BETTER_AUTH_URL: z.string().url(),
   AUTH_GITHUB_CLIENT_ID: z.string().min(1),

@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import {
+  chatReadLimiter,
+  enforceChatRateLimit,
+} from "@/lib/chat/arcjet";
 import { getConversationMessages } from "@/lib/chat/store";
 import { resolveChatUserContext } from "@/lib/chat/user-context";
 import { requireUser } from "@/app/data/user/require-user";
@@ -12,6 +16,15 @@ const historyQuerySchema = z.object({
 
 export async function GET(request: Request) {
   const sessionUser = await requireUser();
+  const rateLimit = await enforceChatRateLimit(
+    request,
+    sessionUser.id,
+    chatReadLimiter
+  );
+  if (rateLimit.denied) {
+    return rateLimit.response;
+  }
+
   const url = new URL(request.url);
   const query = historyQuerySchema.parse({
     conversationId: url.searchParams.get("conversationId") ?? undefined,

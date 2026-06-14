@@ -1,5 +1,6 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/db";
 import { EnrollmentStatus } from "@/src/generated/prisma/client";
 import type {
@@ -30,9 +31,14 @@ const stopWords = new Set([
 export async function getAccessibleCoursesForUser(
   user: ChatUserContext
 ): Promise<ChatCourse[]> {
-  const enrollments = await prisma.enrollment.findMany({
+  return getAccessibleCoursesForUserCached(user.id);
+}
+
+const getAccessibleCoursesForUserCached = unstable_cache(
+  async (userId: string): Promise<ChatCourse[]> => {
+    const enrollments = await prisma.enrollment.findMany({
     where: {
-      userId: user.id,
+      userId,
       status: EnrollmentStatus.Active,
     },
     select: {
@@ -48,7 +54,7 @@ export async function getAccessibleCoursesForUser(
           duration: true,
           status: true,
           courseProgress: {
-            where: { userId: user.id },
+            where: { userId },
             select: { completed: true },
           },
           chapters: {
@@ -65,7 +71,7 @@ export async function getAccessibleCoursesForUser(
                   title: true,
                   description: true,
                   lessonProgress: {
-                    where: { userId: user.id },
+                    where: { userId },
                     select: { completed: true },
                   },
                 },
@@ -119,7 +125,10 @@ export async function getAccessibleCoursesForUser(
       })),
     } satisfies ChatCourse;
   });
-}
+  },
+  ["accessible-courses-for-user"],
+  { revalidate: 300 }
+);
 
 export function buildCourseSummaries(
   courses: ChatCourse[]

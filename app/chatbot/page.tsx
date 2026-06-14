@@ -1,4 +1,4 @@
-import { FloatingChat } from "@/components/chat/floating-chat";
+import { FloatingChatDynamic } from "@/components/chat/floating-chat-dynamic";
 import { requireUser } from "@/app/data/user/require-user";
 import { resolveChatUserContext } from "@/lib/chat/user-context";
 import {
@@ -10,14 +10,16 @@ import { listConversationSummariesForUser } from "@/lib/chat/store";
 export default async function ChatbotPage() {
   const sessionUser = await requireUser();
 
-  const user = await resolveChatUserContext(sessionUser.id);
+  const [user, conversationSummaries] = await Promise.all([
+    resolveChatUserContext(sessionUser.id),
+    listConversationSummariesForUser(sessionUser.id),
+  ]);
   const courses = await getAccessibleCoursesForUser(user);
   const courseSummaries = buildCourseSummaries(courses);
-  const conversationSummaries = await listConversationSummariesForUser(user.id);
   const initialConversationId = conversationSummaries[0].id;
 
   return (
-    <FloatingChat
+    <FloatingChatDynamic
       initialUser={user}
       courseSummaries={courseSummaries}
       initialConversationSummaries={conversationSummaries}

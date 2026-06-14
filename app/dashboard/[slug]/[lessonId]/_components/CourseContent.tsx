@@ -12,8 +12,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import { RenderDescription } from "@/components/rich-text-editor/RenderDescription";
-import { parseDescriptionJson } from "@/lib/tiptap-content";
 import { Button } from "@/components/ui/button";
 import { tryCatch } from "@/hooks/try-catch";
 import { useConfetti } from "@/hooks/use-confetti";
@@ -23,6 +21,8 @@ import { markLessonComplete } from "../actions";
 type CourseContentProps = {
   data: LessonContentType;
   userId: string;
+  descriptionHtml?: string | null;
+  contentHtml?: string | null;
 };
 
 function getYoutubeEmbedUrl(url?: string | null) {
@@ -72,11 +72,6 @@ function formatFileSize(size?: number | null) {
   return `${value.toFixed(value >= 10 || unitIndex === 0 ? 0 : 1)} ${
     units[unitIndex]
   }`;
-}
-
-function parseDescription(description?: string | null) {
-  if (!description) return null;
-  return parseDescriptionJson(description);
 }
 
 function VideoPlayer({
@@ -291,19 +286,14 @@ function InteractiveScriptPlayer({ html }: { html: string }) {
   );
 }
 
-export function CourseContent({ data, userId }: CourseContentProps) {
+export function CourseContent({
+  data,
+  userId,
+  descriptionHtml,
+  contentHtml,
+}: CourseContentProps) {
   const [pending, startTransition] = useTransition();
   const { triggerConfetti } = useConfetti();
-
-  const descriptionJson = useMemo(
-    () => parseDescription(data.description),
-    [data.description]
-  );
-
-  const contentJson = useMemo(
-    () => parseDescription(data.content),
-    [data.content]
-  );
 
   type ProgressItem = { completed: boolean; userId: string };
   const isCompleted = Array.isArray(data.lessonProgress)
@@ -367,8 +357,11 @@ export function CourseContent({ data, userId }: CourseContentProps) {
             {data.title}
           </h1>
 
-          {descriptionJson ? (
-            <RenderDescription json={descriptionJson} />
+          {descriptionHtml ? (
+            <div
+              className="prose max-w-none w-full dark:prose-invert"
+              dangerouslySetInnerHTML={{ __html: descriptionHtml }}
+            />
           ) : data.description ? (
             <p className="text-sm text-muted-foreground">
               Lesson description could not be displayed.
@@ -376,9 +369,12 @@ export function CourseContent({ data, userId }: CourseContentProps) {
           ) : null}
         </div>
 
-        {contentJson && (
+        {contentHtml && (
           <div className="pt-4 border-t border-muted">
-            <RenderDescription json={contentJson} />
+            <div
+              className="prose max-w-none w-full dark:prose-invert"
+              dangerouslySetInnerHTML={{ __html: contentHtml }}
+            />
           </div>
         )}
 

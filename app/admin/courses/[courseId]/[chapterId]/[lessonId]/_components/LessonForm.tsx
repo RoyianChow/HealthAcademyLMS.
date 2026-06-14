@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { RichTextEditor } from "@/components/rich-text-editor/Editor";
+import { RichTextEditor } from "@/components/rich-text-editor/EditorDynamic";
 import { Uploader } from "@/components/file-uploader/Uploader";
 import { useTransition, useState } from "react";
 import { tryCatch } from "@/hooks/try-catch";

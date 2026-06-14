@@ -14,13 +14,24 @@ export async function markLessonComplete(
   const user = await requireUser();
 
   try {
-    const enrollment = await prisma.enrollment.findFirst({
-      where: {
-        userId: user.id,
-        course: { slug },
-        status: EnrollmentStatus.Active,
-      },
-    });
+    const [enrollment, lesson] = await Promise.all([
+      prisma.enrollment.findFirst({
+        where: {
+          userId: user.id,
+          course: { slug },
+          status: EnrollmentStatus.Active,
+        },
+      }),
+      prisma.lesson.findFirst({
+        where: {
+          id: lessonId,
+          chapter: { course: { slug } },
+        },
+        include: {
+          chapter: { select: { courseId: true } },
+        },
+      }),
+    ]);
 
     if (!enrollment) {
       return {
@@ -28,16 +39,6 @@ export async function markLessonComplete(
         message: "Progress tracking features require full course enrollment.",
       };
     }
-
-    const lesson = await prisma.lesson.findFirst({
-      where: {
-        id: lessonId,
-        chapter: { course: { slug } },
-      },
-      include: {
-        chapter: { select: { courseId: true } } // Need this for CourseProgress
-      }
-    });
 
     if (!lesson) {
       return {
@@ -64,24 +65,25 @@ export async function markLessonComplete(
 
     // Check if the user has completed all lessons in the course
     const courseId = lesson.chapter.courseId;
-    
-    const totalLessons = await prisma.lesson.count({
-      where: { 
-        chapter: { courseId },
-        isPublished: true 
-      }
-    });
-    
-    const completedLessons = await prisma.lessonProgress.count({
-      where: {
-        userId: user.id,
-        lesson: { 
+
+    const [totalLessons, completedLessons] = await Promise.all([
+      prisma.lesson.count({
+        where: {
           chapter: { courseId },
-          isPublished: true
+          isPublished: true,
         },
-        completed: true
-      }
-    });
+      }),
+      prisma.lessonProgress.count({
+        where: {
+          userId: user.id,
+          lesson: {
+            chapter: { courseId },
+            isPublished: true,
+          },
+          completed: true,
+        },
+      }),
+    ]);
 
     if (totalLessons > 0 && completedLessons >= totalLessons) {
       await prisma.courseProgress.upsert({

@@ -3,7 +3,6 @@ import { prisma } from "@/lib/db";
 import { requireAdmin } from "./require-admin";
 
 export async function adminGetRecentCourses() {
-  await new Promise((resolve) => setTimeout(resolve, 2000));
   await requireAdmin();
 
   const data = await prisma.course.findMany({
@@ -23,7 +22,11 @@ export async function adminGetRecentCourses() {
       price: true,
       fileKey: true,
       slug: true,
-      enrollments: true
+      _count: {
+        select: {
+          enrollments: true,
+        },
+      },
     },
   });
 

@@ -29,7 +29,17 @@ export async function POST(req: Request) {
     return new Response("Invalid webhook signature", { status: 400 });
   }
 
+  const existingEvent = await prisma.stripeWebhookEvent.findUnique({
+    where: { id: event.id },
+    select: { id: true },
+  });
+
+  if (existingEvent) {
+    return new Response("Event already processed", { status: 200 });
+  }
+
   if (event.type !== "checkout.session.completed") {
+    await prisma.stripeWebhookEvent.create({ data: { id: event.id } });
     return new Response("Event ignored", { status: 200 });
   }
 
@@ -59,6 +69,7 @@ export async function POST(req: Request) {
     });
 
     if (existingEnrollment?.status === "Active") {
+      await prisma.stripeWebhookEvent.create({ data: { id: event.id } });
       return new Response("Enrollment already active", { status: 200 });
     }
 
@@ -76,26 +87,30 @@ export async function POST(req: Request) {
         customerId,
       });
 
-      return new Response("User not found", { status: 404 });
+      await prisma.stripeWebhookEvent.create({ data: { id: event.id } });
+      return new Response("User not found", { status: 200 });
     }
 
     const paymentIntentId =
       typeof session.payment_intent === "string" ? session.payment_intent : null;
 
-    await prisma.enrollment.update({
-      where: {
-        id: enrollmentId,
-      },
-      data: {
-        userId: user.id,
-        courseId,
-        amount: session.amount_total ?? 0,
-        status: "Active",
-        purchasedAt: new Date(),
-        stripeSessionId: session.id,
-        stripePaymentId: paymentIntentId,
-      },
-    });
+    await prisma.$transaction([
+      prisma.enrollment.update({
+        where: {
+          id: enrollmentId,
+        },
+        data: {
+          userId: user.id,
+          courseId,
+          amount: session.amount_total ?? 0,
+          status: "Active",
+          purchasedAt: new Date(),
+          stripeSessionId: session.id,
+          stripePaymentId: paymentIntentId,
+        },
+      }),
+      prisma.stripeWebhookEvent.create({ data: { id: event.id } }),
+    ]);
 
     return new Response("Webhook processed", { status: 200 });
   } catch (error) {

@@ -7,7 +7,6 @@ import { Menu } from "lucide-react";
 
 import Logo from "@/public/logo.png";
 import { ThemeToggle } from "@/components/ui/themeToggle";
-import { authClient } from "@/lib/auth-client";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Sheet,
@@ -18,6 +17,13 @@ import {
 } from "@/components/ui/sheet";
 import { UserDropdown } from "./UserDropdown";
 
+export type NavbarUser = {
+  name: string;
+  email: string;
+  image?: string | null;
+  role?: string | null;
+} | null;
+
 const navigationItems = [
   { name: "Home", href: "/" },
   { name: "About", href: "/about" },
@@ -27,9 +33,14 @@ const navigationItems = [
   { name: "Dashboard", href: "/dashboard" },
 ];
 
-export function Navbar() {
-  const { data: session, isPending } = authClient.useSession();
+type NavbarProps = {
+  user: NavbarUser;
+};
+
+export function Navbar({ user }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const session = user ? { user } : null;
+  const isPending = false;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur-[backdrop-filter]:bg-background/60">

@@ -7,7 +7,7 @@ import { PanelRight, Sparkles } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { FloatingChat } from "@/components/chat/floating-chat";
+import { FloatingChatDynamic } from "@/components/chat/floating-chat-dynamic";
 import type {
   ChatBootstrapCourseSummary,
   ChatConversationSummary,
@@ -195,7 +195,7 @@ export function AiAdvisorPanel(props: AiAdvisorPanelProps) {
   }, [isOpen, close]);
 
   const chat = hasMounted ? (
-    <FloatingChat
+    <FloatingChatDynamic
       {...props}
       chatSessionKey={chatSessionKey}
       courseSlug={courseSlug}

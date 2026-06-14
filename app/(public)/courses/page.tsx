@@ -7,7 +7,7 @@ import {
   PublicCourseCardSkeleton,
 } from "../_components/PublicCourseCard";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export const metadata: Metadata = createPageMetadata({
   title: "Courses",

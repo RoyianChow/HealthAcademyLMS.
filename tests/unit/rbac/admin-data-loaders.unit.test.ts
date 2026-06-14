@@ -93,14 +93,8 @@ describe("Admin data loaders — non-admin cannot read (unit)", () => {
     /** Non-admin session triggers requireAdmin() to redirect to /not-admin before
      *  prisma.course.findMany executes; the course list is never exposed. */
     it("redirects before prisma.course.findMany", async () => {
-      vi.useFakeTimers();
-      const promise = adminGetCourses();
-      const assertion = expect(promise).rejects.toThrow("NEXT_REDIRECT");
-      await vi.runAllTimersAsync();
-      await assertion;
-      expect(mockRedirect).toHaveBeenCalledWith("/not-admin");
+      await expectUserBlocked(() => adminGetCourses());
       expect(prisma.course.findMany).not.toHaveBeenCalled();
-      vi.useRealTimers();
     });
   });
 
@@ -108,14 +102,8 @@ describe("Admin data loaders — non-admin cannot read (unit)", () => {
     /** Non-admin session triggers requireAdmin() before the recent-courses query;
      *  the dashboard widget data is never fetched. */
     it("redirects before prisma.course.findMany", async () => {
-      vi.useFakeTimers();
-      const promise = adminGetRecentCourses();
-      const assertion = expect(promise).rejects.toThrow("NEXT_REDIRECT");
-      await vi.runAllTimersAsync();
-      await assertion;
-      expect(mockRedirect).toHaveBeenCalledWith("/not-admin");
+      await expectUserBlocked(() => adminGetRecentCourses());
       expect(prisma.course.findMany).not.toHaveBeenCalled();
-      vi.useRealTimers();
     });
   });
 
@@ -192,27 +180,17 @@ describe("Admin data loaders — unauthenticated (null session)", () => {
   /** Null session causes requireAdmin() to redirect to /login before the
    *  course list query; unauthenticated access is rejected at the data layer. */
   it("adminGetCourses redirects to /login before prisma.course.findMany", async () => {
-    vi.useFakeTimers();
-    const promise = adminGetCourses();
-    const assertion = expect(promise).rejects.toThrow("NEXT_REDIRECT");
-    await vi.runAllTimersAsync();
-    await assertion;
+    await expect(adminGetCourses()).rejects.toThrow("NEXT_REDIRECT");
     expect(mockRedirect).toHaveBeenCalledWith("/login");
     expect(prisma.course.findMany).not.toHaveBeenCalled();
-    vi.useRealTimers();
   });
 
   /** Null session causes requireAdmin() to redirect to /login before the
    *  recent-courses query; the dashboard widget data is never fetched. */
   it("adminGetRecentCourses redirects to /login before prisma.course.findMany", async () => {
-    vi.useFakeTimers();
-    const promise = adminGetRecentCourses();
-    const assertion = expect(promise).rejects.toThrow("NEXT_REDIRECT");
-    await vi.runAllTimersAsync();
-    await assertion;
+    await expect(adminGetRecentCourses()).rejects.toThrow("NEXT_REDIRECT");
     expect(mockRedirect).toHaveBeenCalledWith("/login");
     expect(prisma.course.findMany).not.toHaveBeenCalled();
-    vi.useRealTimers();
   });
 
   /** Null session causes requireAdmin() to redirect to /login before the
@@ -325,17 +303,13 @@ describe("Admin data loaders — admin session reaches Prisma (happy path)", () 
     mockGetSession.mockResolvedValue(ADMIN_SESSION);
   });
 
-  /** adminGetCourses delays then calls requireAdmin; admin passes and findMany runs. */
+  /** adminGetCourses calls requireAdmin; admin passes and findMany runs. */
   it("adminGetCourses resolves with prisma.course.findMany rows", async () => {
     vi.mocked(prisma.course.findMany).mockResolvedValue([
       { id: "c1", title: "Course A" },
     ] as never);
 
-    vi.useFakeTimers();
-    const promise = adminGetCourses();
-    await vi.runAllTimersAsync();
-    const rows = await promise;
-    vi.useRealTimers();
+    const rows = await adminGetCourses();
 
     expect(rows).toEqual([{ id: "c1", title: "Course A" }]);
     expect(prisma.course.findMany).toHaveBeenCalled();

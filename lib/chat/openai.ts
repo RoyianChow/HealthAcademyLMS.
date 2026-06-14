@@ -3,6 +3,8 @@ import "server-only";
 import { getChatConfig } from "@/lib/chat/config";
 import type { AttachedPdfContext, RelevantCourseExcerpt } from "@/lib/chat/types";
 
+const llmTimeoutMs = 60_000;
+
 type LLMMessage = {
   role: "system" | "user" | "assistant";
   content: string;
@@ -17,10 +19,23 @@ type GenerateReplyInput = {
 };
 
 export async function generateNutritionReply(input: GenerateReplyInput) {
+  let fullText = "";
+
+  for await (const chunk of streamNutritionReply(input)) {
+    fullText += chunk;
+  }
+
+  return fullText || buildFallbackReply(input);
+}
+
+export async function* streamNutritionReply(
+  input: GenerateReplyInput
+): AsyncGenerator<string> {
   const { baseUrl, apiKey, model } = await getChatConfig();
 
   if (!apiKey) {
-    return buildFallbackReply(input);
+    yield buildFallbackReply(input);
+    return;
   }
 
   try {
@@ -33,32 +48,58 @@ export async function generateNutritionReply(input: GenerateReplyInput) {
       body: JSON.stringify({
         model,
         messages: input.messages,
-        max_tokens: 700,
+        max_tokens: 260,
         temperature: 0.35,
+        stream: true,
       }),
+      signal: AbortSignal.timeout(llmTimeoutMs),
     });
 
-    if (!response.ok) {
-      return buildFallbackReply(input);
+    if (!response.ok || !response.body) {
+      yield buildFallbackReply(input);
+      return;
     }
 
-    const payload = (await response.json()) as {
-      choices?: Array<{
-        message?: {
-          content?: string;
-        };
-      }>;
-    };
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let yielded = false;
 
-    const reply = payload.choices?.[0]?.message?.content?.trim();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
 
-    if (!reply) {
-      return buildFallbackReply(input);
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith("data:")) continue;
+
+        const payload = trimmed.slice(5).trim();
+        if (payload === "[DONE]") continue;
+
+        try {
+          const parsed = JSON.parse(payload) as {
+            choices?: Array<{ delta?: { content?: string } }>;
+          };
+          const delta = parsed.choices?.[0]?.delta?.content;
+          if (delta) {
+            yielded = true;
+            yield delta;
+          }
+        } catch {
+          // ignore malformed SSE chunks
+        }
+      }
     }
 
-    return reply;
+    if (!yielded) {
+      yield buildFallbackReply(input);
+    }
   } catch {
-    return buildFallbackReply(input);
+    yield buildFallbackReply(input);
   }
 }
 

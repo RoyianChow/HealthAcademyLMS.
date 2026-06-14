@@ -11,9 +11,8 @@ import Image from "next/image";
 import Link from "next/link";
 
 import Logo from "@/public/logo.png";
-import { authClient } from "@/lib/auth-client";
 import { NavMain } from "@/components/sidebar/nav-main";
-import { NavUser } from "@/components/sidebar/nav-user";
+import { NavUser, type SidebarSessionUser } from "@/components/sidebar/nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -24,9 +23,10 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { data: session } = authClient.useSession();
-
+export function AppSidebar({
+  user,
+  ...props
+}: React.ComponentProps<typeof Sidebar> & { user: SidebarSessionUser }) {
   const navMain = [
     {
       title: "Dashboard",
@@ -48,7 +48,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       url: "/dashboard/community",
       icon: IconGlobe,
     },
-    ...(session?.user?.role === "admin"
+    ...(user.role === "admin"
       ? [
           {
             title: "Admin Dashboard",
@@ -99,7 +99,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
 
       <SidebarFooter>
-        <NavUser />
+        <NavUser user={user} />
       </SidebarFooter>
     </Sidebar>
   );

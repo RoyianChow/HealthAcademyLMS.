@@ -123,12 +123,6 @@ export async function PATCH(req: Request, { params }: RouteContext) {
     }
 
     await prisma.$transaction(async (tx) => {
-      await tx.quizQuestion.deleteMany({
-        where: {
-          quizId,
-        },
-      });
-
       await tx.quiz.update({
         where: {
           id: quizId,
@@ -142,6 +136,55 @@ export async function PATCH(req: Request, { params }: RouteContext) {
           passingScore: passingScore ?? null,
           timeLimitMinutes: timeLimitMinutes ?? null,
           allowMultipleAttempts: Boolean(allowMultipleAttempts),
+        },
+      });
+
+      const existingQuestions = await tx.quizQuestion.findMany({
+        where: { quizId },
+        select: { id: true },
+        orderBy: { position: "asc" },
+      });
+
+      if (existingQuestions.length === questions.length) {
+        for (let questionIndex = 0; questionIndex < questions.length; questionIndex++) {
+          const question = questions[questionIndex];
+          const existingQuestion = existingQuestions[questionIndex];
+
+          await tx.quizOption.deleteMany({
+            where: { questionId: existingQuestion.id },
+          });
+
+          await tx.quizQuestion.update({
+            where: { id: existingQuestion.id },
+            data: {
+              question: question.question.trim(),
+              explanation: question.explanation?.trim() || null,
+              position: questionIndex + 1,
+              options: {
+                create: question.options.map((option, optionIndex) => ({
+                  text: option.text.trim(),
+                  isCorrect: Boolean(option.isCorrect),
+                  position: optionIndex + 1,
+                })),
+              },
+            },
+          });
+        }
+
+        return;
+      }
+
+      await tx.quizQuestion.deleteMany({
+        where: {
+          quizId,
+        },
+      });
+
+      await tx.quiz.update({
+        where: {
+          id: quizId,
+        },
+        data: {
           questions: {
             create: questions.map((question, questionIndex) => ({
               question: question.question.trim(),

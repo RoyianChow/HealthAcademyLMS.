@@ -48,24 +48,9 @@ export async function getEnrolledCourseQuizzes() {
           slug: true,
         },
       },
-      questions: {
-        orderBy: {
-          position: "asc",
-        },
+      _count: {
         select: {
-          id: true,
-          question: true,
-          explanation: true,
-          options: {
-            orderBy: {
-              position: "asc",
-            },
-            select: {
-              id: true,
-              text: true,
-              isCorrect: true,
-            },
-          },
+          questions: true,
         },
       },
       attempts: {
@@ -84,6 +69,61 @@ export async function getEnrolledCourseQuizzes() {
           submittedAt: true,
           isComplete: true,
           isGraded: true,
+        },
+      },
+    },
+  });
+}
+
+export async function getQuizResultDetails(quizId: string) {
+  const user = await requireUser();
+
+  const quiz = await prisma.quiz.findFirst({
+    where: {
+      id: quizId,
+      isPublished: true,
+      course: {
+        enrollments: {
+          some: {
+            userId: user.id,
+            status: EnrollmentStatus.Active,
+          },
+        },
+      },
+    },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      passingScore: true,
+      questions: {
+        orderBy: { position: "asc" },
+        select: {
+          id: true,
+          question: true,
+          explanation: true,
+          options: {
+            orderBy: { position: "asc" },
+            select: {
+              id: true,
+              text: true,
+              isCorrect: true,
+            },
+          },
+        },
+      },
+      attempts: {
+        where: {
+          userId: user.id,
+          isComplete: true,
+        },
+        orderBy: { submittedAt: "desc" },
+        take: 1,
+        select: {
+          id: true,
+          score: true,
+          attemptNumber: true,
+          submittedAt: true,
           feedback: true,
           answers: {
             select: {
@@ -97,4 +137,6 @@ export async function getEnrolledCourseQuizzes() {
       },
     },
   });
+
+  return quiz;
 }

@@ -17,10 +17,12 @@ export async function SidebarShellLayout({
   children: ReactNode;
 }) {
   const sessionUser = await requireUser();
-  const user = await resolveChatUserContext(sessionUser.id);
+  const [user, conversationSummaries] = await Promise.all([
+    resolveChatUserContext(sessionUser.id),
+    listConversationSummariesForUser(sessionUser.id),
+  ]);
   const courses = await getAccessibleCoursesForUser(user);
   const courseSummaries = buildCourseSummaries(courses);
-  const conversationSummaries = await listConversationSummariesForUser(user.id);
   const initialConversationId = conversationSummaries[0].id;
 
   return (
@@ -33,7 +35,7 @@ export async function SidebarShellLayout({
           } as React.CSSProperties
         }
       >
-        <AppSidebar variant="inset" />
+        <AppSidebar variant="inset" user={sessionUser} />
         <SidebarInset>
           <SiteHeader />
           <div className="flex flex-1 flex-col">

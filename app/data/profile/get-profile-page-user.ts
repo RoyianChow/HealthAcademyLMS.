@@ -1,12 +1,13 @@
 import "server-only";
 
 import { prisma } from "@/lib/db";
+import { getCourseProgressSummaries } from "@/lib/course-progress";
+
+const maxQuizAttemptsOnProfile = 25;
 
 export async function getProfilePageUser(userId: string) {
-  return prisma.user.findUnique({
-    where: {
-      id: userId,
-    },
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
     include: {
       courses: {
         include: {
@@ -19,49 +20,23 @@ export async function getProfilePageUser(userId: string) {
           },
         },
       },
-
       enrollments: {
-        where: {
-          status: "Active", 
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
+        where: { status: "Active" },
+        orderBy: { createdAt: "desc" },
         include: {
           course: {
-            include: {
-              chapters: {
-                orderBy: {
-                  position: "asc",
-                },
-                include: {
-                  lessons: {
-                    orderBy: {
-                      position: "asc",
-                    },
-                    select: {
-                      id: true,
-                      lessonProgress: {
-                        where: {
-                          userId: userId,
-                        },
-                        select: {
-                          completed: true,
-                        },
-                      },
-                    },
-                  },
-                },
-              },
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              status: true,
             },
           },
         },
       },
-
       quizAttempts: {
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: { createdAt: "desc" },
+        take: maxQuizAttemptsOnProfile,
         include: {
           quiz: {
             include: {
@@ -83,4 +58,28 @@ export async function getProfilePageUser(userId: string) {
       },
     },
   });
+
+  if (!user) {
+    return null;
+  }
+
+  const progressByCourse = await getCourseProgressSummaries(
+    userId,
+    user.enrollments.map((enrollment) => enrollment.course.id)
+  );
+
+  return {
+    ...user,
+    enrollments: user.enrollments.map((enrollment) => ({
+      ...enrollment,
+      course: {
+        ...enrollment.course,
+        progress: progressByCourse.get(enrollment.course.id) ?? {
+          totalLessons: 0,
+          completedLessons: 0,
+          progressPercentage: 0,
+        },
+      },
+    })),
+  };
 }

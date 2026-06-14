@@ -95,7 +95,7 @@ export default async function DashboardCommunityPage() {
 
                   <div className="flex items-center gap-1.5">
                     <BookOpen className="size-4" />
-                    <span>{course.enrollments.length} enrolled</span>
+                    <span>{course._count.enrollments} enrolled</span>
                   </div>
                 </div>
 

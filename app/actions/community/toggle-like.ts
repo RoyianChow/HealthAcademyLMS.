@@ -5,7 +5,8 @@ import { requireUser } from "@/app/data/user/require-user";
 import { revalidatePath } from "next/cache";
 import { EnrollmentStatus } from "@/src/generated/prisma/client";
 import { rethrowIfNextRedirect } from "@/lib/rethrow-next-redirect";
-import { getCommunityBanStatus, isCommunityBanned } from "@/lib/community-ban";
+import { isCommunityBanned } from "@/lib/community-ban";
+import { getCommunityBanStatus } from "@/lib/community-ban-status";
 
 export async function toggleLike(postId: string) {
   try {

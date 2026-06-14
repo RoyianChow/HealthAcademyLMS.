@@ -2,10 +2,14 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { defaultChatPreferences } from "@/lib/chat/defaults";
 import {
+  chatPostLimiter,
+  enforceChatRateLimit,
+} from "@/lib/chat/arcjet";
+import {
   findRelevantCourseExcerpts,
   getAccessibleCoursesForUser,
 } from "@/lib/chat/course-context";
-import { generateNutritionReply } from "@/lib/chat/openai";
+import { generateNutritionReply, streamNutritionReply } from "@/lib/chat/openai";
 import { extractPdfContexts } from "@/lib/chat/pdf";
 import { buildChatMessages } from "@/lib/chat/prompt";
 import {
@@ -20,6 +24,7 @@ import { resolveChatUserContext } from "@/lib/chat/user-context";
 import { requireUser } from "@/app/data/user/require-user";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const modeSchema = z.enum(["coach", "study", "quick", "pdf"]);
 const responseStyleSchema = z.enum(["concise", "balanced", "detailed"]);
@@ -40,6 +45,15 @@ const chatRequestSchema = z.object({
 export async function POST(request: Request) {
   try {
     const sessionUser = await requireUser();
+    const rateLimit = await enforceChatRateLimit(
+      request,
+      sessionUser.id,
+      chatPostLimiter
+    );
+    if (rateLimit.denied) {
+      return rateLimit.response;
+    }
+
     const { body, uploadedPdfs } = await parseRequest(request);
 
     if (!body.message && uploadedPdfs.length === 0) {
@@ -82,45 +96,104 @@ export async function POST(request: Request) {
       safetyPromptBlock: safety.promptBlock,
     });
 
-    const assistantReply = safety.overrideReply
-      ? safety.overrideReply
-      : applySafetyPostProcessing(
-          await generateNutritionReply({
+    const storedUserMessage = buildStoredUserMessage({
+      attachedPdfs,
+      message: effectiveQuestion,
+    });
+    const userAttachments = buildUserAttachments(attachedPdfs);
+    const assistantSources = buildAssistantSources({
+      relevantExcerpts,
+      attachedPdfs,
+      safetyFlags: safety.flags,
+      strictSourceUse: preferences.strictSourceUse,
+    });
+    const assistantFollowUps = buildFollowUpSuggestions({
+      mode: preferences.mode,
+      attachedPdfs,
+      safetyFlags: safety.flags,
+    });
+
+    if (safety.overrideReply) {
+      const storedTurn = await appendConversationTurn({
+        userId: user.id,
+        conversationId: body.conversationId,
+        userMessage: storedUserMessage,
+        userAttachments,
+        assistantMessage: safety.overrideReply,
+        assistantSources,
+        assistantFollowUps,
+        mode: preferences.mode,
+        responseStyle: preferences.responseStyle,
+        safetyFlags: safety.flags,
+      });
+
+      return NextResponse.json(storedTurn);
+    }
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        const encoder = new TextEncoder();
+        const send = (payload: object) => {
+          controller.enqueue(encoder.encode(`${JSON.stringify(payload)}\n`));
+        };
+
+        try {
+          let assistantReply = "";
+
+          for await (const chunk of streamNutritionReply({
             messages,
             question: effectiveQuestion,
             relevantExcerpts,
             attachedPdfs,
             strictSourceUse: preferences.strictSourceUse,
-          }),
-          safety.flags
-        );
+          })) {
+            assistantReply += chunk;
+            send({ type: "token", content: chunk });
+          }
 
-    const storedTurn = await appendConversationTurn({
-      userId: user.id,
-      conversationId: body.conversationId,
-      userMessage: buildStoredUserMessage({
-        attachedPdfs,
-        message: effectiveQuestion,
-      }),
-      userAttachments: buildUserAttachments(attachedPdfs),
-      assistantMessage: assistantReply,
-      assistantSources: buildAssistantSources({
-        relevantExcerpts,
-        attachedPdfs,
-        safetyFlags: safety.flags,
-        strictSourceUse: preferences.strictSourceUse,
-      }),
-      assistantFollowUps: buildFollowUpSuggestions({
-        mode: preferences.mode,
-        attachedPdfs,
-        safetyFlags: safety.flags,
-      }),
-      mode: preferences.mode,
-      responseStyle: preferences.responseStyle,
-      safetyFlags: safety.flags,
+          assistantReply = applySafetyPostProcessing(
+            assistantReply || (await generateNutritionReply({
+              messages,
+              question: effectiveQuestion,
+              relevantExcerpts,
+              attachedPdfs,
+              strictSourceUse: preferences.strictSourceUse,
+            })),
+            safety.flags
+          );
+
+          const storedTurn = await appendConversationTurn({
+            userId: user.id,
+            conversationId: body.conversationId,
+            userMessage: storedUserMessage,
+            userAttachments,
+            assistantMessage: assistantReply,
+            assistantSources,
+            assistantFollowUps,
+            mode: preferences.mode,
+            responseStyle: preferences.responseStyle,
+            safetyFlags: safety.flags,
+          });
+
+          send({ type: "done", ...storedTurn });
+          controller.close();
+        } catch (error) {
+          const errorMessage =
+            error instanceof Error
+              ? error.message
+              : "Unable to process the chat message.";
+          send({ type: "error", error: errorMessage });
+          controller.close();
+        }
+      },
     });
 
-    return NextResponse.json(storedTurn);
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "application/x-ndjson",
+        "Cache-Control": "no-store",
+      },
+    });
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unable to process the chat message.";

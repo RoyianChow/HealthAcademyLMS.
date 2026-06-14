@@ -114,6 +114,10 @@ type PostType = {
   likes: {
     userId: string;
   }[];
+  _count?: {
+    likes: number;
+    comments: number;
+  };
   comments: CommentType[];
 };
 
@@ -803,7 +807,7 @@ export function CommunityPostCard({
                 hasLiked && "fill-red-500 text-red-500"
               )}
             />
-            <span>{post.likes.length}</span>
+            <span>{post._count?.likes ?? post.likes.length}</span>
           </Button>
 
           <div className="flex items-center gap-2 text-sm text-muted-foreground">

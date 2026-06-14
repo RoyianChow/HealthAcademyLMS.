@@ -126,8 +126,8 @@ async function RenderQuizzes() {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Questions</span>
                     <span className="font-medium">
-                      {quiz.questions.length} question
-                      {quiz.questions.length !== 1 ? "s" : ""}
+                      {quiz._count.questions} question
+                      {quiz._count.questions !== 1 ? "s" : ""}
                     </span>
                   </div>
 
@@ -180,7 +180,7 @@ async function RenderQuizzes() {
 
                   {isCompleted ? (
                     <div className="flex flex-wrap gap-2">
-                      <QuizResultDialog quiz={quiz} />
+                      <QuizResultDialog quizId={quiz.id} />
 
                       <Link
                         href={`/quizzes/${quiz.id}`}

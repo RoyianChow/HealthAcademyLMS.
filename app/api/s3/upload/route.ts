@@ -8,10 +8,15 @@ import { S3 } from "@/lib/S3Client";
 import arcjet, { fixedWindow } from "@/lib/arcjet";
 import { requireAdmin } from "@/app/data/admin/require-admin";
 
+const maxUploadBytes = 50 * 1024 * 1024;
+
 const fileUploadSchema = z.object({
   fileName: z.string().min(1, { message: "Filename is required" }),
   contentType: z.string().min(1, { message: "Content type is required" }),
-  size: z.number().min(1, { message: "Size is required" }),
+  size: z
+    .number()
+    .min(1, { message: "Size is required" })
+    .max(maxUploadBytes, { message: "File is too large" }),
   fileType: z.enum(["image", "video", "document"]).optional(),
 });
 

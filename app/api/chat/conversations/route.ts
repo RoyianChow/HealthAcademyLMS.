@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
+  chatReadLimiter,
+  enforceChatRateLimit,
+} from "@/lib/chat/arcjet";
+import {
   clearConversationMessages,
   createConversation,
   deleteConversation,
@@ -20,8 +24,17 @@ const mutationSchema = z.object({
   activeConversationId: z.string().min(1).optional(),
 });
 
-export async function GET() {
+export async function GET(request: Request) {
   const sessionUser = await requireUser();
+  const rateLimit = await enforceChatRateLimit(
+    request,
+    sessionUser.id,
+    chatReadLimiter
+  );
+  if (rateLimit.denied) {
+    return rateLimit.response;
+  }
+
   const user = await resolveChatUserContext(sessionUser.id);
   const summaries = await listConversationSummariesForUser(user.id);
 
@@ -34,6 +47,15 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const sessionUser = await requireUser();
+    const rateLimit = await enforceChatRateLimit(
+      request,
+      sessionUser.id,
+      chatReadLimiter
+    );
+    if (rateLimit.denied) {
+      return rateLimit.response;
+    }
+
     const body = mutationSchema.parse(await request.json());
     const user = await resolveChatUserContext(sessionUser.id);
 
@@ -47,7 +69,12 @@ export async function POST(request: Request) {
           userId: user.id,
           title: body.title,
         });
-        summaries = await listConversationSummariesForUser(user.id);
+        summaries = [
+          conversation,
+          ...(await listConversationSummariesForUser(user.id)).filter(
+            (summary) => summary.id !== conversation!.id
+          ),
+        ];
         activeConversationId = conversation.id;
         break;
       case "rename":
@@ -62,7 +89,9 @@ export async function POST(request: Request) {
           conversationId: body.conversationId,
           title: body.title,
         });
-        summaries = await listConversationSummariesForUser(user.id);
+        summaries = (await listConversationSummariesForUser(user.id)).map(
+          (summary) => (summary.id === conversation!.id ? conversation! : summary)
+        );
         activeConversationId = body.conversationId;
         break;
       case "clear":
@@ -73,7 +102,9 @@ export async function POST(request: Request) {
           userId: user.id,
           conversationId: body.conversationId,
         });
-        summaries = await listConversationSummariesForUser(user.id);
+        summaries = (await listConversationSummariesForUser(user.id)).map(
+          (summary) => (summary.id === conversation!.id ? conversation! : summary)
+        );
         activeConversationId = body.conversationId;
         break;
       case "delete":

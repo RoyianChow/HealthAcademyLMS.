@@ -13,6 +13,7 @@ import type {
 
 const defaultConversationTitle = "New chat";
 const maxMessagesPerConversation = 40;
+const maxConversationsPerUser = 50;
 // Only the most recent messages are sent to the LLM verbatim. Older turns are
 // condensed into a lightweight running summary to keep input token cost bounded
 // on long threads while preserving topical continuity.
@@ -20,11 +21,14 @@ const promptHistoryWindow = 16;
 const maxSummaryPoints = 12;
 
 export async function listConversationSummariesForUser(
-  userId: string
+  userId: string,
+  options?: { limit?: number }
 ): Promise<ChatConversationSummary[]> {
+  const limit = options?.limit ?? maxConversationsPerUser;
   const conversations = await prisma.chatConversation.findMany({
     where: { userId },
     orderBy: { updatedAt: "desc" },
+    take: limit,
   });
 
   if (conversations.length > 0) {
@@ -80,6 +84,7 @@ export async function deleteConversation(params: {
   const remaining = await prisma.chatConversation.findMany({
     where: { userId: params.userId },
     orderBy: { updatedAt: "desc" },
+    take: maxConversationsPerUser,
   });
 
   if (remaining.length === 0) {
@@ -148,17 +153,50 @@ export async function getConversationContext(params: {
   userId: string;
   conversationId: string;
 }): Promise<{ recentMessages: ChatMessage[]; earlierSummary: string | null }> {
-  const messages = await getConversationMessages(params);
+  const conversation = await prisma.chatConversation.findFirst({
+    where: { id: params.conversationId, userId: params.userId },
+  });
 
-  if (messages.length <= promptHistoryWindow) {
-    return { recentMessages: messages, earlierSummary: null };
+  if (!conversation) {
+    return { recentMessages: [], earlierSummary: null };
   }
 
-  const splitAt = messages.length - promptHistoryWindow;
+  const totalRows = await prisma.chatMessage.count({
+    where: { conversationId: params.conversationId },
+  });
+
+  if (totalRows <= promptHistoryWindow) {
+    const rows = await prisma.chatMessage.findMany({
+      where: { conversationId: params.conversationId },
+      orderBy: { createdAt: "asc" },
+      take: maxMessagesPerConversation,
+    });
+    return { recentMessages: rows.map(rowToMessage), earlierSummary: null };
+  }
+
+  const earlierCount = Math.min(
+    totalRows - promptHistoryWindow,
+    maxMessagesPerConversation - promptHistoryWindow
+  );
+  const [earlierRows, recentRows] = await Promise.all([
+    prisma.chatMessage.findMany({
+      where: { conversationId: params.conversationId },
+      orderBy: { createdAt: "asc" },
+      take: earlierCount,
+    }),
+    prisma.chatMessage.findMany({
+      where: { conversationId: params.conversationId },
+      orderBy: { createdAt: "desc" },
+      take: promptHistoryWindow,
+    }),
+  ]);
+
+  const earlierMessages = earlierRows.map(rowToMessage);
+  const recentMessages = recentRows.reverse().map(rowToMessage);
 
   return {
-    recentMessages: messages.slice(splitAt),
-    earlierSummary: buildEarlierConversationSummary(messages.slice(0, splitAt)),
+    recentMessages,
+    earlierSummary: buildEarlierConversationSummary(earlierMessages),
   };
 }
 
@@ -174,82 +212,84 @@ export async function appendConversationTurn(params: {
   responseStyle: ChatResponseStyle;
   safetyFlags?: ChatSafetyFlag[];
 }) {
-  let conversation = await prisma.chatConversation.findFirst({
-    where: { id: params.conversationId, userId: params.userId },
-  });
+  return prisma.$transaction(async (tx) => {
+    let conversation = await tx.chatConversation.findFirst({
+      where: { id: params.conversationId, userId: params.userId },
+    });
 
-  if (!conversation) {
-    conversation = await prisma.chatConversation.create({
+    if (!conversation) {
+      conversation = await tx.chatConversation.create({
+        data: {
+          id: params.conversationId,
+          userId: params.userId,
+          title: defaultConversationTitle,
+          isAutoTitle: true,
+        },
+      });
+    }
+
+    const existingUserCount = await tx.chatMessage.count({
+      where: { conversationId: params.conversationId, role: "user" },
+    });
+
+    const userRow = await tx.chatMessage.create({
       data: {
-        id: params.conversationId,
-        userId: params.userId,
-        title: defaultConversationTitle,
-        isAutoTitle: true,
+        conversationId: params.conversationId,
+        role: "user",
+        content: params.userMessage,
+        attachments: (params.userAttachments as object[] | undefined) ?? undefined,
       },
     });
-  }
 
-  const existingUserCount = await prisma.chatMessage.count({
-    where: { conversationId: params.conversationId, role: "user" },
-  });
-
-  const userRow = await prisma.chatMessage.create({
-    data: {
-      conversationId: params.conversationId,
-      role: "user",
-      content: params.userMessage,
-      attachments: (params.userAttachments as object[] | undefined) ?? undefined,
-    },
-  });
-
-  const assistantRow = await prisma.chatMessage.create({
-    data: {
-      conversationId: params.conversationId,
-      role: "assistant",
-      content: params.assistantMessage,
-      sources: (params.assistantSources as object[] | undefined) ?? undefined,
-      followUps: params.assistantFollowUps ?? undefined,
-      safetyFlags: (params.safetyFlags as object[] | undefined) ?? undefined,
-      mode: params.mode,
-      responseStyle: params.responseStyle,
-    },
-  });
-
-  const totalMessages = await prisma.chatMessage.count({
-    where: { conversationId: params.conversationId },
-  });
-
-  if (totalMessages > maxMessagesPerConversation) {
-    const oldest = await prisma.chatMessage.findMany({
-      where: { conversationId: params.conversationId },
-      orderBy: { createdAt: "asc" },
-      take: totalMessages - maxMessagesPerConversation,
-      select: { id: true },
+    const assistantRow = await tx.chatMessage.create({
+      data: {
+        conversationId: params.conversationId,
+        role: "assistant",
+        content: params.assistantMessage,
+        sources: (params.assistantSources as object[] | undefined) ?? undefined,
+        followUps: params.assistantFollowUps ?? undefined,
+        safetyFlags: (params.safetyFlags as object[] | undefined) ?? undefined,
+        mode: params.mode,
+        responseStyle: params.responseStyle,
+      },
     });
-    await prisma.chatMessage.deleteMany({
-      where: { id: { in: oldest.map((m) => m.id) } },
+
+    const totalMessages = conversation.messageCount + 2;
+    const prunedTotal = Math.min(totalMessages, maxMessagesPerConversation);
+
+    if (totalMessages > maxMessagesPerConversation) {
+      const overflow = totalMessages - maxMessagesPerConversation;
+      const oldest = await tx.chatMessage.findMany({
+        where: { conversationId: params.conversationId },
+        orderBy: { createdAt: "asc" },
+        take: overflow,
+        select: { id: true },
+      });
+      await tx.chatMessage.deleteMany({
+        where: { id: { in: oldest.map((m) => m.id) } },
+      });
+    }
+
+    const newTitle =
+      conversation.isAutoTitle && existingUserCount === 0
+        ? buildConversationTitle(params.userMessage)
+        : undefined;
+
+    const updatedConversation = await tx.chatConversation.update({
+      where: { id: params.conversationId },
+      data: {
+        preview: truncatePreview(params.assistantMessage),
+        messageCount: prunedTotal,
+        ...(newTitle ? { title: newTitle, isAutoTitle: false } : {}),
+      },
     });
-  }
 
-  const newTitle =
-    conversation.isAutoTitle && existingUserCount === 0
-      ? buildConversationTitle(params.userMessage)
-      : undefined;
-
-  const updatedConversation = await prisma.chatConversation.update({
-    where: { id: params.conversationId },
-    data: {
-      preview: truncatePreview(params.assistantMessage),
-      messageCount: Math.min(totalMessages, maxMessagesPerConversation),
-      ...(newTitle ? { title: newTitle, isAutoTitle: false } : {}),
-    },
+    return {
+      userMessage: rowToMessage(userRow),
+      assistantMessage: rowToMessage(assistantRow),
+      conversationSummary: toConversationSummary(updatedConversation),
+    };
   });
-
-  return {
-    userMessage: rowToMessage(userRow),
-    assistantMessage: rowToMessage(assistantRow),
-    conversationSummary: toConversationSummary(updatedConversation),
-  };
 }
 
 function toConversationSummary(row: {
