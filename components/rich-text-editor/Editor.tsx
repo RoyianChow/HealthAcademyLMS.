@@ -10,6 +10,7 @@ import TableRow from "@tiptap/extension-table-row";
 import TableHeader from "@tiptap/extension-table-header";
 import TableCell from "@tiptap/extension-table-cell";
 import Image from "@tiptap/extension-image";
+import { parseEditorContent } from "@/lib/tiptap-content";
 
 export function RichTextEditor({ field }: { field: any }) {
   const editor = useEditor({
@@ -40,7 +41,7 @@ export function RichTextEditor({ field }: { field: any }) {
       field.onChange(JSON.stringify(editor.getJSON()));
     },
 
-    content: field.value ? JSON.parse(field.value) : "<p>Hello World 🚀</p>",
+    content: parseEditorContent(field.value),
   });
 
   return (

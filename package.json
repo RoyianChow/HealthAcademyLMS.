@@ -20,7 +20,9 @@
     "test:db:setup": "npm run test:db:up && sleep 2 && npm run test:db:reset",
     "test:e2e": "NODE_OPTIONS='--import tsx' playwright test",
     "test:e2e:ui": "NODE_OPTIONS='--import tsx' playwright test --ui",
-    "test:all": "bash scripts/test-all.sh"
+    "test:all": "bash scripts/test-all.sh",
+    "migrate:wordpress": "tsx --env-file=.env migrate-wordpress.ts",
+    "fix:migrated-content": "tsx --env-file=.env fix-migrated-tiptap-content.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed-test.ts"
@@ -36,6 +38,8 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^5.0.1",
+    "@langchain/core": "^1.1.49",
+    "@langchain/langgraph": "^1.4.2",
     "@prisma/client": "^6.8.2",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-avatar": "^1.1.10",
@@ -70,6 +74,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "he": "^1.2.0",
     "html-react-parser": "^5.2.5",
     "input-otp": "^1.4.2",
     "lucide-react": "^0.511.0",
@@ -99,6 +104,7 @@
     "@tailwindcss/postcss": "^4",
     "@tailwindcss/typography": "^0.5.16",
     "@types/canvas-confetti": "^1.9.0",
+    "@types/he": "^1.2.3",
     "@types/node": "^20",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",

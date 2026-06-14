@@ -1,8 +1,8 @@
 // app\dashboard\[slug]\[lessonId]\_components\CourseContent.tsx
 "use client";
 
-import type { ComponentProps } from "react";
 import { useMemo, useTransition, useEffect, useRef } from "react";
+import type { LessonContentType } from "@/app/data/course/get-lesson-content";
 import {
   CheckCircle,
   Download,
@@ -12,8 +12,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import type { LessonContentType } from "@/app/data/course/get-lesson-content";
 import { RenderDescription } from "@/components/rich-text-editor/RenderDescription";
+import { parseDescriptionJson } from "@/lib/tiptap-content";
 import { Button } from "@/components/ui/button";
 import { tryCatch } from "@/hooks/try-catch";
 import { useConfetti } from "@/hooks/use-confetti";
@@ -24,8 +24,6 @@ type CourseContentProps = {
   data: LessonContentType;
   userId: string;
 };
-
-type RenderDescriptionJson = ComponentProps<typeof RenderDescription>["json"];
 
 function getYoutubeEmbedUrl(url?: string | null) {
   if (!url) return null;
@@ -78,12 +76,7 @@ function formatFileSize(size?: number | null) {
 
 function parseDescription(description?: string | null) {
   if (!description) return null;
-
-  try {
-    return JSON.parse(description) as RenderDescriptionJson;
-  } catch {
-    return null;
-  }
+  return parseDescriptionJson(description);
 }
 
 function VideoPlayer({

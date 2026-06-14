@@ -21,6 +21,8 @@ This document contains quick references for contributors to the Health Academy L
 | [documentation/SERVICES.md](./documentation/SERVICES.md) | File storage (Tigris/S3), payments (Stripe), security (Arcjet), email (Resend), AI Advisor, authentication |
 | [documentation/TESTING_AND_CI.md](./documentation/TESTING_AND_CI.md) | Full testing framework — unit tests (Vitest), integration tests (Vitest), E2E tests (Playwright), test database setup, coverage, bugs found, CI pipeline, environment variables reference |
 | [documentation/DATABASE_ERD.md](./documentation/DATABASE_ERD.md) | Full ERD, field reference tables, enum definitions, index documentation |
+| [documentation/WP_MIGRATION_AGENT.md](./documentation/WP_MIGRATION_AGENT.md) | WordPress/LearnDash → Next.js migration agent — setup, operation, architecture, post-migration checklist |
+| [docs/SKIPPED_QUESTIONS.md](./docs/SKIPPED_QUESTIONS.md) | Skipped quiz question IDs and WordPress re-fetch instructions for post-migration import |
 
 ---
 

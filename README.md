@@ -31,6 +31,7 @@
 - **Services & Integrations:** See [documentation/SERVICES.md](./documentation/SERVICES.md) for file storage, payments, auth, security, email, and the AI Advisor.
 - **Testing & CI:** See [documentation/TESTING_AND_CI.md](./documentation/TESTING_AND_CI.md) for the full testing framework — unit, integration, and E2E tests; setup; coverage; bugs found; and CI pipeline.
 - **Database Schema & ERDs:** See [documentation/DATABASE_ERD.md](./documentation/DATABASE_ERD.md) for full entity relationship diagrams and field reference.
+- **WordPress Migration Agent:** See [documentation/WP_MIGRATION_AGENT.md](./documentation/WP_MIGRATION_AGENT.md) for migrating course content from the WordPress/LearnDash site into this LMS.
 
 ---
 

@@ -1,5 +1,6 @@
 import { getIndividualCourse } from "@/app/data/course/get-course";
 import { RenderDescription } from "@/components/rich-text-editor/RenderDescription";
+import { parseDescriptionJson } from "@/lib/tiptap-content";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -77,7 +78,7 @@ export default async function SlugPage({ params }: { params: Params }) {
               Course Description
             </h2>
 
-            <RenderDescription json={JSON.parse(course.description)} />
+            <RenderDescription json={parseDescriptionJson(course.description)} />
           </div>
         </div>
 
