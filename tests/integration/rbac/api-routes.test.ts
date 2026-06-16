@@ -391,6 +391,11 @@ describe("API routes — user role RBAC (integration)", () => {
         const tx = {
           quizQuestion: {
             deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+            findMany: vi.fn().mockResolvedValue([]),
+            update: vi.fn().mockResolvedValue({}),
+          },
+          quizOption: {
+            deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
           },
           quiz: {
             update: vi.fn().mockResolvedValue({}),

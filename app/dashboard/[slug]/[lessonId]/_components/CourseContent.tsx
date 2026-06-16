@@ -1,7 +1,7 @@
 // app\dashboard\[slug]\[lessonId]\_components\CourseContent.tsx
 "use client";
 
-import { useMemo, useTransition, useEffect, useRef } from "react";
+import { useTransition, useEffect, useRef } from "react";
 import type { LessonContentType } from "@/app/data/course/get-lesson-content";
 import {
   CheckCircle,

@@ -14,6 +14,7 @@ vi.mock("@/app/data/user/require-user", () => ({
 
 vi.mock("@/lib/chat/openai", () => ({
   generateNutritionReply: vi.fn(),
+  streamNutritionReply: vi.fn(),
 }));
 
 vi.mock("@/lib/chat/course-context", () => ({
@@ -52,8 +53,13 @@ vi.mock("@/lib/chat/safety", async (importOriginal) => {
   };
 });
 
+vi.mock("@/lib/chat/arcjet", () => ({
+  chatPostLimiter: {},
+  enforceChatRateLimit: vi.fn().mockResolvedValue({ denied: false }),
+}));
+
 import { requireUser } from "@/app/data/user/require-user";
-import { generateNutritionReply } from "@/lib/chat/openai";
+import { generateNutritionReply, streamNutritionReply } from "@/lib/chat/openai";
 import { buildChatMessages } from "@/lib/chat/prompt";
 import { analyzeSafety } from "@/lib/chat/safety";
 import { appendConversationTurn } from "@/lib/chat/store";
@@ -62,6 +68,7 @@ import { POST as chatHandler } from "@/app/api/chat/route";
 
 const mockRequireUser = vi.mocked(requireUser);
 const mockGenerateReply = vi.mocked(generateNutritionReply);
+const mockStreamReply = vi.mocked(streamNutritionReply);
 const mockBuildChatMessages = vi.mocked(buildChatMessages);
 const mockAnalyzeSafety = vi.mocked(analyzeSafety);
 const mockAppendTurn = vi.mocked(appendConversationTurn);
@@ -114,6 +121,15 @@ function makeJsonRequest(body: Record<string, unknown>) {
   });
 }
 
+async function readNdjsonResponse(response: Response) {
+  const text = await response.text();
+  return text
+    .trim()
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => JSON.parse(line) as Record<string, unknown>);
+}
+
 describe("POST /api/chat", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -129,6 +145,9 @@ describe("POST /api/chat", () => {
     mockGenerateReply.mockResolvedValue(
       "Macronutrients include proteins, fats, and carbohydrates."
     );
+    mockStreamReply.mockImplementation(async function* () {
+      yield "Macronutrients include proteins, fats, and carbohydrates.";
+    });
     mockAppendTurn.mockResolvedValue(STORED_TURN);
     mockAnalyzeSafety.mockImplementation(() => ({
       flags: [],
@@ -156,7 +175,7 @@ describe("POST /api/chat", () => {
     expect(mockGenerateReply).not.toHaveBeenCalled();
   });
 
-  it("returns stored turn on valid JSON body and calls generateNutritionReply once", async () => {
+  it("returns stored turn on valid JSON body and streams the assistant reply", async () => {
     const response = await chatHandler(
       makeJsonRequest({
         message: "What are macronutrients?",
@@ -165,9 +184,12 @@ describe("POST /api/chat", () => {
     );
 
     expect(response.status).toBe(200);
-    const json = await response.json();
-    expect(json).toEqual(STORED_TURN);
-    expect(mockGenerateReply).toHaveBeenCalledTimes(1);
+    expect(response.headers.get("Content-Type")).toBe("application/x-ndjson");
+
+    const events = await readNdjsonResponse(response);
+    expect(events.at(-1)).toEqual({ type: "done", ...STORED_TURN });
+    expect(mockStreamReply).toHaveBeenCalledTimes(1);
+    expect(mockGenerateReply).not.toHaveBeenCalled();
     expect(mockAppendTurn).toHaveBeenCalledTimes(1);
   });
 
@@ -231,13 +253,16 @@ describe("POST /api/chat", () => {
   });
 
   it("forwards study mode preference to buildChatMessages", async () => {
-    await chatHandler(
+    const response = await chatHandler(
       makeJsonRequest({
         message: "Explain protein digestion",
         conversationId: "conv-1",
         mode: "study",
       })
     );
+
+    expect(response.status).toBe(200);
+    await readNdjsonResponse(response);
 
     expect(mockBuildChatMessages).toHaveBeenCalledWith(
       expect.objectContaining({

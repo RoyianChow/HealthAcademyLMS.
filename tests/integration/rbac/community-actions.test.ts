@@ -98,7 +98,6 @@ describe("createPost — enrollment", () => {
     const result = await createPost({
       content: "hello",
       courseId: "course-1",
-      course: { slug: "c-slug" },
       slug: "c-slug",
     });
 
@@ -117,7 +116,6 @@ describe("createPost — enrollment", () => {
     const result = await createPost({
       content: "hello",
       courseId: "course-1",
-      course: { slug: "c-slug" },
       slug: "c-slug",
     });
 
@@ -437,7 +435,6 @@ describe("createPost — admin still requires active enrollment", () => {
     const result = await createPost({
       content: "hello",
       courseId: "course-1",
-      course: { slug: "c-slug" },
       slug: "c-slug",
     });
 

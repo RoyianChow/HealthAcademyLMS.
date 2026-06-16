@@ -32,6 +32,11 @@ vi.mock("@/lib/db", () => ({
       findUnique: vi.fn(),
       update: vi.fn(),
     },
+    stripeWebhookEvent: {
+      findUnique: vi.fn(),
+      create: vi.fn(),
+    },
+    $transaction: vi.fn(),
   },
 }));
 
@@ -44,6 +49,9 @@ const mockHeaders = vi.mocked(headers);
 const mockFindUser = vi.mocked(prisma.user.findUnique);
 const mockFindEnrollment = vi.mocked(prisma.enrollment.findUnique);
 const mockUpdateEnrollment = vi.mocked(prisma.enrollment.update);
+const mockFindStripeWebhookEvent = vi.mocked(prisma.stripeWebhookEvent.findUnique);
+const mockCreateStripeWebhookEvent = vi.mocked(prisma.stripeWebhookEvent.create);
+const mockTransaction = vi.mocked(prisma.$transaction);
 
 const CHECKOUT_SESSION = {
   id: "cs_test_123",
@@ -81,6 +89,14 @@ describe("POST /api/webhook/stripe", () => {
       new Headers({ "stripe-signature": "test-signature" })
     );
     mockConstructEvent.mockReturnValue(makeCompletedEvent());
+    mockFindStripeWebhookEvent.mockResolvedValue(null);
+    mockCreateStripeWebhookEvent.mockResolvedValue({} as never);
+    mockTransaction.mockImplementation(async (ops) => {
+      if (Array.isArray(ops)) {
+        return Promise.all(ops);
+      }
+      return ops;
+    });
     mockFindUser.mockResolvedValue({ id: "student-test-001" } as never);
     mockFindEnrollment.mockResolvedValue({ status: "Pending" } as never);
     mockUpdateEnrollment.mockResolvedValue({} as never);
@@ -120,6 +136,9 @@ describe("POST /api/webhook/stripe", () => {
 
     expect(response.status).toBe(200);
     expect(await response.text()).toBe("Event ignored");
+    expect(mockCreateStripeWebhookEvent).toHaveBeenCalledWith({
+      data: { id: "evt_test_2" },
+    });
     expect(mockUpdateEnrollment).not.toHaveBeenCalled();
   });
 
@@ -144,14 +163,17 @@ describe("POST /api/webhook/stripe", () => {
     expect(mockUpdateEnrollment).not.toHaveBeenCalled();
   });
 
-  it("returns 404 when stripe customer does not match a user", async () => {
+  it("returns 200 when stripe customer does not match a user", async () => {
     mockFindUser.mockResolvedValue(null);
 
     const response = await webhookHandler(makeWebhookRequest('{"id":"evt"}'));
 
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(200);
     expect(await response.text()).toBe("User not found");
     expect(mockUpdateEnrollment).not.toHaveBeenCalled();
+    expect(mockCreateStripeWebhookEvent).toHaveBeenCalledWith({
+      data: { id: "evt_test_1" },
+    });
   });
 
   it("activates enrollment on checkout.session.completed", async () => {
@@ -174,14 +196,18 @@ describe("POST /api/webhook/stripe", () => {
   });
 
   it("skips duplicate webhook delivery when enrollment is already active", async () => {
-    mockFindEnrollment
-      .mockResolvedValueOnce({ status: "Pending" } as never)
-      .mockResolvedValueOnce({ status: "Active" } as never);
+    mockConstructEvent
+      .mockReturnValueOnce(makeCompletedEvent())
+      .mockReturnValueOnce({
+        ...makeCompletedEvent(),
+        id: "evt_test_2",
+      });
 
-    const request = makeWebhookRequest('{"id":"evt"}');
+    const first = await webhookHandler(makeWebhookRequest('{"id":"evt"}'));
 
-    const first = await webhookHandler(request);
-    const second = await webhookHandler(makeWebhookRequest('{"id":"evt"}'));
+    mockFindEnrollment.mockResolvedValue({ status: "Active" } as never);
+
+    const second = await webhookHandler(makeWebhookRequest('{"id":"evt2"}'));
 
     expect(first.status).toBe(200);
     expect(await first.text()).toBe("Webhook processed");

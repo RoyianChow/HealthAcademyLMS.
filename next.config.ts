@@ -5,13 +5,13 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "health-academy-lms.fly.storage.tigris.dev",
+        hostname: "abdullah-health-academy-dev.fly.storage.tigris.dev",
         port: "",
         pathname: "/**",
       },
       {
         protocol: "https",
-        hostname: "health-academy-lms.t3.tigrisfiles.io",
+        hostname: "abdullah-health-academy-dev.t3.tigrisfiles.io",
       },
     ],
   },
