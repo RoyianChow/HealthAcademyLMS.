@@ -180,7 +180,10 @@ export default function CourseCreationPage() {
                   <FormItem className="w-full">
                     <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <RichTextEditor field={field} />
+                      <RichTextEditor
+                        field={field}
+                        uploadScope={{ assetKind: "draft-thumbnail" }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -198,6 +201,7 @@ export default function CourseCreationPage() {
                         fileTypeAccepted="image"
                         onChange={field.onChange}
                         value={field.value}
+                        uploadScope={{ assetKind: "draft-thumbnail" }}
                       />
                     </FormControl>
                     <FormMessage />

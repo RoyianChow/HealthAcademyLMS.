@@ -35,6 +35,7 @@ vi.mock("@/lib/auth", () => ({
 vi.mock("@/lib/db", () => ({
   prisma: {
     chapter: { findFirst: vi.fn() },
+    lesson: { findFirst: vi.fn() },
     quiz: { create: vi.fn(), update: vi.fn() },
     quizQuestion: { deleteMany: vi.fn() },
     $transaction: vi.fn(),
@@ -453,6 +454,44 @@ describe("API routes — user role RBAC (integration)", () => {
       expect(result.status).toBe(200);
       const json = await result.json();
       expect(json.url).toContain("presigned.example.com");
+    });
+
+    it("POST /api/s3/upload: scoped lesson-video key has correct path", async () => {
+      mockGetSession.mockResolvedValue({
+        ...USER_SESSION,
+        user: { ...USER_SESSION.user, role: "admin" },
+      });
+
+      const courseId = "00000000-0000-4000-8000-000000000001";
+      const chapterId = "00000000-0000-4000-8000-000000000002";
+      const lessonId = "00000000-0000-4000-8000-000000000003";
+
+      vi.mocked(prisma.lesson.findFirst).mockResolvedValue({
+        id: lessonId,
+      } as never);
+
+      const result = await s3UploadHandler(
+        makeRequest("POST", {
+          fileName: "intro.mp4",
+          contentType: "video/mp4",
+          size: 1024,
+          fileType: "video",
+          assetKind: "lesson-video",
+          courseId,
+          chapterId,
+          lessonId,
+        })
+      );
+
+      expect(mockRedirect).not.toHaveBeenCalled();
+      expect(result.status).toBe(200);
+      const json = await result.json();
+      expect(json.fileKey).toMatch(
+        new RegExp(
+          `^courses/${courseId}/${chapterId}/lessons/${lessonId}/videos/.+-intro\\.mp4$`
+        )
+      );
+      expect(json.fileUrl).toContain(json.fileKey);
     });
 
     /** Admin success path: the S3 delete handler calls S3.send once and returns

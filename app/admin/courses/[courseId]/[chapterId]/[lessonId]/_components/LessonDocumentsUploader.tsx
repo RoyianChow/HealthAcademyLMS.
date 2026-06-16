@@ -9,11 +9,17 @@ import { toast } from "sonner";
 type LessonDocumentsUploaderProps = {
   value: LessonDocumentSchemaType[];
   onChange: (value: LessonDocumentSchemaType[]) => void;
+  courseId: string;
+  chapterId: string;
+  lessonId: string;
 };
 
 export function LessonDocumentsUploader({
   value,
   onChange,
+  courseId,
+  chapterId,
+  lessonId,
 }: LessonDocumentsUploaderProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -39,7 +45,10 @@ export function LessonDocumentsUploader({
           fileName: file.name,
           contentType: file.type || "application/octet-stream",
           size: file.size,
-          fileType: "document",
+          assetKind: "lesson-document",
+          courseId,
+          chapterId,
+          lessonId,
         }),
         });
 

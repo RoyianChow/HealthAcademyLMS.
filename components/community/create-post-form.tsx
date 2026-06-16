@@ -52,6 +52,7 @@ export function CreatePostForm({
             value: content,
             onChange: setContent,
           }}
+          uploadScope={{ assetKind: "community-image", courseId }}
         />
 
         <div className="flex justify-end">

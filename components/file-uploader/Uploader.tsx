@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { useConstructUrl } from "@/hooks/use-construct-url";
+import type { UploadScope } from "@/lib/upload-scope";
 import { cn } from "@/lib/utils";
 
 import {
@@ -33,6 +34,7 @@ type UploaderProps = {
   value?: string | null;
   onChange?: (value: string) => void;
   fileTypeAccepted: AcceptedFileType;
+  uploadScope?: UploadScope;
 };
 
 type PresignedUploadResponse = {
@@ -66,6 +68,7 @@ export function Uploader({
   onChange,
   value,
   fileTypeAccepted,
+  uploadScope,
 }: UploaderProps) {
   const fileUrl = useConstructUrl(value ?? "");
 
@@ -133,7 +136,8 @@ export function Uploader({
             fileName: file.name,
             contentType: file.type,
             size: file.size,
-            isImage: fileTypeAccepted === "image",
+            fileType: fileTypeAccepted,
+            ...uploadScope,
           }),
         });
 
@@ -201,7 +205,7 @@ export function Uploader({
         }));
       }
     },
-    [fileTypeAccepted, onChange]
+    [fileTypeAccepted, onChange, uploadScope]
   );
 
   const onDrop = useCallback(

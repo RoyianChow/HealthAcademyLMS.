@@ -11,8 +11,15 @@ import TableHeader from "@tiptap/extension-table-header";
 import TableCell from "@tiptap/extension-table-cell";
 import Image from "@tiptap/extension-image";
 import { parseEditorContent } from "@/lib/tiptap-content";
+import type { UploadScope } from "@/lib/upload-scope";
 
-export function RichTextEditor({ field }: { field: any }) {
+export function RichTextEditor({
+  field,
+  uploadScope,
+}: {
+  field: any;
+  uploadScope?: UploadScope;
+}) {
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -46,7 +53,7 @@ export function RichTextEditor({ field }: { field: any }) {
 
   return (
     <div className="w-full border border-input rounded-lg overflow-hidden dark:bg-input/30">
-      <Menubar editor={editor} />
+      <Menubar editor={editor} uploadScope={uploadScope} />
       <EditorContent editor={editor} />
     </div>
   );

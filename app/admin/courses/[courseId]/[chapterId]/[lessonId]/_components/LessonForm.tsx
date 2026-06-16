@@ -47,11 +47,17 @@ function VideoItem({
   index,
   form,
   remove,
+  courseId,
+  chapterId,
+  lessonId,
 }: {
   index: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   form: UseFormReturn<any>;
   remove: (index: number) => void;
+  courseId: string;
+  chapterId: string;
+  lessonId: string;
 }) {
 
   const [isYoutube, setIsYoutube] = useState(() => {
@@ -126,6 +132,12 @@ function VideoItem({
                   fileTypeAccepted="video"
                   value={inputField.value ?? ""}
                   onChange={inputField.onChange}
+                  uploadScope={{
+                    assetKind: "lesson-video",
+                    courseId,
+                    chapterId,
+                    lessonId,
+                  }}
                 />
               </FormControl>
               <FormMessage />
@@ -249,7 +261,15 @@ export function LessonForm({ data, chapterId, courseId }: LessonFormProps) {
                   <FormItem>
                     <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <RichTextEditor field={field} />
+                      <RichTextEditor
+                        field={field}
+                        uploadScope={{
+                          assetKind: "lesson-image",
+                          courseId,
+                          chapterId,
+                          lessonId: data.id,
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -263,7 +283,15 @@ export function LessonForm({ data, chapterId, courseId }: LessonFormProps) {
                   <FormItem>
                     <FormLabel>Lesson Content</FormLabel>
                     <FormControl>
-                      <RichTextEditor field={field} />
+                      <RichTextEditor
+                        field={field}
+                        uploadScope={{
+                          assetKind: "lesson-image",
+                          courseId,
+                          chapterId,
+                          lessonId: data.id,
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -281,6 +309,12 @@ export function LessonForm({ data, chapterId, courseId }: LessonFormProps) {
                         fileTypeAccepted="image"
                         value={field.value ?? ""}
                         onChange={field.onChange}
+                        uploadScope={{
+                          assetKind: "lesson-thumbnail",
+                          courseId,
+                          chapterId,
+                          lessonId: data.id,
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -310,7 +344,10 @@ export function LessonForm({ data, chapterId, courseId }: LessonFormProps) {
                     key={field.id} 
                     index={index} 
                     form={form} 
-                    remove={remove} 
+                    remove={remove}
+                    courseId={courseId}
+                    chapterId={chapterId}
+                    lessonId={data.id}
                   />
                 ))}
               </div>
@@ -323,6 +360,9 @@ export function LessonForm({ data, chapterId, courseId }: LessonFormProps) {
                     <FormLabel>Lesson Documents</FormLabel>
                     <FormControl>
                       <LessonDocumentsUploader
+                        courseId={courseId}
+                        chapterId={chapterId}
+                        lessonId={data.id}
                         value={(field.value ?? []) as LessonDocumentSchemaType[]}
                         onChange={(value: LessonDocumentSchemaType[]) =>
                           field.onChange(value)

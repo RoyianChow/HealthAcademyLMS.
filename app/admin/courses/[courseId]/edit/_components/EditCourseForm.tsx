@@ -154,7 +154,10 @@ export function EditCourseForm({ data }: iAppProps) {
             <FormItem className="w-full">
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <RichTextEditor field={field} />
+                <RichTextEditor
+                  field={field}
+                  uploadScope={{ assetKind: "course-image", courseId: data.id }}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -172,6 +175,7 @@ export function EditCourseForm({ data }: iAppProps) {
                   fileTypeAccepted="image"
                   onChange={field.onChange}
                   value={field.value}
+                  uploadScope={{ assetKind: "course-thumbnail", courseId: data.id }}
                 />
               </FormControl>
               <FormMessage />

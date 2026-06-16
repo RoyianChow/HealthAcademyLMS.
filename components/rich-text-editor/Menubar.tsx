@@ -28,12 +28,14 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { TiptapImageUpload } from "./TiptapImageUpload";
+import type { UploadScope } from "@/lib/upload-scope";
 
 interface iAppProps {
   editor: Editor | null;
+  uploadScope?: UploadScope;
 }
 
-export function Menubar({ editor }: iAppProps) {
+export function Menubar({ editor, uploadScope }: iAppProps) {
   if (!editor) {
     return null;
   }
@@ -254,7 +256,7 @@ export function Menubar({ editor }: iAppProps) {
 
         <div className="w-px h-6 bg-border mx-2"></div>
 
-        <TiptapImageUpload editor={editor} />
+        <TiptapImageUpload editor={editor} uploadScope={uploadScope} />
 
         {/* --- TABLE CONTROLS--- */}
         <div className="w-px h-6 bg-border mx-2"></div>

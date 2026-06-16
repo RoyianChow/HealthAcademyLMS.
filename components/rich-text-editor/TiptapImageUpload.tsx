@@ -6,8 +6,15 @@ import { ImageIcon, Loader2 } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import type { UploadScope } from "@/lib/upload-scope";
 
-export function TiptapImageUpload({ editor }: { editor: Editor }) {
+export function TiptapImageUpload({
+  editor,
+  uploadScope,
+}: {
+  editor: Editor;
+  uploadScope?: UploadScope;
+}) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -32,6 +39,7 @@ export function TiptapImageUpload({ editor }: { editor: Editor }) {
           contentType: file.type,
           size: file.size,
           fileType: "image",
+          ...uploadScope,
         }),
       });
 
