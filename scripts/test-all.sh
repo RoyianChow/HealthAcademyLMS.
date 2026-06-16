@@ -63,6 +63,7 @@ load_test_env() {
   fi
 
   export DATABASE_URL="${DATABASE_URL:-postgresql://test:test@localhost:5433/healthacademy_test}"
+  export DIRECT_URL="${DIRECT_URL:-$DATABASE_URL}"
   export PLAYWRIGHT_BASE_URL="${PLAYWRIGHT_BASE_URL:-http://localhost:3000}"
   export E2E_TEST="${E2E_TEST:-true}"
   export ARCJET_ENV="${ARCJET_ENV:-development}"

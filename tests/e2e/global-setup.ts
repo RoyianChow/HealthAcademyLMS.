@@ -8,6 +8,7 @@ export default async function globalSetup() {
   loadTestEnv(path.resolve(__dirname, "../.."));
 
   const databaseUrl = process.env.DATABASE_URL!;
+  const directUrl = process.env.DIRECT_URL ?? databaseUrl;
 
   execSync("npx prisma migrate reset --force", {
     cwd: path.resolve(__dirname, "../.."),
@@ -15,6 +16,7 @@ export default async function globalSetup() {
     env: {
       ...process.env,
       DATABASE_URL: databaseUrl,
+      DIRECT_URL: directUrl,
     },
   });
 

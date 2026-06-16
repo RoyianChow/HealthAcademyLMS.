@@ -99,6 +99,7 @@ jobs:
         run: npm run test:db:reset
         env:
           DATABASE_URL: postgresql://test:test@localhost:5433/healthacademy_test
+          DIRECT_URL: postgresql://test:test@localhost:5433/healthacademy_test
 
       - name: Run integration tests
         run: npm run test:integration
@@ -128,6 +129,7 @@ jobs:
       E2E_TEST: "true"
       ARCJET_ENV: development
       DATABASE_URL: postgresql://test:test@localhost:5433/healthacademy_test
+      DIRECT_URL: postgresql://test:test@localhost:5433/healthacademy_test
       BETTER_AUTH_SECRET: test-auth-secret-minimum-32-characters-long
       BETTER_AUTH_URL: http://localhost:3000
       AUTH_GITHUB_CLIENT_ID: test-github-client-id
