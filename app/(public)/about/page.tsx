@@ -1,5 +1,10 @@
+'use client';
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Image from "next/image";
+import { useEffect, useRef } from "react";
+import journeyStyles from "./Journey.module.css";
+import wheelStyles from "./Wheel.module.css";
 
 export default function AboutPage() {
   return (
@@ -167,88 +172,234 @@ export default function AboutPage() {
       </section>
 
       {/* Journey */}
-      <section className="bg-[#f7f7f3] px-6 py-16 md:px-10 lg:px-5">
-        <div className="mx-auto max-w-7xl">
-          <div className="mb-12">
-            <h2 className="text-4xl font-semibold tracking-tight text-[#232742] md:text-5xl">
-              Journey to Health
-            </h2>
-            <div className="mt-4 h-[2px] w-24 bg-[#7a9442]" />
-          </div>
+      <JourneyToHealth />
 
-          <div className="hidden lg:block">
-            <div className="grid grid-cols-5 gap-6">
-              <JourneyCard title="1: Foundation" items={["Diet", "Gut health", "Sleep"]} />
-              <div />
-              <JourneyCard title="3: Vitality" items={["Cardio", "Hormones"]} />
-              <div />
-              <JourneyCard
-                title="5: Longevity"
-                items={["Mitochondria", "Cognition", "Genetics & Prevention"]}
-              />
-            </div>
+      {/* Wheel of Health Section */}
+      <WheelOfHealth />
 
-            <div className="relative my-8">
-              <div className="h-6 rounded-full bg-[#232323] shadow-[0_12px_30px_rgba(0,0,0,0.18)]" />
-              <div className="absolute inset-x-0 top-1/2 h-[4px] -translate-y-1/2 bg-white/80" />
-
-              {[10, 30, 50, 70, 90].map((left) => (
-                <div
-                  key={left}
-                  className="absolute top-1/2 h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full border-[5px] border-[#7a9442] bg-white shadow-[0_0_0_6px_rgba(122,148,66,0.18)]"
-                  style={{ left: `${left}%` }}
-                />
-              ))}
-            </div>
-
-            <div className="grid grid-cols-5 gap-6">
-              <div />
-              <JourneyCard
-                title="2: Resilience"
-                items={["Adrenals", "Detox", "Immunity"]}
-              />
-              <div />
-              <JourneyCard
-                title="4: Maintenance"
-                items={["Bones", "Hair & Skin", "Teeth"]}
-              />
-              <div />
-            </div>
-          </div>
-
-          <div className="grid gap-6 lg:hidden">
-            <JourneyCard title="1: Foundation" items={["Diet", "Gut health", "Sleep"]} />
-            <JourneyCard
-              title="2: Resilience"
-              items={["Adrenals", "Detox", "Immunity"]}
-            />
-            <JourneyCard title="3: Vitality" items={["Cardio", "Hormones"]} />
-            <JourneyCard
-              title="4: Maintenance"
-              items={["Bones", "Hair & Skin", "Teeth"]}
-            />
-            <JourneyCard
-              title="5: Longevity"
-              items={["Mitochondria", "Cognition", "Genetics & Prevention"]}
-            />
-          </div>
-        </div>
+      {/* Quotation Section */}
+      <section className="text-center py-12 max-w-2xl mx-auto space-y-4">
+        <p className="text-2xl md:text-3xl italic text-neutral-400 font-light leading-relaxed">
+          &ldquo;Together, we’re redefining health, one person at a time.&rdquo;
+        </p>
+        <p className="text-xs font-bold tracking-widest text-neutral-800 uppercase">
+          -Founder, Olga Grass
+        </p>
       </section>
     </main>
   );
 }
 
-function JourneyCard({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div className="flex justify-center lg:block">
-      <div className="w-full rounded-[24px] bg-white p-6 shadow-[0_12px_30px_rgba(0,0,0,0.12)] lg:max-w-xs lg:rounded-[28px] lg:p-8">
-        <h3 className="text-xl font-semibold text-[#232742] lg:text-2xl">
-          {title}
-        </h3>
+function JourneyToHealth() {
+  const containerRef = useRef<HTMLDivElement>(null);
 
-        <div className="mt-4 space-y-3 text-base text-slate-500 lg:mt-6 lg:space-y-4 lg:text-lg">
-          {items.map((item) => (
-            <p key={item}>→ {item}</p>
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            // Target specific unique token from css module
+            entry.target.classList.add(journeyStyles.visible);
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      {
+        threshold: 0.2,
+      }
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => {
+      if (containerRef.current) {
+        observer.unobserve(containerRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <section className="bg-[#f7f7f3] px-6 py-16 md:px-10 lg:px-5 overflow-hidden">
+      <div className={journeyStyles.journeyContainer} ref={containerRef}>
+        <div className="mb-4">
+          <h2 className="text-4xl font-semibold tracking-tight text-[#232742] md:text-5xl">
+            Journey to Health
+          </h2>
+          <div className="mt-4 h-[2px] w-24 bg-[#7a9442]" />
+        </div>
+        
+        <div className={journeyStyles.roadMap}>
+          <div className={journeyStyles.road}></div>
+
+          <div className={`${journeyStyles.milestone} ${journeyStyles.m1}`}>
+            <h3>1: Foundation</h3>
+            <ul>
+              <li>Diet</li>
+              <li>Gut health</li>
+              <li>Sleep</li>
+            </ul>
+          </div>
+
+          <div className={`${journeyStyles.milestone} ${journeyStyles.m2}`}>
+            <h3>2: Resilience</h3>
+            <ul>
+              <li>Adrenals</li>
+              <li>Detox</li>
+              <li>Immunity</li>
+            </ul>
+          </div>
+
+          <div className={`${journeyStyles.milestone} ${journeyStyles.m3}`}>
+            <h3>3: Vitality</h3>
+            <ul>
+              <li>Cardio</li>
+              <li>Hormones</li>
+            </ul>
+          </div>
+
+          <div className={`${journeyStyles.milestone} ${journeyStyles.m4}`}>
+            <h3>4: Maintenance</h3>
+            <ul>
+              <li>Bones</li>
+              <li>Hair & Skin</li>
+              <li>Teeth</li>
+            </ul>
+          </div>
+
+          <div className={`${journeyStyles.milestone} ${journeyStyles.m5}`}>
+            <h3>5: Longevity</h3>
+            <ul>
+              <li>Mitochondria</li>
+              <li>Cognition</li>
+              <li>Genetics & Prevention</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function WheelOfHealth() {
+  const wheelRef = useRef<HTMLImageElement>(null);
+  const pointsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const rotationRef = useRef<number>(0);
+
+  useEffect(() => {
+    let lastScrollTop = window.scrollY;
+
+    const throttle = (callback: () => void, delay: number) => {
+      let timeout: NodeJS.Timeout | null = null;
+      return () => {
+        if (!timeout) {
+          timeout = setTimeout(() => {
+            callback();
+            timeout = null;
+          }, delay);
+        }
+      };
+    };
+
+    const updateCards = () => {
+      const centerPoint = window.innerHeight / 2;
+      pointsRef.current.forEach((point) => {
+        if (!point) return;
+        const rect = point.getBoundingClientRect();
+        const elementCenter = rect.top + rect.height / 2;
+        const inCenterZone = Math.abs(elementCenter - centerPoint) < window.innerHeight * 0.25;
+        const isVisible = Math.abs(elementCenter - centerPoint) < window.innerHeight * 0.4;
+
+        if (isVisible) {
+          point.classList.add(wheelStyles.active);
+          if (inCenterZone) {
+            point.classList.add(wheelStyles.inCenter);
+          } else {
+            point.classList.remove(wheelStyles.inCenter);
+          }
+        } else {
+          point.classList.remove(wheelStyles.active, wheelStyles.inCenter);
+        }
+      });
+    };
+
+    const handleScroll = () => {
+      if (window.innerWidth > 768 && wheelRef.current) {
+        const currentScroll = window.scrollY;
+        const scrollDelta = currentScroll - lastScrollTop;
+        rotationRef.current += scrollDelta * 0.1;
+        wheelRef.current.style.transform = `rotate(${rotationRef.current}deg)`;
+        lastScrollTop = currentScroll;
+      } else {
+        lastScrollTop = window.scrollY;
+      }
+      updateCards();
+    };
+
+    const optimizedScroll = throttle(handleScroll, 16);
+    window.addEventListener('scroll', optimizedScroll);
+    updateCards();
+
+    const handleResize = () => {
+      if (window.innerWidth <= 768 && wheelRef.current) {
+        rotationRef.current = 0;
+        wheelRef.current.style.transform = 'rotate(0deg)';
+      }
+    };
+    window.addEventListener('resize', handleResize);
+
+    return () => {
+      window.removeEventListener('scroll', optimizedScroll);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+  const healthPoints = [
+    { title: "Excretory System", rotation: "0" },
+    { title: "Reproductive System", rotation: "45" },
+    { title: "Endocrine System", rotation: "90" },
+    { title: "Integumentary System", rotation: "135" },
+    { title: "Skeletal & Muscular System", rotation: "180" },
+    { title: "Digestive System", rotation: "225" },
+    { title: "Cardiovascular System", rotation: "270" },
+    { title: "Lymphatic System", rotation: "315" },
+  ];
+
+  return (
+    <div className={wheelStyles.wheelContainer}>
+      <div className="mb-4">
+        <h2 className="text-4xl font-semibold tracking-tight text-[#232742] md:text-5xl">
+          The Wheel of Health
+        </h2>
+        <div className="mt-4 h-[2px] w-24 bg-[#7a9442]" />
+      </div>
+
+      <div className={wheelStyles.contentWrapper}>
+        <div className={wheelStyles.wheelSection}>
+          <div className={wheelStyles.wheelCard}>
+            <div className={wheelStyles.wheelImageContainer}>
+              <img
+                ref={wheelRef}
+                src="https://healthacademy.ca/wp-content/uploads/2025/03/wheel-removebg-preview.png"
+                alt="Wheel of Health"
+                className={wheelStyles.wheelImage}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className={wheelStyles.contentSection}>
+          {healthPoints.map((point, index) => (
+            <div
+              key={index}
+              ref={(el) => { pointsRef.current[index] = el; }}
+              className={wheelStyles.healthPoint}
+              data-rotation={point.rotation}
+            >
+              <div className={wheelStyles.titleDot} />
+              <h3>{point.title}</h3>
+            </div>
           ))}
         </div>
       </div>

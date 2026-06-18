@@ -5,6 +5,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/app/data/user/require-user";
+import { rethrowIfNextRedirect } from "@/lib/rethrow-next-redirect";
 
 export async function deleteCommunityPost(postId: string) {
   try {
@@ -26,6 +27,11 @@ export async function deleteCommunityPost(postId: string) {
       select: {
         id: true,
         userId: true,
+        course: {
+          select: {
+            slug: true,
+          },
+        },
       },
     });
 
@@ -66,13 +72,14 @@ export async function deleteCommunityPost(postId: string) {
       });
     });
 
-    revalidatePath("/community");
+    revalidatePath(`/dashboard/${post.course.slug}/community`);
 
     return {
       status: "success" as const,
       message: "Post deleted successfully.",
     };
-  } catch {
+  } catch (error) {
+    rethrowIfNextRedirect(error);
     return {
       status: "error" as const,
       message: "Failed to delete post.",

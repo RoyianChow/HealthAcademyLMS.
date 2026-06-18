@@ -33,6 +33,7 @@ import {
   ChevronRight,
   FileText,
   GripVertical,
+  HelpCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -42,6 +43,7 @@ import { NewChapterModal } from "./NewChapterModal";
 import { NewLessonModal } from "./NewLessonModal";
 import { DeleteLesson } from "./DeleteLesson";
 import { DeleteChapter } from "./DeleteChapter";
+import { EditChapter } from "./EditChapter";
 
 interface iAppProps {
   data: AdminCourseSingularType;
@@ -57,6 +59,33 @@ interface SortableItemProps {
   };
 }
 
+function SortableItem({ children, id, className, data }: SortableItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: id, data: data });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      className={cn("touch-none", className, isDragging ? "z-10" : "")}
+    >
+      {children(listeners)}
+    </div>
+  );
+}
+
 export function CourseStructure({ data }: iAppProps) {
   const initialItems =
     data.chapters.map((chapter) => ({
@@ -68,6 +97,11 @@ export function CourseStructure({ data }: iAppProps) {
         id: lesson.id,
         title: lesson.title,
         order: lesson.position,
+      })),
+        quizzes: chapter.quizzes.map((quiz) => ({
+        id: quiz.id,
+        title: quiz.title,
+        isPublished: quiz.isPublished,
       })),
     })) || [];
 
@@ -89,38 +123,16 @@ export function CourseStructure({ data }: iAppProps) {
             title: lesson.title,
             order: lesson.position,
           })),
+          quizzes: chapter.quizzes.map((quiz) => ({
+            id: quiz.id,
+            title: quiz.title,
+            isPublished: quiz.isPublished,
+          })),
         })) || [];
 
       return updatedItems;
     });
   }, [data]);
-
-  function SortableItem({ children, id, className, data }: SortableItemProps) {
-    const {
-      attributes,
-      listeners,
-      setNodeRef,
-      transform,
-      transition,
-      isDragging,
-    } = useSortable({ id: id, data: data });
-
-    const style = {
-      transform: CSS.Transform.toString(transform),
-      transition,
-    };
-
-    return (
-      <div
-        ref={setNodeRef}
-        style={style}
-        {...attributes}
-        className={cn("touch-none", className, isDragging ? "z-10" : "")}
-      >
-        {children(listeners)}
-      </div>
-    );
-  }
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -179,9 +191,9 @@ export function CourseStructure({ data }: iAppProps) {
             if (result.status === "success") return result.message;
             throw new Error(result.message);
           },
-          error: () => {
+          error: (err) => {
             setItems(previousItems);
-            return "Failed to reorder chapters.";
+            return err instanceof Error ? err.message : "Failed to reorder chapters.";
           },
         });
       }
@@ -254,9 +266,9 @@ export function CourseStructure({ data }: iAppProps) {
             if (result.status === "success") return result.message;
             throw new Error(result.message);
           },
-          error: () => {
+          error: (err) => {
             setItems(previousItems);
-            return "Failed to reorder lessons.";
+            return err instanceof Error ? err.message : "Failed to reorder lessons.";
           },
         });
       }
@@ -329,11 +341,15 @@ export function CourseStructure({ data }: iAppProps) {
                           </p>
                         </div>
 
-                        <DeleteChapter chapterId={item.id} courseId={data.id} />
+                        <div className="flex items-center gap-1">
+                          <EditChapter chapterId={item.id} courseId={data.id} initialTitle={item.title} />
+                          <DeleteChapter chapterId={item.id} courseId={data.id} />
+                        </div>
                       </div>
 
                       <CollapsibleContent>
                         <div className="p-1">
+                          {/* Lessons */}
                           <SortableContext
                             items={item.lessons.map((lesson) => lesson.id)}
                             strategy={verticalListSortingStrategy}
@@ -361,7 +377,6 @@ export function CourseStructure({ data }: iAppProps) {
                                         {lesson.title}
                                       </Link>
                                     </div>
-
                                     <DeleteLesson
                                       chapterId={item.id}
                                       courseId={data.id}
@@ -372,6 +387,29 @@ export function CourseStructure({ data }: iAppProps) {
                               </SortableItem>
                             ))}
                           </SortableContext>
+
+                          {/* Quizzes */}
+                          {item.quizzes.map((quiz) => (
+                            <div
+                              key={quiz.id}
+                              className="flex items-center justify-between p-1 hover:bg-accent rounded-sm group"
+                            >
+                              <div className="flex items-center gap-2">
+                                <div className="size-10 flex items-center justify-center" />
+                                <HelpCircle className="size-4" />                                
+                                <Link href={`/admin/quizzes/${quiz.id}/edit`}>
+                                  {quiz.title}
+                                </Link>
+                                
+                                {!quiz.isPublished && (
+                                  <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground uppercase font-semibold">
+                                    Draft
+                                  </span>
+                                )}
+                              </div>
+                              <div className="w-10" /> 
+                            </div>
+                          ))}
                           <div className="p-2">
                             <NewLessonModal
                               chapterId={item.id}

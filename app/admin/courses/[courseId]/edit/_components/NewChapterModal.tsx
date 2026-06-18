@@ -33,7 +33,7 @@ export function NewChapterModal({ courseId }: { courseId: string }) {
   const form = useForm<ChapterSchemaType>({
     resolver: zodResolver(chapterSchema),
     defaultValues: {
-      name: "",
+      title: "",
       courseId: courseId,
     },
   });
@@ -61,7 +61,6 @@ export function NewChapterModal({ courseId }: { courseId: string }) {
     if (!open) {
       form.reset();
     }
-
     setIsOpen(open);
   }
 
@@ -72,7 +71,7 @@ export function NewChapterModal({ courseId }: { courseId: string }) {
           <Plus className="size-4" /> New Chapter
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-106.25">
         <DialogHeader>
           <DialogTitle>Create new chapter</DialogTitle>
           <DialogDescription>
@@ -83,12 +82,12 @@ export function NewChapterModal({ courseId }: { courseId: string }) {
           <form className="space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
             <FormField
               control={form.control}
-              name="name"
+              name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel>Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="Chapter Name" {...field} />
+                    <Input placeholder="Chapter Title" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -97,7 +96,7 @@ export function NewChapterModal({ courseId }: { courseId: string }) {
 
             <DialogFooter>
               <Button disabled={pending} type="submit">
-                {pending ? "Saving..." : " Save Change"}
+                {pending ? "Saving..." : "Save Changes"}
               </Button>
             </DialogFooter>
           </form>

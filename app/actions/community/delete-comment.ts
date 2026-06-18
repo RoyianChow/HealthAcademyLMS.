@@ -5,6 +5,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/app/data/user/require-user";
+import { rethrowIfNextRedirect } from "@/lib/rethrow-next-redirect";
 
 export async function deleteCommunityComment(commentId: string) {
   try {
@@ -27,6 +28,15 @@ export async function deleteCommunityComment(commentId: string) {
         id: true,
         userId: true,
         postId: true,
+        post: {
+          select: {
+            course: {
+              select: {
+                slug: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -53,13 +63,14 @@ export async function deleteCommunityComment(commentId: string) {
       },
     });
 
-    revalidatePath("/community");
+    revalidatePath(`/dashboard/${comment.post.course.slug}/community`);
 
     return {
       status: "success" as const,
       message: "Comment deleted successfully.",
     };
-  } catch {
+  } catch (error) {
+    rethrowIfNextRedirect(error);
     return {
       status: "error" as const,
       message: "Failed to delete comment.",

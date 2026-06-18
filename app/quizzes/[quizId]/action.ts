@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/app/data/user/require-user";
 import { revalidatePath } from "next/cache";
+import { rethrowIfNextRedirect } from "@/lib/rethrow-next-redirect";
 
 type SubmitQuizAttemptInput = {
   quizId: string;
@@ -12,6 +13,87 @@ type SubmitQuizAttemptInput = {
     selectedOptionId: string | null;
   }[];
 };
+
+export async function getLastQuizResult(
+  quizId: string,
+  passingScore: number | null,
+  totalQuestions: number
+) {
+  try {
+    const user = await requireUser();
+
+    const lastAttempt = await prisma.quizAttempt.findFirst({
+      where: {
+        quizId,
+        userId: user.id,
+        isComplete: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        answers: true,
+      },
+    });
+
+    if (!lastAttempt) return null;
+
+    return {
+      status: "success" as const,
+      message:
+        (lastAttempt.score ?? 0) >= (passingScore ?? 0)
+          ? "Quiz submitted successfully. You passed."
+          : "Quiz submitted successfully.",
+      score: lastAttempt.score ?? 0,
+      totalQuestions,
+      passed: (lastAttempt.score ?? 0) >= (passingScore ?? 0),
+      feedback: lastAttempt.feedback,
+      answers: lastAttempt.answers.map((ans) => ({
+        attemptId: ans.attemptId,
+        questionId: ans.questionId,
+        selectedOptionId: ans.selectedOptionId,
+        isCorrect: ans.isCorrect ?? false,
+      })),
+    };
+  } catch (error) {
+    console.error("getLastQuizResult error", error);
+    return null;
+  }
+}
+
+export async function startQuizAttempt(quizId: string, attemptNumber: number) {
+  try {
+    const user = await requireUser();
+
+    const existingAttempt = await prisma.quizAttempt.findFirst({
+      where: {
+        quizId,
+        userId: user.id,
+        isComplete: false,
+      },
+    });
+
+    if (existingAttempt) {
+      return existingAttempt;
+    }
+
+    const newAttempt = await prisma.quizAttempt.create({
+      data: {
+        quizId,
+        userId: user.id,
+        attemptNumber,
+        isComplete: false,
+        isGraded: false,
+      },
+    });
+
+    revalidatePath(`/quizzes/${quizId}`);
+    return newAttempt;
+  } catch (error) {
+    console.error("startQuizAttempt error", error);
+    throw new Error("Failed to start quiz attempt.");
+  }
+}
 
 export async function submitQuizAttempt(input: SubmitQuizAttemptInput) {
   try {
@@ -61,33 +143,39 @@ export async function submitQuizAttempt(input: SubmitQuizAttemptInput) {
     }
 
     if (quiz.timeLimitMinutes !== null) {
+      // 15-second network latency grace period for slow connections or temporary client issues
       const deadline = new Date(
-        attempt.createdAt.getTime() + quiz.timeLimitMinutes * 60 * 1000
+        attempt.createdAt.getTime() + (quiz.timeLimitMinutes * 60 * 1000) + 15000
       );
 
       if (new Date() > deadline) {
-        await prisma.quizAnswer.deleteMany({
-          where: {
-            attemptId: attempt.id,
-          },
-        });
+        await prisma.$transaction([
+          prisma.quizAnswer.deleteMany({
+            where: { attemptId: attempt.id },
+          }),
+          prisma.quizAttempt.update({
+            where: { id: attempt.id },
+            data: {
+              isComplete: true,
+              isGraded: true,
+              submittedAt: new Date(),
+              gradedAt: new Date(),
+              score: 0,
+            },
+          }),
+        ]);
 
-        await prisma.quizAttempt.update({
-          where: {
-            id: attempt.id,
-          },
-          data: {
-            isComplete: true,
-            isGraded: true,
-            submittedAt: deadline,
-            gradedAt: new Date(),
-            score: 0,
-          },
-        });
+        revalidatePath(`/quizzes/${quiz.id}`);
+        revalidatePath("/quizzes");
+        revalidatePath("/dashboard");
 
         return {
-          status: "error" as const,
-          message: "Time is up. This attempt has expired.",
+          status: "success" as const,
+          message: "Time limit severely exceeded. This attempt has expired.",
+          score: 0,
+          totalQuestions: quiz.questions.length,
+          passed: false,
+          answers: [],
         };
       }
     }
@@ -195,6 +283,7 @@ export async function submitQuizAttempt(input: SubmitQuizAttemptInput) {
       answers: answerRows,
     };
   } catch (error) {
+    rethrowIfNextRedirect(error);
     console.error("submitQuizAttempt error", error);
 
     return {

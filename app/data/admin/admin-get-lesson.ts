@@ -14,11 +14,10 @@ export async function adminGetLesson(id: string) {
       title: true,
       description: true,
       content: true,
-      videoKey: true,
       thumbnailKey: true,
-      youtubeUrl: true,
       isPublished: true,
       isFreePreview: true,
+      interactiveScript: true,
       position: true,
       documents: {
         select: {
@@ -30,6 +29,17 @@ export async function adminGetLesson(id: string) {
           fileSize: true,
         },
       },
+      videos: {
+        orderBy: {
+          position: "asc",
+        },
+        select: {
+          id: true,
+          title: true,
+          videoKey: true,
+          youtubeUrl: true,
+        },
+      },
     },
   });
 
@@ -37,10 +47,10 @@ export async function adminGetLesson(id: string) {
     return notFound();
   }
 
-  // 🔥 Map Prisma → Form shape (important)
+  // Map Prisma → Form shape
   return {
     ...data,
-    name: data.title, // 👈 form expects `name`
+    name: data.title, 
   };
 }
 

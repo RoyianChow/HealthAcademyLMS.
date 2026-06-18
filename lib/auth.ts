@@ -5,11 +5,24 @@ import { env } from "./env";
 import { emailOTP } from "better-auth/plugins";
 import { resend } from "./resend";
 import { admin } from "better-auth/plugins";
+import { buildOtpEmailHtml } from "./email/templates";
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
+
+  advanced: {
+    // E2E runs next start over http://localhost — secure cookies would not be sent.
+    useSecureCookies: process.env.E2E_TEST === "true" ? false : undefined,
+  },
+
+  session: {
+    cookieCache: {
+      enabled: true,
+      maxAge: 5 * 60,
+    },
+  },
 
   socialProviders: {
     github: {
@@ -26,10 +39,10 @@ export const auth = betterAuth({
     emailOTP({
       async sendVerificationOTP({ email, otp }) {
         await resend.emails.send({
-          from: "Healthy Academy LMS <onboarding@resend.dev>",
+          from: "Health Academy <onboarding@resend.dev>",
           to: [email],
-          subject: "Healthy Academy LMS - Verify your email",
-          html: `<p>Your OTP is <strong>${otp}</strong></p>`,
+          subject: "Health Academy - Verify your email",
+          html: buildOtpEmailHtml(otp),
         });
       },
     }),

@@ -194,20 +194,27 @@ export default function CorporateWellnessPage() {
 
         <section className="grid gap-8 lg:grid-cols-2 lg:items-center">
           <div className="overflow-hidden rounded-3xl border bg-muted/30 shadow-sm">
-            <div className="flex min-h-[320px] items-center justify-center p-8 text-center">
-              <div className="space-y-3">
+            <div className="space-y-4 p-6">
+              <div className="space-y-2">
                 <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-                  Workshop Experience
+                  Featured Video
                 </p>
-
                 <h3 className="text-2xl font-semibold">
-                  A welcoming, modern, and collaborative environment
+                  Educational content for healthier teams
                 </h3>
-
-                <p className="mx-auto max-w-md text-muted-foreground">
-                  A supportive group experience designed for modern teams,
-                  whether delivered in person or online.
+                <p className="text-muted-foreground">
+                  Check out our channel for educational content and join a
+                  community focused on the betterment of your health.
                 </p>
+              </div>
+              <div className="aspect-video overflow-hidden rounded-2xl border bg-black">
+                <iframe
+                  src="https://www.youtube.com/embed/pUpcsd7ksg4"
+                  title="Health Academy featured video"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  className="h-full w-full"
+                />
               </div>
             </div>
           </div>

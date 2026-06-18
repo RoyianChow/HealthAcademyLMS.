@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { EditCourseForm } from "./_components/EditCourseForm";
-import { CourseStructure } from "./_components/CourseStructure";
+import { CourseStructure } from "./_components/CourseStructureDynamic";
 
 type Params = Promise<{ courseId: string }>;
 

@@ -126,8 +126,8 @@ async function RenderQuizzes() {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Questions</span>
                     <span className="font-medium">
-                      {quiz.questions.length} question
-                      {quiz.questions.length !== 1 ? "s" : ""}
+                      {quiz._count.questions} question
+                      {quiz._count.questions !== 1 ? "s" : ""}
                     </span>
                   </div>
 
@@ -176,23 +176,33 @@ async function RenderQuizzes() {
                   )}
                 </div>
 
-                <div className="flex items-center justify-between border-t pt-4">
-                  <span className="text-sm text-muted-foreground">
-                    {isCompleted ? "View your result" : "Ready to start"}
-                  </span>
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-4">
 
                   {isCompleted ? (
-                    <QuizResultDialog quiz={quiz} />
+                    <div className="flex flex-wrap gap-2">
+                      <QuizResultDialog quizId={quiz.id} />
+
+                      <Link
+                        href={`/quizzes/${quiz.id}`}
+                        className={buttonVariants({
+                          size: "sm",
+                          variant: "outline",
+                          className: "rounded-full",
+                        })}
+                      >
+                        Retake Quiz
+                      </Link>
+                    </div>
                   ) : (
                     <Link
                       href={`/quizzes/${quiz.id}`}
                       className={buttonVariants({
                         size: "sm",
                         className: "rounded-full",
-                      })}
-                    >
-                      Start Quiz
-                    </Link>
+                    })}
+                  >
+                    Start Quiz
+                  </Link>
                   )}
                 </div>
               </CardContent>

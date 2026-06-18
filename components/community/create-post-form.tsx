@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { createPost } from "@/app/actions/community/create-post";
-import { RichTextEditor } from "@/components/rich-text-editor/Editor";
+import { RichTextEditor } from "@/components/rich-text-editor/EditorDynamic";
 
 export function CreatePostForm({
   courseId,

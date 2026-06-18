@@ -1,4 +1,4 @@
-
+// app\data\course\get-course.ts
 import { prisma } from "@/lib/db";
 import { notFound } from "next/navigation";
 
@@ -22,9 +22,13 @@ export async function getIndividualCourse(slug: string) {
           id: true,
           title: true,
           lessons: {
+            where: {
+              isPublished: true,
+            },
             select: {
               id: true,
               title: true,
+              isFreePreview: true,
             },
             orderBy: {
               position: "asc",

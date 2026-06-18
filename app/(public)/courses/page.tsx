@@ -1,11 +1,20 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 import { getAllCourses } from "@/app/data/course/get-all-courses";
+import { createPageMetadata } from "@/lib/metadata";
 import {
   PublicCourseCard,
   PublicCourseCardSkeleton,
 } from "../_components/PublicCourseCard";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
+
+export const metadata: Metadata = createPageMetadata({
+  title: "Courses",
+  description:
+    "Browse advanced nutrition and holistic health courses including functional nutrition, mental health, and natural supplement education.",
+  path: "/courses",
+});
 
 export default function PublicCoursesRoute() {
   return (

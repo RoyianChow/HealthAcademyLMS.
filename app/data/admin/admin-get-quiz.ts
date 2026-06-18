@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/db";
+import { requireAdmin } from "./require-admin";
 
 export async function adminGetQuiz(quizId: string) {
+  await requireAdmin();
+
   const quiz = await prisma.quiz.findUnique({
     where: {
       id: quizId,

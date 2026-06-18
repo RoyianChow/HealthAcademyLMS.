@@ -1,5 +1,17 @@
 import { z } from "zod";
 
+export const ACCEPTED_DOCUMENT_TYPES: string[] = [
+  "application/pdf",
+  "text/csv",
+  "text/plain",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+];
+
 export const courseLevels = ["Beginner", "Intermediate", "Advanced"] as const;
 
 export const courseStatus = ["Draft", "Published", "Archived"] as const;
@@ -70,11 +82,29 @@ export const courseSchema = z.object({
 });
 
 export const chapterSchema = z.object({
-  name: z
+  title: z
     .string()
-    .min(3, { message: "Name must be at least 3 characters long" }),
+    .min(3, { message: "Title must be at least 3 characters long" }),
 
   courseId: z.string().uuid({ message: "Invalid course id" }),
+});
+
+export const lessonVideoSchema = z.object({
+  id: z.string().optional(),
+  title: z.string().optional().or(z.literal("")),
+  videoKey: z.string().optional().or(z.literal("")),
+  youtubeUrl: z
+    .string()
+    .refine(
+      (url) =>
+        url === "" ||
+        url.includes("youtube.com/watch?v=") ||
+        url.includes("youtu.be/") ||
+        url.includes("youtube.com/embed/"),
+      "Please enter a valid YouTube URL"
+    )
+    .optional()
+    .or(z.literal("")),
 });
 
 export const lessonDocumentSchema = z.object({
@@ -111,28 +141,18 @@ export const lessonSchema = z.object({
   content: z.string().optional().or(z.literal("")),
 
   thumbnailKey: z.string().optional().or(z.literal("")),
-  videoKey: z.string().optional().or(z.literal("")),
-
-  youtubeUrl: z
-    .string()
-    .url("Please enter a valid URL")
-    .refine(
-      (url) =>
-        url.includes("youtube.com/watch?v=") ||
-        url.includes("youtu.be/") ||
-        url.includes("youtube.com/embed/"),
-      "Please enter a valid YouTube URL"
-    )
-    .optional()
-    .or(z.literal("")),
-
+    
   isPublished: z.boolean().default(false).optional(),
   isFreePreview: z.boolean().default(false).optional(),
+  interactiveScript: z.string().optional().or(z.literal("")),
 
   documents: z.array(lessonDocumentSchema).default([]).optional(),
+  
+  videos: z.array(lessonVideoSchema).default([]).optional(), 
 });
 
 export type CourseSchemaType = z.infer<typeof courseSchema>;
 export type ChapterSchemaType = z.infer<typeof chapterSchema>;
 export type LessonDocumentSchemaType = z.infer<typeof lessonDocumentSchema>;
+export type LessonVideoSchemaType = z.infer<typeof lessonVideoSchema>;
 export type LessonSchemaType = z.infer<typeof lessonSchema>;

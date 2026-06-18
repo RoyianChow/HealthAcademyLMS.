@@ -4,8 +4,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -18,19 +19,26 @@ model User {
   updatedAt        DateTime
   stripeCustomerId String?   @unique
   role             String?
-  banned           Boolean?
-  banReason        String?
-  banExpires       DateTime?
+  banned               Boolean?
+  banReason            String?
+  banExpires           DateTime?
+  communityBanned      Boolean?
+  communityBanReason   String?
+  communityBanExpires  DateTime?
+  healthGoals          String[]  @default([])
+  dietaryFocus         String[]  @default([])
 
-  communityComments CommunityComment[]
-  communityLikes    CommunityLike[]
-  communityPosts    CommunityPost[]
-  courses           Course[]
-  courseProgress    CourseProgress[]
-  enrollments       Enrollment[]
-  quizAttempts      QuizAttempt[]
-  accounts          Account[]
-  sessions          Session[]
+  communityComments  CommunityComment[]
+  communityLikes     CommunityLike[]
+  communityPosts     CommunityPost[]
+  courses            Course[]
+  courseProgress     CourseProgress[]
+  lessonProgress     LessonProgress[]
+  enrollments        Enrollment[]
+  quizAttempts       QuizAttempt[]
+  accounts           Account[]
+  sessions           Session[]
+  chatConversations  ChatConversation[]
 
   @@map("user")
 }
@@ -47,6 +55,7 @@ model Session {
   impersonatedBy String?
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("session")
 }
 
@@ -66,6 +75,7 @@ model Account {
   updatedAt             DateTime
   user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@map("account")
 }
 
@@ -126,26 +136,43 @@ model Chapter {
 }
 
 model Lesson {
-  id             String   @id @default(uuid())
-  title          String
-  description    String?
-  thumbnailKey   String?
-  videoKey       String?
-  youtubeUrl     String?
-  position       Int
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  chapterId      String
-  content        String?
-  isFreePreview  Boolean  @default(false)
-  isPublished    Boolean  @default(false)
-  lessonProgress Boolean  @default(false)
+  id                String           @id @default(uuid())
+  title             String
+  description       String?
+  thumbnailKey      String?
+  position          Int
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  chapterId         String
+  content           String?
+  isFreePreview     Boolean          @default(false)
+  isPublished       Boolean          @default(false)
 
-  chapter   Chapter          @relation(fields: [chapterId], references: [id], onDelete: Cascade)
-  documents LessonDocument[]
+  interactiveScript String?
+  
+  videos            LessonVideo[]
+  lessonProgress    LessonProgress[]
+  chapter           Chapter          @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  documents         LessonDocument[]
 
   @@unique([chapterId, position])
   @@index([chapterId])
+  @@index([chapterId, isPublished])
+}
+
+model LessonVideo {
+  id         String   @id @default(uuid())
+  title      String?  
+  videoKey   String?  
+  youtubeUrl String?  
+  position   Int      
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  lessonId   String
+
+  lesson     Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@index([lessonId])
 }
 
 model LessonDocument {
@@ -175,6 +202,7 @@ model Enrollment {
   purchasedAt     DateTime?
   stripePaymentId String?
   stripeSessionId String?
+  completedAt     DateTime?
 
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -183,6 +211,8 @@ model Enrollment {
   @@index([status])
   @@index([courseId])
   @@index([userId])
+  @@index([createdAt])
+  @@index([userId, status])
 }
 
 model CourseProgress {
@@ -200,6 +230,22 @@ model CourseProgress {
   @@unique([userId, courseId])
   @@index([userId])
   @@index([courseId])
+}
+
+model LessonProgress {
+  id          String   @id @default(uuid())
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String
+  lessonId    String
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@index([lessonId])
 }
 
 model Quiz {
@@ -280,6 +326,7 @@ model QuizAttempt {
   @@index([userId])
   @@index([isComplete])
   @@index([isGraded])
+  @@index([quizId, userId, isComplete, createdAt])
 }
 
 model QuizAnswer {
@@ -317,6 +364,7 @@ model CommunityPost {
   @@index([userId])
   @@index([courseId])
   @@index([isPinned])
+  @@index([createdAt])
 }
 
 model CommunityComment {
@@ -344,6 +392,47 @@ model CommunityLike {
   @@unique([postId, userId])
   @@index([postId])
   @@index([userId])
+}
+
+model ChatConversation {
+  id          String        @id @default(uuid())
+  userId      String
+  title       String
+  isAutoTitle Boolean       @default(true)
+  preview     String        @default("No messages yet")
+  messageCount Int          @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@index([userId])
+  @@index([updatedAt])
+}
+
+model ChatMessage {
+  id             String   @id @default(uuid())
+  conversationId String
+  role           String
+  content        String
+  sources        Json?
+  attachments    Json?
+  followUps      Json?
+  safetyFlags    Json?
+  mode           String?
+  responseStyle  String?
+  createdAt      DateTime @default(now())
+
+  conversation ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId])
+  @@index([conversationId, createdAt])
+}
+
+model StripeWebhookEvent {
+  id        String   @id
+  createdAt DateTime @default(now())
 }
 
 enum CourseLevel {

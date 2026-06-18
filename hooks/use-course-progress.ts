@@ -1,7 +1,12 @@
+// hooks\use-course-progress.ts
 import { useMemo } from "react";
 
+interface LessonProgress {
+  completed: boolean;
+}
+
 interface Lesson {
-  lessonProgress: boolean;
+  lessonProgress: LessonProgress[]; 
 }
 
 interface Chapter {
@@ -21,7 +26,8 @@ export function useCourseProgress({ courseData }: { courseData: CourseData }) {
       chapter.lessons.forEach((lesson) => {
         totalLessons++;
 
-        if (lesson.lessonProgress) {
+        // Check if the array has an entry and if it's completed
+        if (lesson.lessonProgress?.length > 0 && lesson.lessonProgress[0].completed) {
           completedLessons++;
         }
       });

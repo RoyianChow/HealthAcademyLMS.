@@ -9,6 +9,23 @@ import clsx from "clsx";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
+export type SubmissionResult = {
+  status: "success" | "error";
+  message: string;
+  score?: number;
+  totalQuestions?: number;
+  passed?: boolean;
+  feedback?: string | null;
+  gradedAt?: string | null;
+  answers?: {
+    attemptId?: string;
+    questionId: string;
+    selectedOptionId: string | null;
+    isCorrect: boolean;
+    explanation?: string | null;
+  }[];
+};
+
 type QuizAttemptProps = {
   quiz: {
     id: string;
@@ -27,27 +44,11 @@ type QuizAttemptProps = {
       }[];
     }[];
   };
-  attemptId: string;
-  startedAt: string;
+  attemptId: string | null;
+  startedAt: string | null;
   canAttempt: boolean;
   nextAttemptNumber: number;
-  previousAttemptsCount: number;
-};
-type SubmissionResult = {
-  status: "success" | "error";
-  message: string;
-  score?: number;
-  totalQuestions?: number;
-  passed?: boolean;
-  feedback?: string | null;
-  gradedAt?: string | null;
-  answers?: {
-    attemptId?: string;
-    questionId: string;
-    selectedOptionId: string | null;
-    isCorrect: boolean;
-    explanation?: string | null;
-  }[];
+  lastResult?: SubmissionResult | null;
 };
 
 export function QuizAttempt({
@@ -56,16 +57,24 @@ export function QuizAttempt({
   startedAt,
   canAttempt,
   nextAttemptNumber,
-  previousAttemptsCount,
+  lastResult,
 }: QuizAttemptProps) {
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>(
-    {}
-  );
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
-  const [result, setResult] = useState<SubmissionResult | null>(null);
+  
+  // Initialize result with the last database result if it exists
+  const [result, setResult] = useState<SubmissionResult | null>(lastResult || null);
+  
   const [isExpired, setIsExpired] = useState(false);
   const [isPending, startTransition] = useTransition();
   const hasAutoSubmittedRef = useRef(false);
+
+  // Clear the result screen if a new attempt is started
+  useEffect(() => {
+    if (attemptId) {
+      setResult(null);
+    }
+  }, [attemptId]);
 
   const totalQuestions = quiz.questions.length;
 
@@ -75,8 +84,9 @@ export function QuizAttempt({
 
   const allAnswered = totalQuestions > 0 && answeredCount === totalQuestions;
 
+  // Timer calculation hook
   useEffect(() => {
-    if (!quiz.timeLimitMinutes || result || !canAttempt) {
+    if (!quiz.timeLimitMinutes || result || !canAttempt || !startedAt) {
       return;
     }
 
@@ -84,11 +94,7 @@ export function QuizAttempt({
     const deadlineMs = startedAtMs + quiz.timeLimitMinutes * 60 * 1000;
 
     const tick = () => {
-      const remainingSeconds = Math.max(
-        0,
-        Math.floor((deadlineMs - Date.now()) / 1000)
-      );
-
+      const remainingSeconds = Math.max(0, Math.floor((deadlineMs - Date.now()) / 1000));
       setTimeLeft(remainingSeconds);
 
       if (remainingSeconds <= 0) {
@@ -98,12 +104,12 @@ export function QuizAttempt({
 
     tick();
     const timer = window.setInterval(tick, 1000);
-
     return () => window.clearInterval(timer);
   }, [quiz.timeLimitMinutes, startedAt, result, canAttempt]);
 
+  // Automated submission loop hook
   useEffect(() => {
-    if (!isExpired || result || hasAutoSubmittedRef.current || !canAttempt) {
+    if (!isExpired || result || hasAutoSubmittedRef.current || !canAttempt || !attemptId) {
       return;
     }
 
@@ -117,7 +123,7 @@ export function QuizAttempt({
 
       const response = await submitQuizAttempt({
         quizId: quiz.id,
-        attemptId,
+        attemptId: attemptId,
         answers: payload,
       });
 
@@ -133,23 +139,18 @@ export function QuizAttempt({
 
   function handleSelect(questionId: string, optionId: string) {
     if (isPending || result || isExpired) return;
-
-    setSelectedAnswers((prev) => ({
-      ...prev,
-      [questionId]: optionId,
-    }));
+    setSelectedAnswers((prev) => ({ ...prev, [questionId]: optionId }));
   }
 
   function formatTime(seconds: number) {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   }
 
   function handleSubmit(autoSubmit = false) {
-    if (!canAttempt) {
-      toast.error("You cannot take this quiz again.");
+    if (!canAttempt || !attemptId) {
+      toast.error("You cannot take this quiz right now.");
       return;
     }
 
@@ -171,7 +172,7 @@ export function QuizAttempt({
 
       const response = await submitQuizAttempt({
         quizId: quiz.id,
-        attemptId,
+        attemptId: attemptId,
         answers: payload,
       });
 
@@ -181,7 +182,7 @@ export function QuizAttempt({
       }
 
       setResult(response);
-
+      
       if (response.passed) {
         toast.success(response.message);
       } else {
@@ -195,16 +196,26 @@ export function QuizAttempt({
       <section className="space-y-6">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight">Quiz Questions</h2>
-          <p className="text-sm text-muted-foreground">
-            You have already used your allowed attempt for this quiz.
-          </p>
+          <p className="text-sm text-muted-foreground">You have already used your allowed attempt for this quiz.</p>
         </div>
-
         <Card className="rounded-2xl border border-dashed border-border bg-muted/20">
           <CardContent className="py-12 text-center">
             <h3 className="text-lg font-semibold">No more attempts available</h3>
+            <p className="mt-2 text-sm text-muted-foreground">This quiz does not allow multiple attempts.</p>
+          </CardContent>
+        </Card>
+      </section>
+    );
+  }
+
+  if (canAttempt && !attemptId && !result) {
+    return (
+      <section className="space-y-6">
+        <Card className="rounded-2xl border border-dashed border-border bg-muted/20">
+          <CardContent className="py-12 text-center">
+            <h3 className="text-lg font-semibold">Ready to begin?</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              This quiz does not allow multiple attempts.
+              Click the Start Quiz button in the header above to begin your attempt.
             </p>
           </CardContent>
         </Card>
@@ -234,12 +245,6 @@ export function QuizAttempt({
               <Badge variant="outline">Single attempt only</Badge>
             )}
           </div>
-
-          {previousAttemptsCount > 0 ? (
-            <p className="text-xs text-muted-foreground">
-              Previous attempts: {previousAttemptsCount}
-            </p>
-          ) : null}
         </div>
 
         {timeLeft !== null && !result ? (
@@ -278,7 +283,7 @@ export function QuizAttempt({
                     : "bg-red-600 text-white hover:bg-red-600"
                 )}
               >
-                {result.passed ? "Passed" : "Did not pass"}
+                {result.passed ? "Passed" : "Failed"}
               </Badge>
 
               <Badge variant="secondary">
@@ -350,14 +355,14 @@ export function QuizAttempt({
                     })}
                   </div>
 
-                 {(answer?.explanation ?? question.explanation) ? (
-  <div className="mt-4 rounded-xl border border-border/60 bg-muted/40 p-4">
-    <p className="text-sm font-medium">Explanation</p>
-    <p className="mt-1 text-sm text-muted-foreground">
-      {answer?.explanation ?? question.explanation}
-    </p>
-  </div>
-) : null}
+                  {(answer?.explanation ?? question.explanation) ? (
+                    <div className="mt-4 rounded-xl border border-border/60 bg-muted/40 p-4">
+                      <p className="text-sm font-medium">Explanation</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {answer?.explanation ?? question.explanation}
+                      </p>
+                    </div>
+                  ) : null}
                 </div>
               );
             })}
@@ -434,16 +439,8 @@ export function QuizAttempt({
               onClick={() => handleSubmit(false)}
               disabled={!allAnswered || isPending || isExpired}
             >
-              {isPending ? (
-                <>
-                  <Loader2 className="mr-2 size-4 animate-spin" />
-                  Submitting...
-                </>
-              ) : isExpired ? (
-                "Time Expired"
-              ) : (
-                "Submit Quiz"
-              )}
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Submit Quiz
             </Button>
           </div>
         </div>

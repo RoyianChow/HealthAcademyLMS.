@@ -70,7 +70,7 @@ export function UserDropdown({ email, name, image }: iAppProps) {
           </DropdownMenuItem>
 
           <DropdownMenuItem asChild>
-            <Link href="/course">
+            <Link href="/courses">
               <BookOpen size={16} className="opacity-60" />
               <span>Courses</span>
             </Link>

@@ -1,7 +1,8 @@
+// app\dashboard\[slug]\[lessonId]\_components\CourseContent.tsx
 "use client";
 
-import type { ComponentProps } from "react";
-import { useMemo, useTransition } from "react";
+import { useTransition, useEffect, useRef } from "react";
+import type { LessonContentType } from "@/app/data/course/get-lesson-content";
 import {
   CheckCircle,
   Download,
@@ -11,20 +12,18 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-import type { LessonContentType } from "@/app/data/course/get-lesson-content";
-import { RenderDescription } from "@/components/rich-text-editor/RenderDescription";
 import { Button } from "@/components/ui/button";
 import { tryCatch } from "@/hooks/try-catch";
 import { useConfetti } from "@/hooks/use-confetti";
 import { useConstructUrl } from "@/hooks/use-construct-url";
-
 import { markLessonComplete } from "../actions";
 
 type CourseContentProps = {
   data: LessonContentType;
+  userId: string;
+  descriptionHtml?: string | null;
+  contentHtml?: string | null;
 };
-
-type RenderDescriptionJson = ComponentProps<typeof RenderDescription>["json"];
 
 function getYoutubeEmbedUrl(url?: string | null) {
   if (!url) return null;
@@ -73,16 +72,6 @@ function formatFileSize(size?: number | null) {
   return `${value.toFixed(value >= 10 || unitIndex === 0 ? 0 : 1)} ${
     units[unitIndex]
   }`;
-}
-
-function parseDescription(description?: string | null) {
-  if (!description) return null;
-
-  try {
-    return JSON.parse(description) as RenderDescriptionJson;
-  } catch {
-    return null;
-  }
 }
 
 function VideoPlayer({
@@ -186,18 +175,137 @@ function LessonDocumentItem({
   );
 }
 
-export function CourseContent({ data }: CourseContentProps) {
+function InteractiveScriptPlayer({ html }: { html: string }) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+
+    const completeHtml = `
+      <!DOCTYPE html>
+      <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            html, body {
+              margin: 0;
+              padding: 0;
+              overflow: hidden;
+              background-color: transparent;
+            }
+            #interactive-container {
+              width: 100%;
+              height: auto;
+              position: absolute;
+              top: 0;
+              left: 0;
+            }
+          </style>
+        </head>
+        <body>
+          <div id="interactive-container">
+            ${html}
+          </div>
+          <script>
+            let currentHeight = 0;
+            function resizeIframe() {
+              const container = document.getElementById('interactive-container');
+              if (!container) return;
+              
+              const height = container.getBoundingClientRect().height;
+              
+              if (Math.abs(height - currentHeight) > 4) {
+                currentHeight = height;
+                window.parent.postMessage({
+                  type: 'RESIZE_IFRAME',
+                  height: Math.ceil(height)
+                }, '*');
+              }
+            }
+            
+            if (window.ResizeObserver) {
+              const ro = new ResizeObserver(() => {
+                // Request animation frame prevents rapid loop synchronization crashes
+                window.requestAnimationFrame(resizeIframe);
+              });
+              ro.observe(document.getElementById('interactive-container'));
+            } else {
+              const observer = new MutationObserver(resizeIframe);
+              observer.observe(document.body, { attributes: true, childList: true, subtree: true });
+            }
+            
+            window.addEventListener('load', resizeIframe);
+            window.addEventListener('resize', resizeIframe);
+            
+            // Safety sweeps for late framework executions
+            setTimeout(resizeIframe, 200);
+            setTimeout(resizeIframe, 800);
+          </script>
+        </body>
+      </html>
+    `;
+
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (doc) {
+      doc.open();
+      doc.write(completeHtml);
+      doc.close();
+    }
+  }, [html]);
+
+  useEffect(() => {
+    function handleMessage(event: MessageEvent) {
+      if (event.data?.type === 'RESIZE_IFRAME' && iframeRef.current) {
+        const newHeight = event.data.height + 16;
+        const cachedHeight = parseInt(iframeRef.current.style.height || "0", 10);
+        
+        // Parent guard rule: Only mutation-paint DOM if structural changes pass a delta threshold
+        if (Math.abs(newHeight - cachedHeight) > 5) {
+          iframeRef.current.style.height = `${newHeight}px`;
+        }
+      }
+    }
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  return (
+    <div className="w-full overflow-hidden rounded-xl bg-card border border-muted shadow-sm">
+      <iframe
+        ref={iframeRef}
+        title="Interactive Script Frame"
+        className="w-full border-0"
+        sandbox="allow-scripts allow-same-origin allow-popups"
+        scrolling="no"
+        style={{ height: '350px' }}
+      />
+    </div>
+  );
+}
+
+export function CourseContent({
+  data,
+  userId,
+  descriptionHtml,
+  contentHtml,
+}: CourseContentProps) {
   const [pending, startTransition] = useTransition();
   const { triggerConfetti } = useConfetti();
 
-  const descriptionJson = useMemo(
-    () => parseDescription(data.description),
-    [data.description]
-  );
+  type ProgressItem = { completed: boolean; userId: string };
+  const isCompleted = Array.isArray(data.lessonProgress)
+    ? data.lessonProgress.some(
+        (progress: ProgressItem) => progress.completed && progress.userId === userId
+      )
+    : Boolean(
+        data.lessonProgress &&
+        (data.lessonProgress as ProgressItem).completed &&
+        (data.lessonProgress as ProgressItem).userId === userId
+      );
 
-const isCompleted = Array.isArray(data.lessonProgress)
-  ? data.lessonProgress.some((progress) => progress.completed)
-  : Boolean(data.lessonProgress);
   function onSubmit() {
     startTransition(async () => {
       const { data: result, error } = await tryCatch(
@@ -220,13 +328,7 @@ const isCompleted = Array.isArray(data.lessonProgress)
   }
 
   return (
-    <main className="flex h-full w-full flex-col bg-background px-4 pb-8 md:px-6">
-      <VideoPlayer
-        thumbnailKey={data.thumbnailKey}
-        videoKey={data.videoKey}
-        youtubeUrl={data.youtubeUrl}
-      />
-
+    <main className="flex h-full w-full flex-col bg-background px-4 pb-8 md:px-6 overflow-y-auto">
       <div className="border-b py-4">
         <Button
           type="button"
@@ -255,14 +357,27 @@ const isCompleted = Array.isArray(data.lessonProgress)
             {data.title}
           </h1>
 
-          {descriptionJson ? (
-            <RenderDescription json={descriptionJson} />
+          {descriptionHtml ? (
+            <div
+              className="prose max-w-none w-full dark:prose-invert"
+              dangerouslySetInnerHTML={{ __html: descriptionHtml }}
+            />
           ) : data.description ? (
             <p className="text-sm text-muted-foreground">
               Lesson description could not be displayed.
             </p>
           ) : null}
         </div>
+
+        {contentHtml && (
+          <div className="pt-4 border-t border-muted">
+            <div
+              className="prose max-w-none w-full dark:prose-invert"
+              dangerouslySetInnerHTML={{ __html: contentHtml }}
+            />
+          </div>
+        )}
+
 
         {data.documents.length > 0 && (
           <div className="space-y-3">
@@ -273,6 +388,35 @@ const isCompleted = Array.isArray(data.lessonProgress)
                 <LessonDocumentItem key={document.id} document={document} />
               ))}
             </div>
+          </div>
+        )}
+
+        {data.videos && data.videos.length > 0 && (
+          <div className="flex flex-col gap-6 w-full mb-4">
+            {data.videos.map((video) => (
+              <div key={video.id} className="space-y-2">
+                {video.title && (
+                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider px-1">
+                    {video.title}
+                  </h3>
+                )}
+                <VideoPlayer
+                  thumbnailKey={data.thumbnailKey}
+                  videoKey={video.videoKey}
+                  youtubeUrl={video.youtubeUrl}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* INTERACTIVE SCRIPT DISPLAY SECTION */}
+        {data.interactiveScript && (
+          <div className="space-y-3 pt-4 border-t border-muted">
+            <h2 className="text-xl font-semibold tracking-tight text-foreground">
+              Interactive Activity
+            </h2>
+            <InteractiveScriptPlayer html={data.interactiveScript} />
           </div>
         )}
       </section>

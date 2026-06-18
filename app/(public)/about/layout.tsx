@@ -1,13 +1,17 @@
-import { ReactNode } from "react";
-import { Navbar } from "@/app/(public)/_components/Navbar";
+import type { Metadata } from "next";
+import { createPageMetadata } from "@/lib/metadata";
 
-export default function LayoutPublic({ children }: { children: ReactNode }) {
-  return (
-    <div>
-      <Navbar />
-      <main className="container mx-auto px-4 md:px-6 lg:px-8 mb-32">
-        {children}
-      </main>
-    </div>
-  );
+export const metadata: Metadata = createPageMetadata({
+  title: "About Us",
+  description:
+    "Meet the Natural Health Academy instructors and learn about our mission to make holistic health knowledge accessible and transformative.",
+  path: "/about",
+});
+
+export default function AboutLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return children;
 }

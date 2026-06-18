@@ -1,15 +1,13 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { MessageCircle, Users } from "lucide-react";
+import { MessageCircle, Users, Ban } from "lucide-react";
 
-import { requireUser } from "@/app/data/user/require-user";
-import { prisma } from "@/lib/db";
-import { CourseStatus, EnrollmentStatus } from "@/src/generated/prisma";
+import { getCommunityPageData } from "@/app/data/community/get-community-page-data";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { CreatePostForm } from "@/components/community/create-post-form";
 import { CommunityPostCard } from "@/components/community/community-post-card";
+import { cn } from "@/lib/utils";
 
 type PageProps = {
   params: Promise<{
@@ -17,103 +15,12 @@ type PageProps = {
   }>;
 };
 
-const POSTS_LIMIT = 50;
-
 export default async function CommunityPage({ params }: PageProps) {
-  const user = await requireUser();
   const { slug } = await params;
+  const { user, course, isCommunityBanned, communityBanReason, communityBanExpires } =
+    await getCommunityPageData(slug);
 
-  if (!slug) {
-    return notFound();
-  }
-
-  const course = await prisma.course.findUnique({
-    where: {
-      slug,
-    },
-    select: {
-      id: true,
-      title: true,
-      slug: true,
-      status: true,
-      enrollments: {
-        where: {
-          userId: user.id,
-          status: EnrollmentStatus.Active,
-        },
-        take: 1,
-        select: {
-          id: true,
-        },
-      },
-      communityPosts: {
-        take: POSTS_LIMIT,
-        orderBy: [
-          {
-            isPinned: "desc",
-          },
-          {
-            createdAt: "desc",
-          },
-        ],
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
-            },
-          },
-          comments: {
-            orderBy: {
-              createdAt: "asc",
-            },
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  image: true,
-                },
-              },
-            },
-          },
-          likes: {
-            select: {
-              id: true,
-              userId: true,
-            },
-          },
-        },
-      },
-      _count: {
-        select: {
-          enrollments: {
-            where: {
-              status: EnrollmentStatus.Active,
-            },
-          },
-          communityPosts: true,
-        },
-      },
-    },
-  });
-
-  if (!course) {
-    return notFound();
-  }
-
-  const isAdmin = user.role?.toLowerCase() === "admin";
-  const isEnrolled = course.enrollments.length > 0;
-
-  if (course.status !== CourseStatus.Published && !isAdmin) {
-    return notFound();
-  }
-
-  if (!isEnrolled && !isAdmin) {
-    return notFound();
-  }
+  const isBanned = isCommunityBanned;
 
   return (
     <main className="min-h-screen bg-muted/30">
@@ -177,23 +84,60 @@ export default async function CommunityPage({ params }: PageProps) {
           </div>
         </section>
 
-        <Card className="shadow-sm">
+        {isBanned && (
+          <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-destructive shadow-sm">
+            <div className="mb-2 flex items-center gap-2 font-semibold">
+              <Ban className="size-5" />
+              You are temporarily banned from participating.
+            </div>
+            <div className="flex flex-col gap-1 text-sm text-destructive/90">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="font-bold uppercase tracking-wider text-xs">Status:</span> 
+                <span className="rounded bg-destructive/20 px-2 py-0.5 font-medium">Banned</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="font-bold uppercase tracking-wider text-xs">Reason:</span> 
+                {communityBanReason || "Violating community guidelines."}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="font-bold uppercase tracking-wider text-xs">Expires:</span> 
+                {communityBanExpires ? new Date(communityBanExpires).toLocaleString() : "N/A"}
+              </span>
+            </div>
+          </div>
+        )}
+
+        <Card className="border-primary/20 bg-primary/5 shadow-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <MessageCircle className="size-5 text-primary" />
-              Start a discussion
+            <CardTitle className="text-lg">
+              Community Guidelines
             </CardTitle>
-
-            <p className="text-sm text-muted-foreground">
-              Post course questions, lesson feedback, helpful resources, or
-              updates for other learners.
-            </p>
+              <p className="text-sm text-muted-foreground">
+                Please keep discussions respectful, supportive, and related to the course content. Spam, harassment, offensive language, misinformation, or inappropriate content
+                will not be tolerated and may result in a temporary or permanent ban from the community. 
+              </p>
           </CardHeader>
-
-          <CardContent>
-            <CreatePostForm courseId={course.id} slug={course.slug} />
-          </CardContent>
         </Card>
+
+        <div className={cn(isBanned && "pointer-events-none opacity-50 select-none")}>
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <MessageCircle className="size-5 text-primary" />
+                Start a discussion
+              </CardTitle>
+
+              <p className="text-sm text-muted-foreground">
+                Post course questions, lesson feedback, helpful resources, or
+                updates for other learners.
+              </p>
+            </CardHeader>
+
+            <CardContent>
+              <CreatePostForm courseId={course.id} slug={course.slug} />
+            </CardContent>
+          </Card>
+        </div>
 
         <section className="space-y-4">
           <div className="flex items-center justify-between">
@@ -208,12 +152,14 @@ export default async function CommunityPage({ params }: PageProps) {
 
           {course.communityPosts.length > 0 ? (
             course.communityPosts.map((post) => (
-<CommunityPostCard
-  key={post.id}
-  post={post}
-  userId={user.id}
-  isAdmin={user.role === "admin"}
-/>            ))
+              <CommunityPostCard
+                key={post.id}
+                post={post}
+                userId={user.id}
+                isAdmin={user.role === "admin"}
+                isBanned={isBanned}
+              />
+            ))
           ) : (
             <Card className="border-dashed shadow-sm">
               <CardContent className="flex flex-col items-center justify-center py-14 text-center">

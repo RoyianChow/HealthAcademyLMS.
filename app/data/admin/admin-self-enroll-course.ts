@@ -3,7 +3,7 @@
 
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/app/data/admin/require-admin";
-import { EnrollmentStatus } from "@/src/generated/prisma";
+import { EnrollmentStatus } from "@/src/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 
 export async function adminSelfEnrollCourse(courseId: string) {

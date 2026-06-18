@@ -1,25 +1,15 @@
-"use client";
-
-import { useMemo } from "react";
-import { generateHTML } from "@tiptap/html";
 import { type JSONContent } from "@tiptap/react";
-import TextAlign from "@tiptap/extension-text-align";
-import StarterKit from "@tiptap/starter-kit";
-import parse from "html-react-parser";
+import { renderDescriptionHtml } from "@/lib/render-tiptap-html";
 
 export function RenderDescription({ json }: { json: JSONContent }) {
-  const output = useMemo(() => {
-    return generateHTML(json, [
-      StarterKit,
-      TextAlign.configure({
-        types: ["heading", "paragraph"],
-      }),
-    ]);
-  }, [json]);
+  const html = renderDescriptionHtml(json);
 
   return (
-    <div className="prose max-w-none w-full dark:prose-invert prose-li:marker:text-primary">
-      {parse(output)}
+    <div className="prose max-w-none w-full dark:prose-invert prose-li:marker:text-primary prose-img:rounded-md prose-img:mx-auto">
+      <div
+        className="overflow-x-auto w-full"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
     </div>
   );
 }

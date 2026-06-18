@@ -10,7 +10,6 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { useConstructUrl } from "@/hooks/use-construct-url";
-import { useCourseProgress } from "@/hooks/use-course-progress";
 import { cn } from "@/lib/utils";
 
 type CourseProgressCardProps = {
@@ -20,9 +19,7 @@ type CourseProgressCardProps = {
 export function CourseProgressCard({ data }: CourseProgressCardProps) {
   const thumbnailUrl = useConstructUrl(data.fileKey);
 
-  const { totalLessons, completedLessons, progressPercentage } =
-    useCourseProgress({ courseData: data });
-
+  const { totalLessons, completedLessons, progressPercentage } = data.progress;
   const safeProgress = Math.min(Math.max(progressPercentage, 0), 100);
 
   return (
@@ -69,7 +66,7 @@ export function CourseProgressCard({ data }: CourseProgressCardProps) {
               <p className="font-semibold">{safeProgress}%</p>
             </div>
 
-            <Progress value={safeProgress} className="h-2" />
+            <Progress value={safeProgress} className="h-2" aria-label="Course progress" />
 
             <p className="text-xs text-muted-foreground">
               {completedLessons} of {totalLessons} lessons completed

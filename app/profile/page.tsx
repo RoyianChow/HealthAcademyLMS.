@@ -1,16 +1,18 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { format } from "date-fns";
-import { EnrollmentStatus } from "@/src/generated/prisma";
+import { EnrollmentStatus } from "@/src/generated/prisma/client";
+
+import { getProfilePageUser } from "@/app/data/profile/get-profile-page-user";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { HealthProfileForm } from "@/app/profile/_components/HealthProfileForm";
 
 export default async function ProfilePage() {
   const session = await auth.api.getSession({
@@ -21,76 +23,7 @@ export default async function ProfilePage() {
     redirect("/login");
   }
 
-  const user = await prisma.user.findUnique({
-    where: {
-      id: session.user.id,
-    },
-    include: {
-      courses: {
-        include: {
-          _count: {
-            select: {
-              chapters: true,
-              quizzes: true,
-              enrollments: true,
-            },
-          },
-        },
-      },
-
-      enrollments: {
-        orderBy: {
-          createdAt: "desc",
-        },
-        include: {
-          course: {
-            include: {
-              chapters: {
-                orderBy: {
-                  position: "asc",
-                },
-                include: {
-                  lessons: {
-                    orderBy: {
-                      position: "asc",
-                    },
-                    select: {
-                      id: true,
-                      lessonProgress: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-
-      quizAttempts: {
-        orderBy: {
-          createdAt: "desc",
-        },
-        include: {
-          quiz: {
-            include: {
-              course: {
-                select: {
-                  title: true,
-                  slug: true,
-                },
-              },
-              chapter: {
-                select: {
-                  title: true,
-                  position: true,
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
+  const user = await getProfilePageUser(session.user.id);
 
   if (!user) {
     redirect("/login");
@@ -100,14 +33,12 @@ export default async function ProfilePage() {
     (enrollment) => enrollment.status === EnrollmentStatus.Active
   );
 
-  const enrolledCoursesWithProgress = user.enrollments.map((enrollment) => {
-    const progress = getCourseProgress(enrollment.course);
-
-    return {
-      enrollment,
-      ...progress,
-    };
-  });
+  const enrolledCoursesWithProgress = user.enrollments.map((enrollment) => ({
+    enrollment,
+    totalLessons: enrollment.course.progress.totalLessons,
+    completedLessons: enrollment.course.progress.completedLessons,
+    progressPercentage: enrollment.course.progress.progressPercentage,
+  }));
 
   const completedCoursesCount = enrolledCoursesWithProgress.filter(
     (item) => item.progressPercentage === 100 && item.totalLessons > 0
@@ -187,6 +118,18 @@ export default async function ProfilePage() {
                 }
               />
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>AI Advisor Preferences</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <HealthProfileForm
+              initialHealthGoals={user.healthGoals ?? []}
+              initialDietaryFocus={user.dietaryFocus ?? []}
+            />
           </CardContent>
         </Card>
 
@@ -296,25 +239,46 @@ export default async function ProfilePage() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 md:justify-end">
-                      <Badge variant="outline">
-                        Attempt #{attempt.attemptNumber}
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        <span>Attempt #</span>
+                        <span className="inline-block w-4 text-right tabular-nums">
+                          {attempt.attemptNumber}
+                        </span>
                       </Badge>
 
-                      <Badge
-                        variant={attempt.isComplete ? "default" : "secondary"}
+                      <Badge 
+                        variant={attempt.isComplete ? "default" : "secondary"} 
+                        className="flex items-center gap-1"
                       >
-                        {attempt.isComplete ? "Completed" : "In Progress"}
+                        <span className="inline-block w-[58px] text-left">
+                          {attempt.isComplete ? "Completed" : "In Progress"}
+                        </span>
                       </Badge>
 
-                      <Badge
-                        variant={attempt.isGraded ? "default" : "secondary"}
+                      <Badge 
+                        variant={attempt.isGraded ? "default" : "secondary"} 
+                        className="flex items-center gap-1"
                       >
-                        {attempt.isGraded ? "Graded" : "Pending"}
+                        <span className="inline-block w-[42px] text-left">
+                          {attempt.isGraded ? "Graded" : "Pending"}
+                        </span>
                       </Badge>
+                      
+                      {attempt.isGraded && attempt.score !== null && attempt.quiz.passingScore !== null ? (
+                      <Badge
+                        variant={
+                          attempt.score >= attempt.quiz.passingScore ? "default" : "destructive"
+                        }
+                      >
+                        {attempt.score >= attempt.quiz.passingScore ? "Passed" : "Failed"}
+                        </Badge>
+                      ) : null}
 
-                      <Badge variant="outline">
-                        Score:{" "}
-                        {attempt.score !== null ? `${attempt.score}%` : "N/A"}
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        <span>Score:</span>
+                        <span className="inline-block w-7 text-right tabular-nums">
+                          {attempt.score !== null ? `${attempt.score}%` : "N/A"}
+                        </span>
                       </Badge>
                     </div>
                   </div>
@@ -366,38 +330,6 @@ export default async function ProfilePage() {
       </div>
     </div>
   );
-}
-
-function getCourseProgress(course: {
-  chapters: {
-    lessons: {
-      lessonProgress: boolean;
-    }[];
-  }[];
-}) {
-  let totalLessons = 0;
-  let completedLessons = 0;
-
-  course.chapters.forEach((chapter) => {
-    chapter.lessons.forEach((lesson) => {
-      totalLessons++;
-
-      if (lesson.lessonProgress) {
-        completedLessons++;
-      }
-    });
-  });
-
-  const progressPercentage =
-    totalLessons === 0
-      ? 0
-      : Math.round((completedLessons / totalLessons) * 100);
-
-  return {
-    totalLessons,
-    completedLessons,
-    progressPercentage,
-  };
 }
 
 function Stat({ label, value }: { label: string; value: string | number }) {

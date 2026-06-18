@@ -12,11 +12,20 @@ export default async function CourseSlugRoute({ params }: iAppProps) {
   const course = await getCourseSidebarData(slug);
 
   const firstChapter = course.course.chapters[0];
-  const firstLesson = firstChapter?.lessons[0];
+  let firstAccessibleLessonId: string | undefined;
+  for (const chapter of course.course.chapters) {
+    const lesson = chapter.lessons.find(
+      (l) => l.isPublished || l.isFreePreview
+    );
+    if (lesson) {
+      firstAccessibleLessonId = lesson.id;
+      break;
+    }
+  }
   const firstQuiz = firstChapter?.quizzes?.[0];
 
-  if (firstLesson) {
-    redirect(`/dashboard/${slug}/${firstLesson.id}`);
+  if (firstAccessibleLessonId) {
+    redirect(`/dashboard/${slug}/${firstAccessibleLessonId}`);
   }
 
   if (firstQuiz) {

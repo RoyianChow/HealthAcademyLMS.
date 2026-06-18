@@ -1,8 +1,8 @@
-
+// app\data\course\get-lesson-content.ts
 import { prisma } from "@/lib/db";
 import { requireUser } from "../user/require-user";
 import { notFound } from "next/navigation";
-import { EnrollmentStatus } from "@/src/generated/prisma";
+import { EnrollmentStatus } from "@/src/generated/prisma/client";
 
 export async function getLessonContent(lessonId: string) {
   const session = await requireUser();
@@ -17,13 +17,28 @@ export async function getLessonContent(lessonId: string) {
       description: true,
       content: true,
       thumbnailKey: true,
-      videoKey: true,
-      youtubeUrl: true,
+      interactiveScript: true,
+      videos: {
+        select: {
+          id: true,
+          title: true,
+          videoKey: true,
+          youtubeUrl: true,
+          position: true,
+        },
+        orderBy: {
+          position: "asc",
+        },
+      },
       documents: true,
       position: true,
       isPublished: true,
       isFreePreview: true,
-      lessonProgress: true,
+      lessonProgress: {
+        where: {
+          userId: session.id,
+        },
+      },
       chapter: {
         select: {
           courseId: true,
@@ -53,7 +68,13 @@ export async function getLessonContent(lessonId: string) {
     },
   });
 
-  if (!enrollment || enrollment.status !== EnrollmentStatus.Active) {
+  const hasActiveEnrollment = enrollment && enrollment.status === EnrollmentStatus.Active;
+
+  if (!hasActiveEnrollment && !lesson.isFreePreview) {
+    return notFound();
+  }
+
+  if (!lesson.isPublished && !lesson.isFreePreview) {
     return notFound();
   }
 

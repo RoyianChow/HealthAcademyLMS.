@@ -1,11 +1,20 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { ArrowRight, BookOpen, CheckCircle2, PlayCircle } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CountUp } from "./_components/count-up";
+import { createPageMetadata } from "@/lib/metadata";
+
+export const metadata: Metadata = createPageMetadata({
+  title: "Advanced Nutrition & Holistic Health Courses",
+  description:
+    "Empower your wellness journey with evidence-based nutrition and holistic health education from the Natural Health Academy.",
+  path: "/",
+});
 
 const stats = [
   { value: 50, label: "Global Learners" },
@@ -35,6 +44,27 @@ const features = [
   "Evidence-based natural health education",
   "Flexible online learning experience",
   "Practical tools for real-world wellness",
+];
+
+const testimonials = [
+  {
+    name: "Lyudmyla Yusipenko",
+    role: "Student",
+    quote:
+      "The Natural Health Academy is truly a gem for anyone eager to deepen their understanding of holistic wellness. Olga is very passionate about teaching the students about the root causes of illnesses and exploring various natural health strategies to address those issues. Her knowledge of Natural Medicines is amazing! The Academy has empowered me to take control of my well-being with confidence. I know which foods are good for me and am no longer lost when I walk into a Health Store.",
+  },
+  {
+    name: "Egle Baceniene",
+    role: "Student",
+    quote:
+      "I've taken several courses at the Natural Health Academy, and they have exceeded my expectations every time. The depth of science-backed information is impressive, providing a solid foundation for anyone looking to enhance their health naturally. The classes are interactive, making learning both engaging and practical. I also loved being part of a community of like-minded individuals who are just as passionate about wellness. The instructor's enthusiasm and deep knowledge made every session enjoyable and informative. Now, I feel confident in selecting the right supplements for my needs and addressing health concerns with natural strategies.",
+  },
+  {
+    name: "Sara Shpeyer",
+    role: "Student",
+    quote:
+      "I signed up for a course at the Health Academy expecting to gain some useful tips on how to eat better, but I got so much more! I learned how to detox my home and kitchen, why certain nutrients are important for certain organs in the body, how to identify nutritional deficiencies, and how to take supplements correctly!",
+  },
 ];
 
 export default function Home() {
@@ -236,6 +266,49 @@ export default function Home() {
                     Learn more
                     <ArrowRight className="size-4" />
                   </Link>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-[#f7f7f3] py-24 md:py-28">
+        <div className="mx-auto max-w-7xl px-6 md:px-10 lg:px-16">
+          <div className="mb-12 max-w-3xl space-y-4">
+            <Badge variant="outline" className="rounded-full bg-background px-4 py-1.5">
+              Testimonials
+            </Badge>
+
+            <h2 className="text-3xl font-semibold tracking-tight text-[#232742] sm:text-4xl lg:text-5xl">
+              What Our Students Say
+            </h2>
+
+            <p className="text-base leading-8 text-muted-foreground sm:text-lg">
+              Hear from learners who have transformed their approach to health
+              through the Natural Health Academy.
+            </p>
+          </div>
+
+          <div className="grid gap-6 md:grid-cols-3">
+            {testimonials.map((testimonial) => (
+              <Card
+                key={testimonial.name}
+                className="rounded-3xl border bg-background shadow-sm"
+              >
+                <CardContent className="flex h-full flex-col gap-6 p-6">
+                  <p className="flex-1 text-sm leading-7 text-muted-foreground">
+                    &ldquo;{testimonial.quote}&rdquo;
+                  </p>
+
+                  <div className="border-t pt-4">
+                    <p className="font-semibold text-[#232742]">
+                      {testimonial.name}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {testimonial.role}
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             ))}

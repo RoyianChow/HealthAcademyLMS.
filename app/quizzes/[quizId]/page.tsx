@@ -1,3 +1,4 @@
+// app/quizzes/[quizId]/page.tsx
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { CheckCircle2, Clock3, FileQuestion, RotateCcw } from "lucide-react";
@@ -6,7 +7,11 @@ import { getOrCreateQuizAttempt } from "@/app/data/quiz/get-or-create-quiz-attem
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { QuizAttempt } from "./_components/QuizAttempt";
+import { QuizStartButton } from "./_components/QuizStartButton";
 import { QuizBackButton } from "./_components/QuizBackButton";
+import { getLastQuizResult } from "./action";
+import { SidebarStateWrapper } from "@/components/chat/sidebar-state-wrapper";
+
 type PageProps = {
   params: Promise<{
     quizId: string;
@@ -29,25 +34,41 @@ export default async function QuizDetailsPage({ params }: PageProps) {
   const canAttempt = !attempt.blocked;
   const previousAttempts = Math.max(0, attempt.attemptNumber - 1);
 
+  const displayAttemptNumber = attempt.attemptId
+    ? attempt.attemptNumber
+    : Math.max(1, attempt.attemptNumber - 1);
+
+  const lastResult = await getLastQuizResult(
+    quizId,
+    quiz.passingScore,
+    totalQuestions
+  );
+
+  const isTimerRunning =
+    !!attempt.attemptId &&
+    quiz.timeLimitMinutes !== null &&
+    !!attempt.startedAt &&
+    new Date().getTime() < new Date(attempt.startedAt).getTime() + quiz.timeLimitMinutes * 60 * 1000;
+
   return (
     <main className="min-h-[calc(100vh-5rem)] bg-muted/20 px-4 py-6 md:px-8">
       <div className="mx-auto w-full max-w-6xl space-y-6">
         <div className="flex items-center justify-between gap-4">
-         <QuizBackButton
-  href={`/dashboard/${quiz.course.slug}`}
-  label={`Back to ${quiz.course.title}`}
-  shouldWarn={canAttempt && quiz.timeLimitMinutes !== null}
-/>
+          <QuizBackButton
+            href={`/dashboard/${quiz.course.slug}`}
+            label={`Back to ${quiz.course.title}`}
+            shouldWarn={isTimerRunning}
+          />
 
           <Badge variant={canAttempt ? "default" : "secondary"}>
             {canAttempt ? "Available" : "Attempt Locked"}
           </Badge>
         </div>
-
+        
         <section className="overflow-hidden rounded-3xl border bg-background shadow-sm">
-          <div className="border-b bg-gradient-to-br from-primary/10 via-background to-background p-6 md:p-8">
+          <SidebarStateWrapper className="@container/header inline-size border-b bg-gradient-to-br from-primary/10 via-background to-background p-6 md:p-8 transition-all duration-300 ease-in-out">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-              <div className="max-w-3xl space-y-4">
+              <div className="max-w-3xl space-y-4 flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="outline" className="rounded-full">
                     Assessment
@@ -67,26 +88,26 @@ export default async function QuizDetailsPage({ params }: PageProps) {
                 </div>
 
                 <div className="space-y-3">
-                  <h1 className="text-3xl font-bold tracking-tight md:text-5xl">
+                  <h1 className="text-3xl md:text-4xl group-data-[sidebar-open=true]/page-wrapper:text-2xl group-data-[sidebar-open=true]/page-wrapper:md:text-3xl font-bold tracking-tight text-foreground transition-all duration-300 ease-in-out">
                     {quiz.title}
                   </h1>
 
-                  <p className="max-w-2xl text-sm leading-7 text-muted-foreground md:text-base">
+                  <p className="max-w-2xl text-sm leading-7 text-muted-foreground transition-all duration-300 ease-in-out">
                     {quiz.description ??
                       "Complete this quiz to check your understanding before moving forward in the course."}
                   </p>
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 lg:w-[360px]">
+              <div className="grid gap-3 grid-cols-2 w-full lg:w-[clamp(260px,38cqw,360px)] group-data-[sidebar-open=true]/page-wrapper:lg:w-[270px] shrink-0 transition-all duration-300 ease-in-out">
                 <InfoCard
-                  icon={<FileQuestion className="size-5" />}
+                  icon={<FileQuestion className="w-full h-full" />}
                   label="Questions"
                   value={String(totalQuestions)}
                 />
 
                 <InfoCard
-                  icon={<Clock3 className="size-5" />}
+                  icon={<Clock3 className="w-full h-full" />}
                   label="Time Limit"
                   value={
                     quiz.timeLimitMinutes !== null
@@ -96,7 +117,7 @@ export default async function QuizDetailsPage({ params }: PageProps) {
                 />
 
                 <InfoCard
-                  icon={<CheckCircle2 className="size-5" />}
+                  icon={<CheckCircle2 className="w-full h-full" />}
                   label="Passing Score"
                   value={
                     quiz.passingScore !== null
@@ -106,13 +127,13 @@ export default async function QuizDetailsPage({ params }: PageProps) {
                 />
 
                 <InfoCard
-                  icon={<RotateCcw className="size-5" />}
+                  icon={<RotateCcw className="w-full h-full" />}
                   label="Attempt"
-                  value={`#${attempt.attemptNumber}`}
+                  value={`#${displayAttemptNumber}`}
                 />
               </div>
             </div>
-          </div>
+          </SidebarStateWrapper>
 
           <div className="flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between md:p-8">
             <div className="space-y-1">
@@ -122,26 +143,34 @@ export default async function QuizDetailsPage({ params }: PageProps) {
                   : "You have already completed this quiz"}
               </p>
               <p className="text-sm text-muted-foreground">
-                {totalQuestions} question{totalQuestions !== 1 ? "s" : ""} ·
-                Choose the best answer for each question · Previous attempts:{" "}
-                {previousAttempts}
+                {totalQuestions} question{totalQuestions !== 1 ? "s" : ""} · Choose the best answer for each question
               </p>
             </div>
 
-            <Button asChild variant="outline" className="rounded-full">
-              <Link href="/quizzes">View All Quizzes</Link>
-            </Button>
+            <div className="flex items-center gap-3">
+              {canAttempt && !attempt.attemptId && (
+                <QuizStartButton
+                  quizId={quiz.id}
+                  attemptNumber={attempt.attemptNumber}
+                  isRetake={previousAttempts > 0}
+                />
+              )}
+              <Button asChild variant="outline" className="rounded-full">
+                <Link href="/quizzes">View All Quizzes</Link>
+              </Button>
+            </div>
           </div>
         </section>
 
         <section className="rounded-3xl border bg-background p-4 shadow-sm md:p-6">
           <QuizAttempt
+            key={attempt.attemptId ?? "new"}
             quiz={quiz}
             attemptId={attempt.attemptId ?? ""}
             startedAt={attempt.startedAt ? attempt.startedAt.toISOString() : ""}
             canAttempt={canAttempt}
-            nextAttemptNumber={attempt.attemptNumber}
-            previousAttemptsCount={previousAttempts}
+            nextAttemptNumber={displayAttemptNumber}
+            lastResult={lastResult}
           />
         </section>
       </div>
@@ -159,15 +188,17 @@ function InfoCard({
   value: string;
 }) {
   return (
-    <div className="rounded-2xl border bg-background/80 p-4 shadow-sm backdrop-blur">
-      <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+    <div className="rounded-2xl border bg-background/80 p-[clamp(0.75rem,2cqw,1rem)] group-data-[sidebar-open=true]/page-wrapper:p-3 shadow-sm backdrop-blur transition-all duration-300 ease-in-out">
+      <div className="mb-[clamp(0.5rem,1.5cqw,0.75rem)] group-data-[sidebar-open=true]/page-wrapper:mb-2 flex size-[clamp(1.75rem,4.5cqw,2.5rem)] group-data-[sidebar-open=true]/page-wrapper:size-7 items-center justify-center rounded-xl bg-primary/10 text-primary p-1.5 transition-all duration-300 ease-in-out">
         {icon}
       </div>
 
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+      <p className="text-[clamp(0.65rem,1.5cqw,0.75rem)] group-data-[sidebar-open=true]/page-wrapper:text-[10px] font-medium uppercase tracking-wide text-muted-foreground truncate transition-all duration-300 ease-in-out">
         {label}
       </p>
-      <p className="mt-1 text-xl font-semibold tracking-tight">{value}</p>
+      <p className="mt-0.5 text-[clamp(1.1rem,2.5cqw,1.25rem)] group-data-[sidebar-open=true]/page-wrapper:text-base font-semibold tracking-tight text-foreground truncate transition-all duration-300 ease-in-out">
+        {value}
+      </p>
     </div>
   );
 }

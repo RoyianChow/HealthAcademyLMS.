@@ -1,6 +1,7 @@
 import { requireUser } from "./require-user";
 import { prisma } from "@/lib/db";
-import { EnrollmentStatus } from "@/src/generated/prisma";
+import { EnrollmentStatus } from "@/src/generated/prisma/client";
+import { getCourseProgressSummaries } from "@/lib/course-progress";
 
 export async function getEnrolledCourses() {
   const user = await requireUser();
@@ -32,24 +33,25 @@ export async function getEnrolledCourses() {
               courseId: true,
             },
           },
-          chapters: {
-            select: {
-              id: true,
-              lessons: {
-                select: {
-                  id: true,
-                  title: true,
-                  lessonProgress: true,
-                },
-              },
-            },
-          },
         },
       },
     },
   });
 
-  return data.map((item) => item.course);
+  const courses = data.map((item) => item.course);
+  const progressByCourse = await getCourseProgressSummaries(
+    user.id,
+    courses.map((course) => course.id)
+  );
+
+  return courses.map((course) => ({
+    ...course,
+    progress: progressByCourse.get(course.id) ?? {
+      totalLessons: 0,
+      completedLessons: 0,
+      progressPercentage: 0,
+    },
+  }));
 }
 
 export type EnrolledCourseType = Awaited<

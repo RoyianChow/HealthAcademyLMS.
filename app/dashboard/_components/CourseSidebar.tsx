@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { CourseSidebarDataType } from "@/app/data/course/get-course-sidebar-data";
 import { Button } from "@/components/ui/button";
@@ -11,27 +12,55 @@ import {
 import { Progress } from "@/components/ui/progress";
 import {
   ChevronDown,
-  ClipboardList,
   MessageCircle,
   Play,
+  Award,
 } from "lucide-react";
 import { LessonItem } from "./LessonItem";
+import { QuizItem } from "./QuizItem";
 import { usePathname } from "next/navigation";
 import { useCourseProgress } from "@/hooks/use-course-progress";
 import { cn } from "@/lib/utils";
 
 interface iAppProps {
   course: CourseSidebarDataType["course"];
+  isEnrolled: boolean;
 }
 
-export function CourseSidebar({ course }: iAppProps) {
+export function CourseSidebar({ course, isEnrolled }: iAppProps) {
   const pathname = usePathname();
   const currentId = pathname.split("/").pop();
+
+  const [openChapters, setOpenChapters] = useState<Record<string, boolean>>(() => {
+    const activeChapter = course.chapters.find((chapter) =>
+      chapter.lessons.some((l) => l.id === currentId) ||
+      chapter.quizzes.some((q) => q.id === currentId)
+    );
+
+    if (activeChapter) return { [activeChapter.id]: true };
+    return course.chapters[0] ? { [course.chapters[0].id]: true } : {};
+  });
+
+  useEffect(() => {
+    if (!currentId) return;
+
+    const activeChapter = course.chapters.find((chapter) =>
+      chapter.lessons.some((l) => l.id === currentId) ||
+      chapter.quizzes.some((q) => q.id === currentId)
+    );
+
+    if (activeChapter) {
+      setOpenChapters({ [activeChapter.id]: true });
+    }
+  }, [currentId, course.chapters]);
 
   const { completedLessons, totalLessons, progressPercentage } =
     useCourseProgress({ courseData: course });
 
   const isCommunityActive = pathname === `/dashboard/${course.slug}/community`;
+  const isCertificateActive = pathname === `/dashboard/${course.slug}/certificate`;
+  const isCourseComplete =
+    totalLessons > 0 && completedLessons >= totalLessons;
 
   return (
     <div className="flex h-full flex-col">
@@ -59,7 +88,11 @@ export function CourseSidebar({ course }: iAppProps) {
             </span>
           </div>
 
-          <Progress value={progressPercentage} className="h-1.5" />
+          <Progress
+            value={progressPercentage}
+            className="h-1.5"
+            aria-label="Course progress"
+          />
 
           <p className="text-xs text-muted-foreground">
             {progressPercentage}% complete
@@ -68,8 +101,17 @@ export function CourseSidebar({ course }: iAppProps) {
       </div>
 
       <div className="flex-1 space-y-3 overflow-y-auto py-4 pr-4">
-        {course.chapters.map((chapter, index) => (
-          <Collapsible key={chapter.id} defaultOpen={index === 0}>
+        {course.chapters.map((chapter) => (
+          <Collapsible 
+            key={chapter.id} 
+            open={!!openChapters[chapter.id]}
+            onOpenChange={(isOpen) => {
+              setOpenChapters((prev) => ({
+                ...prev,
+                [chapter.id]: isOpen,
+              }));
+            }}
+          >
             <CollapsibleTrigger asChild>
               <Button
                 variant="outline"
@@ -101,49 +143,82 @@ export function CourseSidebar({ course }: iAppProps) {
                   lesson={lesson}
                   slug={course.slug}
                   isActive={currentId === lesson.id}
-                  completed={lesson.lessonProgress}
+                  completed={
+                    Array.isArray(lesson.lessonProgress)
+                      ? lesson.lessonProgress.some((progress) => progress.completed)
+                      : Boolean(lesson.lessonProgress)
+                  }
                 />
               ))}
 
-              {chapter.quizzes.map((quiz) => (
-                <Link
-                  key={quiz.id}
-                  href={`/quizzes/${quiz.id}`}
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg border px-3 py-2 text-sm transition hover:bg-muted",
-                    currentId === quiz.id &&
-                      "border-primary bg-primary/10 text-primary"
-                  )}
-                >
-                  <ClipboardList className="size-4 shrink-0" />
-                  <span className="truncate">{quiz.title}</span>
-                </Link>
-              ))}
+              {chapter.quizzes.map((quiz) => {
+                const highestAttempt = quiz.attempts?.[0];
+                
+                const isPassed = 
+                  highestAttempt && quiz.passingScore !== null
+                    ? (highestAttempt.score ?? 0) >= quiz.passingScore
+                    : false;
+
+                return (
+                  <QuizItem
+                    key={quiz.id}
+                    quiz={quiz}
+                    isActive={currentId === quiz.id}
+                    isPassed={isPassed}
+                  />
+                );
+              })}
             </CollapsibleContent>
           </Collapsible>
         ))}
 
-        <div className="border-t border-border pt-4">
-          <Link
-            href={`/dashboard/${course.slug}/community`}
-            className={cn(
-              "flex items-center gap-3 rounded-lg border px-3 py-3 text-sm font-medium transition hover:bg-muted",
-              isCommunityActive && "border-primary bg-primary/10 text-primary"
-            )}
-          >
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-              <MessageCircle className="size-4 text-primary" />
-            </div>
+        {isEnrolled && isCourseComplete && (
+          <div className="border-t border-border pt-4">
+            <Link
+              href={`/dashboard/${course.slug}/certificate`}
+              className={cn(
+                "flex items-center gap-3 rounded-lg border px-3 py-3 text-sm font-medium transition hover:bg-muted",
+                isCertificateActive && "border-primary bg-primary/10 text-primary"
+              )}
+            >
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                <Award className="size-4 text-primary" />
+              </div>
 
-            <div className="min-w-0 flex-1">
-              <p className="truncate">Visit Community</p>
-              <p className="truncate text-xs font-normal text-muted-foreground">
-                Ask questions and connect with learners
-              </p>
-            </div>
-          </Link>
-        </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate">View Certificate</p>
+                <p className="truncate text-xs font-normal text-muted-foreground">
+                  Download your course completion certificate
+                </p>
+              </div>
+            </Link>
+          </div>
+        )}
+
+        {isEnrolled && (
+          <div className="border-t border-border pt-4">
+            <Link
+              href={`/dashboard/${course.slug}/community`}
+              className={cn(
+                "flex items-center gap-3 rounded-lg border px-3 py-3 text-sm font-medium transition hover:bg-muted",
+                isCommunityActive && "border-primary bg-primary/10 text-primary"
+              )}
+            >
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                <MessageCircle className="size-4 text-primary" />
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <p className="truncate">Visit Community</p>
+                <p className="truncate text-xs font-normal text-muted-foreground">
+                  Ask questions and connect with learners
+                </p>
+              </div>
+            </Link>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+

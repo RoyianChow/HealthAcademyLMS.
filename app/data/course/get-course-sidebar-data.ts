@@ -1,10 +1,31 @@
+// app\data\course\get-course-sidebar-data.ts
 import { prisma } from "@/lib/db";
 import { requireUser } from "../user/require-user";
 import { notFound } from "next/navigation";
-import { EnrollmentStatus } from "@/src/generated/prisma";
+import { EnrollmentStatus } from "@/src/generated/prisma/client";
 
 export async function getCourseSidebarData(slug: string) {
   const session = await requireUser();
+
+  const enrollment = await prisma.enrollment.findFirst({
+    where: {
+      userId: session.id,
+      course: { slug },
+    },
+    select: {
+      status: true,
+    },
+  });
+
+  const isEnrolled = enrollment?.status === EnrollmentStatus.Active;
+
+  const lessonFilter = isEnrolled 
+    ? { isPublished: true } 
+    : { isFreePreview: true, isPublished: true };
+    
+  const chapterFilter = isEnrolled 
+    ? { lessons: { some: { isPublished: true } } } 
+    : { lessons: { some: { isFreePreview: true, isPublished: true } } };
 
   const course = await prisma.course.findUnique({
     where: {
@@ -19,17 +40,15 @@ export async function getCourseSidebarData(slug: string) {
       category: true,
       slug: true,
       chapters: {
-        orderBy: {
-          position: "asc",
-        },
+        where: chapterFilter,
+        orderBy: { position: "asc" },
         select: {
           id: true,
           title: true,
           position: true,
           lessons: {
-            orderBy: {
-              position: "asc",
-            },
+            where: lessonFilter,
+            orderBy: { position: "asc" },
             select: {
               id: true,
               title: true,
@@ -37,24 +56,51 @@ export async function getCourseSidebarData(slug: string) {
               description: true,
               isPublished: true,
               isFreePreview: true,
-              lessonProgress: true,
+              lessonProgress: {
+                where: {
+                  userId: session.id,
+                },
+                select: {
+                  completed: true,
+                },
+              },
             },
           },
-          quizzes: {
-            where: {
-              isPublished: true,
-            },
-            orderBy: {
-              createdAt: "asc",
-            },
-            select: {
-              id: true,
-              title: true,
-              description: true,
-              isPublished: true,
-              chapterId: true,
-            },
-          },
+          quizzes: isEnrolled
+            ? {
+                where: { isPublished: true },
+                orderBy: { createdAt: "asc" },
+                select: {
+                  id: true,
+                  title: true,
+                  description: true,
+                  isPublished: true,
+                  chapterId: true,
+                  passingScore: true,
+                  attempts: {
+                    where: { userId: session.id },
+                    select: { score: true },
+                    orderBy: { score: "desc" },
+                    take: 1,
+                  },
+                },
+              }
+            : {
+                where: { id: "none" }, 
+                select: {
+                  id: true,
+                  title: true,
+                  description: true,
+                  isPublished: true,
+                  chapterId: true,
+                  passingScore: true,
+                  attempts: {
+                    where: { id: "none" },
+                    select: { score: true },
+                    take: 1,
+                  }
+                }
+              },
         },
       },
     },
@@ -64,21 +110,17 @@ export async function getCourseSidebarData(slug: string) {
     return notFound();
   }
 
-  const enrollment = await prisma.enrollment.findUnique({
-    where: {
-      userId_courseId: {
-        userId: session.id,
-        courseId: course.id,
-      },
-    },
-  });
-
-  if (!enrollment || enrollment.status !== EnrollmentStatus.Active) {
-    return notFound();
-  }
+  const sanitizedChapters = course.chapters.map((chapter) => ({
+  ...chapter,
+  quizzes: Array.isArray(chapter.quizzes) ? chapter.quizzes : [],
+}));
 
   return {
-    course,
+    course: {
+      ...course,
+      chapters: sanitizedChapters,
+    },
+    isEnrolled,
   };
 }
 

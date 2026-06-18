@@ -1,7 +1,5 @@
 "use client";
 
-"use client";
-
 import {
   ReactNode,
   useMemo,
@@ -12,13 +10,13 @@ import {
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Heart,
   Loader2,
   MessageCircle,
   Pin,
   Trash2,
-  UserCircle,
 } from "lucide-react";
 import { toggleLike } from "@/app/actions/community/toggle-like";
 import { deleteCommunityPost } from "@/app/actions/community/delete-post";
@@ -37,6 +35,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { UserAvatar } from "@/components/ui/user-avatar";
+import { BanForm } from "@/components/community/ban-form";
+import { isCommunityBanned } from "@/lib/community-ban";
 
 type TiptapMark = {
   type: string;
@@ -82,6 +83,13 @@ type CommentType = {
     id: string;
     name: string | null;
     image: string | null;
+    role?: string | null;
+    banned?: boolean | null;
+    banReason?: string | null;
+    banExpires?: Date | string | null;
+    communityBanned?: boolean | null;
+    communityBanReason?: string | null;
+    communityBanExpires?: Date | string | null;
   };
 };
 
@@ -95,23 +103,23 @@ type PostType = {
     name: string | null;
     email?: string | null;
     image: string | null;
+    role?: string | null;
+    banned?: boolean | null;
+    banReason?: string | null;
+    banExpires?: Date | string | null;
+    communityBanned?: boolean | null;
+    communityBanReason?: string | null;
+    communityBanExpires?: Date | string | null;
   };
   likes: {
     userId: string;
   }[];
+  _count?: {
+    likes: number;
+    comments: number;
+  };
   comments: CommentType[];
 };
-
-function getInitials(name?: string | null) {
-  if (!name) return "U";
-
-  return name
-    .split(" ")
-    .map((part) => part.charAt(0))
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
 
 function isValidTextAlign(
   value: CSSProperties["textAlign"] | string | null | undefined
@@ -126,6 +134,7 @@ function isValidTextAlign(
   );
 }
 
+// Function checking safe resource URLs
 function isSafeUrl(url?: string) {
   if (!url) return false;
 
@@ -562,33 +571,7 @@ function RichPostContent({ content }: { content: string }) {
   );
 }
 
-function UserAvatar({
-  name,
-  image,
-}: {
-  name: string | null;
-  image: string | null;
-}) {
-  if (image && isSafeUrl(image)) {
-    return (
-      <div className="size-10 overflow-hidden rounded-full border bg-muted">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={image}
-          alt={name ?? "User avatar"}
-          className="h-full w-full object-cover"
-          loading="lazy"
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex size-10 items-center justify-center rounded-full border bg-muted text-sm font-semibold text-muted-foreground">
-      {name ? getInitials(name) : <UserCircle className="size-5" />}
-    </div>
-  );
-}function CommentItem({
+function CommentItem({
   comment,
   userId,
   isAdmin,
@@ -624,7 +607,11 @@ function UserAvatar({
 
   return (
     <div className="flex gap-3 rounded-lg bg-muted/40 p-3">
-      <UserAvatar name={comment.user.name} image={comment.user.image} />
+      <UserAvatar 
+        name={comment.user.name} 
+        image={comment.user.image} 
+        userId={comment.user.id} 
+      />
 
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-3">
@@ -644,23 +631,41 @@ function UserAvatar({
             </div>
           </div>
 
-          {canDeleteComment && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              disabled={pending}
-              onClick={handleDeleteComment}
-              className="size-8 shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-              title="Delete comment"
-            >
-              {pending ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Trash2 className="size-4" />
-              )}
-            </Button>
-          )}
+          <div className="flex shrink-0 items-center gap-1">
+            {isAdmin && comment.user.id !== userId && comment.user.role !== "admin" && (
+              <>
+                {isCommunityBanned(comment.user) && (
+                  <Badge variant="destructive" className="mr-1">Banned</Badge>
+                )}
+                <BanForm 
+                  userId={comment.user.id} 
+                  userName={comment.user.name} 
+                  initialIsBanned={isCommunityBanned(comment.user)}
+                  initialReason={comment.user.communityBanReason}
+                  initialBanExpires={comment.user.communityBanExpires ? new Date(comment.user.communityBanExpires).toISOString() : null}
+                  initialBanType="community"
+                />
+              </>
+            )}
+
+            {canDeleteComment && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                disabled={pending}
+                onClick={handleDeleteComment}
+                className="size-8 shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                title="Delete comment"
+              >
+                {pending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Trash2 className="size-4" />
+                )}
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="mt-1">
@@ -670,90 +675,114 @@ function UserAvatar({
     </div>
   );
 }
+
 export function CommunityPostCard({
   post,
   userId,
   isAdmin = false,
+  isBanned = false,
 }: {
   post: PostType;
   userId: string;
   isAdmin?: boolean;
+  isBanned?: boolean;
 }) {
   const router = useRouter();
-const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-const [likePending, startLikeTransition] = useTransition();
-const [deletePending, startDeleteTransition] = useTransition();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [likePending, startLikeTransition] = useTransition();
+  const [deletePending, startDeleteTransition] = useTransition();
 
-const hasLiked = post.likes.some((like) => like.userId === userId);
-const canDeletePost = post.user.id === userId || isAdmin;
+  const hasLiked = post.likes.some((like) => like.userId === userId);
+  const canDeletePost = post.user.id === userId || isAdmin;
 
-const handleLike = () => {
-  startLikeTransition(async () => {
-    await toggleLike(post.id);
-    router.refresh();
-  });
-};
+  const handleLike = () => {
+    startLikeTransition(async () => {
+      await toggleLike(post.id);
+      router.refresh();
+    });
+  };
 
-const handleDeletePost = () => {
-  startDeleteTransition(async () => {
-    const result = await deleteCommunityPost(post.id);
+  const handleDeletePost = () => {
+    startDeleteTransition(async () => {
+      const result = await deleteCommunityPost(post.id);
 
-    if (result.status === "error") {
-      toast.error(result.message);
-      return;
-    }
+      if (result.status === "error") {
+        toast.error(result.message);
+        return;
+      }
 
-    toast.success(result.message);
-    setDeleteDialogOpen(false);
-    router.refresh();
-  });
-};
+      toast.success(result.message);
+      setDeleteDialogOpen(false);
+      router.refresh();
+    });
+  };
 
   return (
     <Card className="overflow-hidden shadow-sm">
       <CardContent className="space-y-5 p-5">
         <div className="flex items-start justify-between gap-4">
-  <div className="flex min-w-0 items-center gap-3">
-    <UserAvatar name={post.user.name} image={post.user.image} />
+          <div className="flex min-w-0 items-center gap-3">
+            <UserAvatar 
+              name={post.user.name} 
+              image={post.user.image} 
+              userId={post.user.id} 
+            />
 
-    <div className="min-w-0">
-      <p className="truncate font-medium">{post.user.name ?? "User"}</p>
+            <div className="min-w-0">
+              <p className="truncate font-medium">{post.user.name ?? "User"}</p>
 
-      <p className="text-xs text-muted-foreground">
-        {formatDistanceToNow(new Date(post.createdAt), {
-          addSuffix: true,
-        })}
-      </p>
-    </div>
-  </div>
+              <p className="text-xs text-muted-foreground">
+                {formatDistanceToNow(new Date(post.createdAt), {
+                  addSuffix: true,
+                })}
+              </p>
+            </div>
+          </div>
 
-  <div className="flex shrink-0 items-center gap-2">
-    {post.isPinned && (
-      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
-        <Pin className="size-3" />
-        Pinned
-      </span>
-    )}
+          <div className="flex shrink-0 items-center gap-2">
+            {post.isPinned && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
+                <Pin className="size-3" />
+                Pinned
+              </span>
+            )}
 
-    {canDeletePost && (
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        onClick={() => setDeleteDialogOpen(true)}
-        disabled={deletePending}
-        className="size-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-        title="Delete post"
-      >
-        {deletePending ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : (
-          <Trash2 className="size-4" />
-        )}
-      </Button>
-    )}
-  </div>
-</div>
+            {/* Admin Ban Action controls for Post Author */}
+            {isAdmin && post.user.id !== userId && post.user.role !== "admin" && (
+              <>
+                {isCommunityBanned(post.user) && (
+                  <Badge variant="destructive">Banned</Badge>
+                )}
+                <BanForm 
+                  userId={post.user.id} 
+                  userName={post.user.name} 
+                  initialIsBanned={isCommunityBanned(post.user)}
+                  initialReason={post.user.communityBanReason}
+                  initialBanExpires={post.user.communityBanExpires ? new Date(post.user.communityBanExpires).toISOString() : null}
+                  initialBanType="community"
+                />
+              </>
+            )}
+
+            {canDeletePost && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setDeleteDialogOpen(true)}
+                disabled={deletePending}
+                className="size-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                title="Delete post"
+              >
+                {deletePending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Trash2 className="size-4" />
+                )}
+              </Button>
+            )}
+          </div>
+        </div>
 
         <div className="rounded-xl border bg-background p-4">
           <RichPostContent content={post.content} />
@@ -765,7 +794,7 @@ const handleDeletePost = () => {
             variant="ghost"
             size="sm"
             onClick={handleLike}
-            disabled={likePending}
+            disabled={likePending || isBanned}
             aria-pressed={hasLiked}
             className={cn(
               "flex items-center gap-2",
@@ -778,7 +807,7 @@ const handleDeletePost = () => {
                 hasLiked && "fill-red-500 text-red-500"
               )}
             />
-            <span>{post.likes.length}</span>
+            <span>{post._count?.likes ?? post.likes.length}</span>
           </Button>
 
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -790,16 +819,17 @@ const handleDeletePost = () => {
           </div>
         </div>
 
-        <div className="space-y-3 border-t pt-4">
+        <div className={cn("space-y-3 border-t pt-4", isBanned && "pointer-events-none opacity-50 select-none")}>
           {post.comments.length > 0 && (
             <div className="space-y-3">
               {post.comments.map((comment) => (
- <CommentItem
-    key={comment.id}
-    comment={comment}
-    userId={userId}
-    isAdmin={isAdmin}
-  />              ))}
+                <CommentItem
+                  key={comment.id}
+                  comment={comment}
+                  userId={userId}
+                  isAdmin={isAdmin}
+                />
+              ))}
             </div>
           )}
 
@@ -807,30 +837,30 @@ const handleDeletePost = () => {
         </div>
       </CardContent>
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-  <AlertDialogContent>
-    <AlertDialogHeader>
-      <AlertDialogTitle>Delete this post?</AlertDialogTitle>
-      <AlertDialogDescription>
-        This will permanently delete the post, its likes, and its comments.
-        This action cannot be undone.
-      </AlertDialogDescription>
-    </AlertDialogHeader>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this post?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the post, its likes, and its comments.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
 
-    <AlertDialogFooter>
-      <AlertDialogCancel disabled={deletePending}>
-        Cancel
-      </AlertDialogCancel>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletePending}>
+              Cancel
+            </AlertDialogCancel>
 
-      <AlertDialogAction
-        onClick={handleDeletePost}
-        disabled={deletePending}
-        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-      >
-        {deletePending ? "Deleting..." : "Delete Post"}
-      </AlertDialogAction>
-    </AlertDialogFooter>
-  </AlertDialogContent>
-</AlertDialog>
-</Card>
+            <AlertDialogAction
+              onClick={handleDeletePost}
+              disabled={deletePending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletePending ? "Deleting..." : "Delete Post"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Card>
   );
 }
