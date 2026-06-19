@@ -47,8 +47,8 @@ Files are uploaded directly from the browser using presigned URLs:
 Public image URLs are served from Tigris. The bucket hostname is configured in `next.config.ts` so Next.js `<Image>` can optimize and serve them:
 
 ```
-https://health-academy-lms.fly.storage.tigris.dev
-https://health-academy-lms.t3.tigrisfiles.io
+https://<bucket>.t3.tigrisfiles.io          ← public CDN (use for NEXT_PUBLIC_S3_PUBLIC_URL)
+https://<bucket>.fly.storage.tigris.dev     ← S3 API endpoint (uploads only, not browser URLs)
 ```
 
 `NEXT_PUBLIC_S3_PUBLIC_URL` holds the base URL. Use `hooks/use-construct-url.ts` to build full image URLs from a file key.

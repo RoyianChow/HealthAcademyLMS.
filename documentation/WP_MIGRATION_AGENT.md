@@ -1,10 +1,6 @@
 # WordPress Migration Agent
 
-> Part of the [Getting Started](../GETTING_STARTED.md)
-
 Standalone LangGraph agent that migrates course content from the WordPress/LearnDash site (`healthacademy.ca`) into this Next.js LMS. The agent fetches curriculum data via the WordPress REST API, uploads media to S3, and writes records directly to PostgreSQL via Prisma.
-
-For empirically verified WordPress API shapes, regex patterns, and API gotchas, see [docs/WP_MIGRATION_REFERENCE.md](../docs/WP_MIGRATION_REFERENCE.md).
 
 ---
 
@@ -33,7 +29,7 @@ For empirically verified WordPress API shapes, regex patterns, and API gotchas, 
 
 | Audience | Use this doc for |
 |----------|------------------|
-| **Operators / admins** | Running the migration, reviewing audit reports, completing post-migration fixes (Stripe, thumbnails, React CDN activities) |
+| **Operators / admins** | Running the migration, reviewing audit reports, completing post-migration fixes (Stripe, interactive verification) |
 | **Developers** | Understanding graph structure, extending nodes, debugging failures, adding schema support for skipped question types |
 
 This is a **one-time bulk migration tool**, not part of the running Next.js application. It is invoked from the command line and does not expose HTTP endpoints.
@@ -50,18 +46,44 @@ Scope as of the June 2026 audit against `healthacademy.ca`:
 | Modules (WP Lessons) | 129 | `Chapter` |
 | Topic pages (WP Topics) | 436 | `Lesson` |
 | Quizzes | 121 | `Quiz` |
-| Questions | 389 (272 single-choice migratable) | `QuizQuestion` + `QuizOption` |
+| Questions | 389 (all types migrated) | `QuizQuestion` + `QuizOption` |
 | PDFs | 119 unique files | `LessonDocument` (re-uploaded to S3) |
 | MP4 videos | 33 files | `LessonVideo` (re-uploaded to S3) |
+| Course thumbnails | WP featured images | `Course.fileKey` (re-uploaded to S3) |
+| Inline lesson images | extracted from topic HTML | Rewritten to S3 URLs in `Lesson.content` |
 | YouTube embeds | extracted from topic HTML | `LessonVideo.youtubeUrl` |
-| Interactive activities | 30 topics | `Lesson.interactiveScript` (25 stored as-is) |
+| Interactive activities | 30 topics | `Lesson.interactiveScript` (HTML/JS, including React CDN modules) |
+
+### WordPress vs. Next.js — Full Coverage Comparison
+
+| WordPress Feature | Migrated? | Notes |
+|-------------------|-----------|-------|
+| Course metadata (title, slug, price, status) | ✅ Yes | `Course.title`, `Course.slug`, `Course.price`, `Course.status` |
+| Course featured image (thumbnail) | ✅ Yes | Auto-uploaded to S3 from WP `_embedded` featured media |
+| Module structure (WP Lessons → Chapters) | ✅ Yes | Ordered by `/steps` tree key insertion order |
+| Topic pages (WP Topics → Lessons) | ✅ Yes | Full HTML content converted and stored |
+| Quizzes (all statuses) | ✅ Yes | Created as `isPublished: false`; linked to course via steps tree |
+| Single-choice questions (`single`) | ✅ Yes | Auto-graded via `QuizAnswerSelection` |
+| Multiple-choice questions (`multiple`) | ✅ Yes | All-or-nothing grading |
+| Essay questions (`essay`) | ✅ Yes | Stored as `QuestionType.essay`; not auto-graded |
+| Assessment answers (`assessment_answer`) | ✅ Yes | Stored as `QuestionType.assessment`; ungraded survey type |
+| Self-hosted MP4 videos | ✅ Yes | Downloaded from WP, re-uploaded to Tigris S3 |
+| PDF documents | ✅ Yes | Downloaded from WP, re-uploaded to Tigris S3 |
+| YouTube embeds | ✅ Yes | Extracted from topic HTML iframes |
+| Inline lesson images | ✅ Yes | Downloaded from WP, re-uploaded to Tigris; URLs rewritten in content |
+| Interactive HTML/JS activities | ✅ Yes | Stored in `Lesson.interactiveScript` (including React CDN modules) |
+| Course ordering / hierarchy | ✅ Yes | Derived from `/ldlms/v2/sfwd-courses/{id}/steps` endpoint |
+| User accounts and enrollments | ❌ No | Only course content structure is migrated |
+| Learner progress records | ❌ No | All learners start fresh |
+| Stripe products/prices | ⚠️ Placeholder | `MIGRATION_PENDING_{wpCourseId}` — real prices must be created manually |
+| Courses without WP featured image | ⚠️ Placeholder | `fileKey: "MIGRATION_PENDING"` — thumbnail must be uploaded manually |
+| Quizzes not linked to any course steps tree | ⚠️ Unlinked | Logged at Gate 2; may need manual placement |
 
 ### Not migrated automatically
 
 - **User accounts, enrollments, and progress** — only course content structure
-- **5 React CDN interactive modules** (Acetylcholine, Dopamine, GABA, Histamine, Serotonin) — require native React rebuild
-- **16 quiz questions** with unsupported types (`multiple`, `essay`, `assessment_answer`) — logged for manual entry after schema updates
-- **Course thumbnails** — placeholder `fileKey: "MIGRATION_PENDING"` is written; upload real thumbnails in admin
+- **Quiz questions on quizzes missing from the WP steps tree** — logged as unlinked; may need manual placement
+- **Courses without a WP featured image** — `fileKey: "MIGRATION_PENDING"` is retained; upload thumbnail manually in admin
 - **Stripe products/prices** — placeholder `stripePriceId: "MIGRATION_PENDING_{wpCourseId}"` is written; create real Stripe prices before publishing
 
 All migrated courses are created with `status: Draft` and `isPublished: false` on lessons/quizzes. Nothing is auto-published.
@@ -179,8 +201,14 @@ At Human Gate 1, type `no` to abort. No database writes or media uploads occur �
 
 ### Re-running
 
-- Courses with an existing `slug` are **skipped** and mapped to the existing record (no duplicate created).
-- Re-running against a partially migrated database may produce duplicate chapters/lessons for courses that were newly created in a prior run. Prefer a clean staging database for full test runs.
+The agent is **idempotent** — safe to re-run against a partially migrated database:
+
+- **Neon:** Existing courses are matched by `slug`; chapters/lessons by `(courseId|chapterId, position)`; quizzes by `(courseId, chapterId, title)`. Only missing records are created; existing rows are not overwritten (null fields like `content` or `interactiveScript` may be filled).
+- **S3:** Media uses deterministic keys derived from the WordPress URL (`wp-migration/{folder}/{hash}-{filename}`). Objects already in S3 or referenced in Neon are reused; only missing files are downloaded and uploaded.
+- **Quizzes:** Empty quizzes from a prior run are matched and backfilled with missing `QuizQuestion` / `QuizOption` rows.
+- **Stripe/thumbnails:** Real `stripePriceId` values are preserved; placeholders are only written for new courses. Course thumbnails are auto-uploaded from WP featured images when available; existing `fileKey` values (not `MIGRATION_PENDING`) are preserved on re-run.
+
+Before any writes, the `loadExisting` node scans Neon and S3 and pre-populates `courseMap`, `chapterMap`, `lessonMap`, `quizMap`, `stripeMap`, `courseThumbnailMap`, and `mediaMap`.
 
 ---
 
@@ -196,9 +224,10 @@ Displayed after all WordPress data is fetched. Review the JSON summary for:
 |---------|---------------|
 | `courses` | Published vs draft counts; course names look correct |
 | `content` | Lesson/topic/quiz/question counts match expectations |
-| `interactive` | 25 storable vs 5 React CDN modules listed by name |
-| `skippedQuestions` | 16 unsupported questions by type (`multiple`, `essay`, `assessment_answer`) |
-| `mediaEstimate` | PDF and MP4 file counts |
+| `interactive` | Total count; React CDN modules (Acetylcholine, Dopamine, GABA, Histamine, Serotonin) listed for verification — all stored in `interactiveScript` |
+| `skippedQuestions` | Unknown WP question types only (all four known types are migrated) |
+| `thumbnails` | Courses with vs without WP featured images |
+| `mediaEstimate` | PDF, MP4, and inline image file counts |
 
 **Prompt:** `Type 'yes' to proceed with migration, or 'no' to abort:`
 
@@ -212,10 +241,10 @@ Displayed after curriculum and quizzes are written. Review:
 | Section | What to check |
 |---------|---------------|
 | `recordsCreated` | Counts for courses, chapters, lessons, quizzes, questions, videos, documents |
-| `mediaUploaded` | Upload success vs queue size; check for partial failures |
+| `mediaUploaded` | Upload success vs queue size; check for partial failures (PDFs, MP4s, images) |
 | `actionItems.stripePriceFix` | Every course needs a real `stripePriceId` |
-| `actionItems.thumbnailUpload` | Every course needs a real thumbnail `fileKey` |
-| `actionItems.reactCdnRebuild` | 5 modules needing native React components |
+| `actionItems.thumbnailUpload` | Courses still missing thumbnails (only those without WP featured images) |
+| `actionItems.reactCdnModules` | React CDN interactives stored in `interactiveScript` — verify they render in the learner dashboard |
 | `actionItems.skippedQuestions` | Question IDs to enter manually |
 | `errors` | Any per-item failures during upload or write |
 
@@ -228,10 +257,10 @@ Displayed after curriculum and quizzes are written. Review:
 Complete these steps in the admin panel before publishing any migrated course:
 
 - [ ] **Stripe prices** — For each course, create a Stripe product + price and update `Course.stripePriceId` (replace `MIGRATION_PENDING_*`)
-- [ ] **Thumbnails** — Upload course images and update `Course.fileKey` (replace `MIGRATION_PENDING`)
+- [ ] **Thumbnails** — Only needed for courses without a WP featured image (check Gate 2 `actionItems.thumbnailUpload`); all others are auto-uploaded to S3
 - [ ] **Review content** — Spot-check lessons in admin; verify YouTube embeds, PDFs, and videos render in the learner dashboard
-- [ ] **Interactive activities** — Confirm 25 HTML/JS activities render in sandboxed iframes; plan rebuild for 5 React CDN modules
-- [ ] **Skipped quiz questions** — Manually add 12 multi-select, 3 essay, and 1 assessment_answer question after schema support is added
+- [ ] **Interactive activities** — Confirm all 30 HTML/JS activities (including 5 React CDN modules) render in sandboxed iframes
+- [ ] **Unlinked quiz questions** — Review Gate 2 warnings for questions whose parent quiz is not in any course steps tree
 - [ ] **Publish** — Change `Course.status` from `Draft` to `Published` only after the above are complete
 - [ ] **Lesson publish flags** — Set `Lesson.isPublished` and `Quiz.isPublished` as appropriate per course
 
@@ -243,7 +272,7 @@ Complete these steps in the admin panel before publishing any migrated course:
 migrate-wordpress.ts          ← CLI entry point (readline interrupt loop)
         │
         ▼
-scripts/wp-migration/graph.ts ← LangGraph StateGraph (10 nodes, MemorySaver)
+scripts/wp-migration/graph.ts ← LangGraph StateGraph (11 nodes, MemorySaver)
         │
         ├── wp-client.ts      ← JWT auth, paginated WP API fetcher
         ├── content-parser.ts ← HTML regex extractors, interactive detection
@@ -261,7 +290,8 @@ flowchart TD
   fetchCourses --> fetchContent
   fetchContent --> fetchQuizzes
   fetchQuizzes --> humanGate1
-  humanGate1 -->|"yes"| uploadMedia
+  humanGate1 -->|"yes"| loadExisting
+  loadExisting --> uploadMedia
   humanGate1 -->|"no"| END
   uploadMedia --> createStripePlaceholders
   createStripePlaceholders --> writeCurriculum
@@ -279,14 +309,15 @@ The graph uses `MemorySaver` as a checkpointer so interrupt/resume state is pres
 | Phase | Node | File | Description |
 |-------|------|------|-------------|
 | 0 | `authenticate` | `nodes/authenticate.ts` | Obtain JWT; verify admin via `/wp/v2/users/me` |
-| 1a | `fetchCourses` | `nodes/fetch-courses.ts` | Fetch 13 courses + per-course `/steps` trees |
+| 1a | `fetchCourses` | `nodes/fetch-courses.ts` | Fetch 13 courses (with `?_embed=true` for featured images) + per-course `/steps` trees |
 | 1b | `fetchContent` | `nodes/fetch-content.ts` | Paginate 129 lessons + 436 topics; classify interactive activities |
-| 1c | `fetchQuizzes` | `nodes/fetch-quizzes.ts` | Paginate 121 quizzes + 389 questions; partition skipped types |
+| 1c | `fetchQuizzes` | `nodes/fetch-quizzes.ts` | Paginate 121 quizzes + 389 questions; partition any unknown types |
 | 2 | `humanGate1` | `nodes/human-gate-1.ts` | Print audit summary; `interrupt()` for approval |
-| 3 | `uploadMedia` | `nodes/upload-media.ts` | Deduplicate PDF/MP4 URLs; download from WP; upload to S3 |
-| 4 | `createStripePlaceholders` | `nodes/create-stripe-placeholders.ts` | Set `MIGRATION_PENDING_{wpCourseId}` per course |
-| 5a | `writeCurriculum` | `nodes/write-curriculum.ts` | Create Course → Chapter → Lesson cascade |
-| 5b | `writeQuizzes` | `nodes/write-quizzes.ts` | Create Quiz → QuizQuestion → QuizOption |
+| 2b | `loadExisting` | `nodes/load-existing.ts` | Scan Neon + S3; pre-populate ID maps, `courseThumbnailMap`, and `mediaMap` |
+| 3 | `uploadMedia` | `nodes/upload-media.ts` | Upload missing PDFs/MP4s (3a), course thumbnails (3b), and inline images (3c) to S3 |
+| 4 | `createStripePlaceholders` | `nodes/create-stripe-placeholders.ts` | Resolve `MIGRATION_PENDING_{wpCourseId}` or keep existing Stripe ID |
+| 5a | `writeCurriculum` | `nodes/write-curriculum.ts` | Create or backfill Course → Chapter → Lesson cascade |
+| 5b | `writeQuizzes` | `nodes/write-quizzes.ts` | Create or backfill Quiz → QuizQuestion → QuizOption |
 | 6 | `humanGate2` | `nodes/human-gate-2.ts` | Print final report; `interrupt()` for acknowledgment |
 
 ### Content extraction (per topic HTML)
@@ -296,16 +327,22 @@ The graph uses `MemorySaver` as a checkpointer so interrupt/resume state is pres
 | YouTube | `<iframe src="...youtube.com/embed/{id}">` | `LessonVideo.youtubeUrl` |
 | Self-hosted MP4 | `<video src="...mp4">` or `<source src="...mp4">` | `LessonVideo.videoKey` (after S3 upload) |
 | PDF | `wp-block-file` div or plain `<a href="...pdf">` | `LessonDocument` (after S3 upload) |
+| Course thumbnail | WP featured image (`?_embed=true`) | `Course.fileKey` (after S3 upload) |
+| Inline image | `<img src="...">` in topic HTML | Rewritten to S3 URL in `Lesson.content` Tiptap JSON |
 | Interactive HTML/JS | Title contains "interactive", or `<script>` + `id="*-module/root"` | `Lesson.interactiveScript` |
 
-### Quiz question filtering
+### Quiz question types
 
-| `question_type` | Count | Migrated? |
-|----------------|-------|-----------|
-| `single` | 272 | Yes |
-| `multiple` | 12 | No — schema gap (single `selectedOptionId`) |
-| `essay` | 3 | No — not supported |
-| `assessment_answer` | 1 | No — not supported |
+All four question types found on `healthacademy.ca` are fully imported:
+
+| `question_type` | Count | Migrated as | Grading |
+|----------------|-------|-------------|---------|
+| `single` | 272 | `QuestionType.single` | Auto-graded (single correct answer) |
+| `multiple` | 12 | `QuestionType.multiple` | Auto-graded (all-or-nothing) |
+| `essay` | 3 | `QuestionType.essay` | Manual / not auto-graded; stored in `QuizAnswer.textResponse` |
+| `assessment_answer` | 36 | `QuestionType.assessment` | Ungraded survey type |
+
+Questions with an unrecognized `question_type` not in the above list are placed in `skippedQuestions` and reported at Gate 2 for manual entry.
 
 ---
 
@@ -318,13 +355,16 @@ scripts/wp-migration/
 ├── state.ts                 # MigrationAnnotation + WP/NJ TypeScript types
 ├── wp-client.ts             # WPClient class (auth, pagination, retry-on-401)
 ├── content-parser.ts        # Regex extractors, isInteractiveActivity, classifyActivity
-├── s3-uploader.ts           # Standalone S3Client (no server-only imports)
+├── idempotency.ts           # Neon/S3 existence checks, deterministic S3 keys
+├── placement.ts             # Quiz placement from steps tree
+├── s3-uploader.ts           # WP download → S3 PutObject (deterministic keys)
 └── nodes/
     ├── authenticate.ts
     ├── fetch-courses.ts
     ├── fetch-content.ts
     ├── fetch-quizzes.ts
     ├── human-gate-1.ts
+    ├── load-existing.ts
     ├── upload-media.ts
     ├── create-stripe-placeholders.ts
     ├── write-curriculum.ts
@@ -350,7 +390,7 @@ scripts/wp-migration/
 
 ### Extending content parsing
 
-All regex patterns live in `content-parser.ts`. Patterns were validated against real topic HTML — see [docs/WP_MIGRATION_REFERENCE.md](../docs/WP_MIGRATION_REFERENCE.md) Section 4 before modifying.
+All regex patterns live in `content-parser.ts`. Patterns were validated against real topic HTML from `healthacademy.ca` — review the source HTML before modifying any extractors.
 
 ---
 
@@ -366,11 +406,12 @@ State is defined via `MigrationAnnotation` in `state.ts`. Key fields:
 | `wpLessons` | `WPLesson[]` | `fetchContent` |
 | `wpTopics` | `WPTopic[]` | `fetchContent` |
 | `wpQuizzes` | `WPQuiz[]` | `fetchQuizzes` |
-| `wpQuestions` | `WPQuestion[]` | `fetchQuizzes` (single-type only) |
-| `skippedQuestions` | `WPQuestion[]` | `fetchQuizzes` |
+| `wpQuestions` | `WPQuestion[]` | `fetchQuizzes` (all types: single, multiple, essay, assessment) |
+| `skippedQuestions` | `WPQuestion[]` | `fetchQuizzes` (unknown types only) |
 | `interactiveTopics` | `InteractiveTopicMeta[]` | `fetchContent` |
 | `mediaQueue` | `string[]` | `uploadMedia` |
 | `mediaMap` | `Record<string, MediaRef>` | `uploadMedia` |
+| `courseThumbnailMap` | `Record<number, string>` | `loadExisting`, `uploadMedia` (WP course ID → S3 fileKey) |
 | `stripeMap` | `Record<number, string>` | `createStripePlaceholders` |
 | `courseMap` | `Record<number, string>` | `writeCurriculum` (WP ID → NJ UUID) |
 | `chapterMap` | `Record<number, string>` | `writeCurriculum` |
@@ -395,7 +436,7 @@ The agent writes via `prisma` from `lib/db.ts` directly. Server actions are inte
 
 ### Placeholder Stripe and thumbnails
 
-Rather than creating live Stripe products during bulk migration, the agent writes `MIGRATION_PENDING_{wpCourseId}` as `stripePriceId` and `MIGRATION_PENDING` as `fileKey`. This prevents accidental charges and lets humans verify content before going live.
+Rather than creating live Stripe products during bulk migration, the agent writes `MIGRATION_PENDING_{wpCourseId}` as `stripePriceId` for new courses. Course thumbnails are auto-uploaded from WordPress featured images when available; courses without a featured image retain `fileKey: "MIGRATION_PENDING"` for manual upload in admin.
 
 ### Steps tree for ordering
 
@@ -419,12 +460,12 @@ WordPress `price_type_paynow_price` is stored as integer dollars in `Course.pric
 
 | Limitation | Workaround |
 |------------|------------|
-| Multi-select quiz questions (`multiple`) | Skipped; requires schema change to support multiple `selectedOptionId` values per answer |
-| Essay questions (`essay`) | Skipped; requires new question type in schema and UI |
-| Assessment answer type (`assessment_answer`) | Skipped; manual entry |
-| 5 React CDN interactive modules | Logged in Gate 2; rebuild as native React components |
+| Multi-select quiz questions (`multiple`) | Supported via `QuestionType.multiple` + `QuizAnswerSelection` |
+| Essay questions (`essay`) | Supported via `QuestionType.essay` + `QuizAnswer.textResponse` (not auto-graded) |
+| Assessment answer type (`assessment_answer`) | Supported as `QuestionType.assessment` (ungraded survey) |
+| React CDN interactive modules (Acetylcholine, Dopamine, GABA, Histamine, Serotonin) | Stored in `Lesson.interactiveScript`; verify iframe rendering loads external React CDN scripts |
 | H5P content | Not applicable — site's 30 interactive activities are custom HTML/JS, not H5P |
-| Duplicate slug on re-run | Existing course mapped by slug; child records not deduplicated |
+| Duplicate slug on re-run | Existing course matched by slug; missing children backfilled |
 | Draft WP courses | Migrated as NJ `Draft` courses if they have a steps tree |
 
 ---
@@ -475,8 +516,6 @@ await compiledGraph.invoke(new Command({ resume: { proceed: true } }), config);
 
 | Document | Contents |
 |----------|----------|
-| [docs/WP_MIGRATION_REFERENCE.md](../docs/WP_MIGRATION_REFERENCE.md) | Empirically verified WP API commands, response shapes, regex patterns, gotchas |
-| [docs/SKIPPED_QUESTIONS.md](../docs/SKIPPED_QUESTIONS.md) | 51 skipped quiz question IDs + WordPress re-fetch guide |
 | [documentation/DATABASE_ERD.md](./DATABASE_ERD.md) | Target Prisma schema — `Course`, `Chapter`, `Lesson`, `Quiz`, etc. |
 | [documentation/SERVICES.md](./SERVICES.md) | S3/Tigris storage, Stripe integration |
-| [migrate-videos.ts](../migrate-videos.ts) | Prior migration script pattern (direct Prisma, `npx tsx --env-file=.env`) |
+| [documentation/deployment.md](./deployment.md) | End-to-end deployment guide — environment setup, Neon, Tigris, Vercel, domain |
