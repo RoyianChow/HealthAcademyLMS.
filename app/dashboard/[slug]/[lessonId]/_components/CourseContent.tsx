@@ -369,6 +369,25 @@ export function CourseContent({
           ) : null}
         </div>
 
+        {data.videos && data.videos.length > 0 && (
+          <div className="flex flex-col gap-6 w-full mb-4">
+            {data.videos.map((video) => (
+              <div key={video.id} className="space-y-2">
+                {video.title && (
+                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider px-1">
+                    {video.title}
+                  </h3>
+                )}
+                <VideoPlayer
+                  thumbnailKey={data.thumbnailKey}
+                  videoKey={video.videoKey}
+                  youtubeUrl={video.youtubeUrl}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
         {contentHtml && (
           <div className="pt-4 border-t border-muted">
             <div
@@ -388,25 +407,6 @@ export function CourseContent({
                 <LessonDocumentItem key={document.id} document={document} />
               ))}
             </div>
-          </div>
-        )}
-
-        {data.videos && data.videos.length > 0 && (
-          <div className="flex flex-col gap-6 w-full mb-4">
-            {data.videos.map((video) => (
-              <div key={video.id} className="space-y-2">
-                {video.title && (
-                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider px-1">
-                    {video.title}
-                  </h3>
-                )}
-                <VideoPlayer
-                  thumbnailKey={data.thumbnailKey}
-                  videoKey={video.videoKey}
-                  youtubeUrl={video.youtubeUrl}
-                />
-              </div>
-            ))}
           </div>
         )}
 

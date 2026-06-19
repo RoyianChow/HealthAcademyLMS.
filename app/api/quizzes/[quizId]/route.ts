@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/app/data/admin/require-admin";
+import {
+  normalizeQuizQuestionType,
+  validateQuizQuestions,
+  type QuizQuestionInput,
+} from "@/lib/quiz-validation";
 
 export const runtime = "nodejs";
 
@@ -8,17 +13,6 @@ type RouteContext = {
   params: Promise<{
     quizId: string;
   }>;
-};
-
-type QuizOptionInput = {
-  text: string;
-  isCorrect: boolean;
-};
-
-type QuizQuestionInput = {
-  question: string;
-  explanation?: string | null;
-  options: QuizOptionInput[];
 };
 
 type QuizUpdateBody = {
@@ -96,30 +90,9 @@ export async function PATCH(req: Request, { params }: RouteContext) {
       return apiError("Selected chapter does not belong to this course");
     }
 
-    for (const question of questions) {
-      if (!question.question.trim()) {
-        return apiError("Each question must have text");
-      }
-
-      if (!Array.isArray(question.options) || question.options.length < 2) {
-        return apiError("Each question must have at least two options");
-      }
-
-      const hasEmptyOption = question.options.some(
-        (option) => !option.text.trim()
-      );
-
-      if (hasEmptyOption) {
-        return apiError("Each option must have text");
-      }
-
-      const hasCorrectOption = question.options.some(
-        (option) => option.isCorrect
-      );
-
-      if (!hasCorrectOption) {
-        return apiError("Each question needs at least one correct option");
-      }
+    const validationError = validateQuizQuestions(questions);
+    if (validationError) {
+      return apiError(validationError);
     }
 
     await prisma.$transaction(async (tx) => {
@@ -159,6 +132,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
             data: {
               question: question.question.trim(),
               explanation: question.explanation?.trim() || null,
+              questionType: normalizeQuizQuestionType(question.questionType),
               position: questionIndex + 1,
               options: {
                 create: question.options.map((option, optionIndex) => ({
@@ -189,6 +163,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
             create: questions.map((question, questionIndex) => ({
               question: question.question.trim(),
               explanation: question.explanation?.trim() || null,
+              questionType: normalizeQuizQuestionType(question.questionType),
               position: questionIndex + 1,
               options: {
                 create: question.options.map((option, optionIndex) => ({

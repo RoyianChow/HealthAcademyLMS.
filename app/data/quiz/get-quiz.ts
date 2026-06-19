@@ -43,7 +43,11 @@ export async function getQuiz(quizId: string) {
         orderBy: {
           position: "asc",
         },
-        include: {
+        select: {
+          id: true,
+          question: true,
+          explanation: true,
+          questionType: true,
           options: {
             orderBy: {
               position: "asc",

@@ -4,15 +4,40 @@ import { prisma } from "@/lib/db";
 import { requireUser } from "@/app/data/user/require-user";
 import { revalidatePath } from "next/cache";
 import { rethrowIfNextRedirect } from "@/lib/rethrow-next-redirect";
+import { QuestionType } from "@/lib/question-type";
+
+type AnswerInput = {
+  questionId: string;
+  selectedOptionId?: string | null;
+  selectedOptionIds?: string[];
+  textResponse?: string;
+};
 
 type SubmitQuizAttemptInput = {
   quizId: string;
   attemptId: string;
-  answers: {
-    questionId: string;
-    selectedOptionId: string | null;
-  }[];
+  answers: AnswerInput[];
 };
+
+function isGradableQuestionType(questionType: QuestionType): boolean {
+  return (
+    questionType !== QuestionType.assessment &&
+    questionType !== QuestionType.essay
+  );
+}
+
+function gradeMultipleChoice(
+  correctOptionIds: Set<string>,
+  selectedOptionIds: string[]
+): boolean {
+  const selectedIds = new Set(selectedOptionIds);
+  if (correctOptionIds.size === 0) return false;
+
+  return (
+    [...correctOptionIds].every((id) => selectedIds.has(id)) &&
+    [...selectedIds].every((id) => correctOptionIds.has(id))
+  );
+}
 
 export async function getLastQuizResult(
   quizId: string,
@@ -32,7 +57,15 @@ export async function getLastQuizResult(
         createdAt: "desc",
       },
       include: {
-        answers: true,
+        answers: {
+          include: {
+            selections: {
+              select: {
+                optionId: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -52,6 +85,8 @@ export async function getLastQuizResult(
         attemptId: ans.attemptId,
         questionId: ans.questionId,
         selectedOptionId: ans.selectedOptionId,
+        selectedOptionIds: ans.selections.map((s) => s.optionId),
+        textResponse: ans.textResponse,
         isCorrect: ans.isCorrect ?? false,
       })),
     };
@@ -143,7 +178,6 @@ export async function submitQuizAttempt(input: SubmitQuizAttemptInput) {
     }
 
     if (quiz.timeLimitMinutes !== null) {
-      // 15-second network latency grace period for slow connections or temporary client issues
       const deadline = new Date(
         attempt.createdAt.getTime() + (quiz.timeLimitMinutes * 60 * 1000) + 15000
       );
@@ -208,18 +242,88 @@ export async function submitQuizAttempt(input: SubmitQuizAttemptInput) {
     });
 
     const submittedAnswerMap = new Map(
-      input.answers.map((answer) => [
-        answer.questionId,
-        answer.selectedOptionId,
-      ])
+      input.answers.map((answer) => [answer.questionId, answer])
     );
 
-    const answerRows = quiz.questions.map((question) => {
-      const selectedOptionId = submittedAnswerMap.get(question.id) ?? null;
+    const gradableQuestions = quiz.questions.filter((question) =>
+      isGradableQuestionType(question.questionType)
+    );
 
+    const gradedRows: Array<{
+      questionId: string;
+      selectedOptionId: string | null;
+      selectedOptionIds: string[];
+      textResponse: string | null;
+      isCorrect: boolean | null;
+    }> = [];
+
+    for (const question of quiz.questions) {
+      const submitted = submittedAnswerMap.get(question.id);
+      const questionType = question.questionType;
+
+      if (questionType === QuestionType.multiple) {
+        const selectedOptionIds = submitted?.selectedOptionIds ?? [];
+        for (const optionId of selectedOptionIds) {
+          const option = optionMap.get(optionId);
+          if (!option || option.questionId !== question.id) {
+            throw new Error("Invalid selected option.");
+          }
+        }
+
+        const correctOptionIds = new Set(
+          question.options.filter((option) => option.isCorrect).map((o) => o.id)
+        );
+        const isCorrect = gradeMultipleChoice(
+          correctOptionIds,
+          selectedOptionIds
+        );
+
+        gradedRows.push({
+          questionId: question.id,
+          selectedOptionId: null,
+          selectedOptionIds,
+          textResponse: null,
+          isCorrect,
+        });
+        continue;
+      }
+
+      if (questionType === QuestionType.essay) {
+        gradedRows.push({
+          questionId: question.id,
+          selectedOptionId: null,
+          selectedOptionIds: [],
+          textResponse: submitted?.textResponse?.trim() || null,
+          isCorrect: null,
+        });
+        continue;
+      }
+
+      if (questionType === QuestionType.assessment) {
+        const selectedOptionId = submitted?.selectedOptionId ?? null;
+        if (selectedOptionId) {
+          const selectedOption = optionMap.get(selectedOptionId);
+          if (
+            !selectedOption ||
+            selectedOption.questionId !== question.id
+          ) {
+            throw new Error("Invalid selected option.");
+          }
+        }
+
+        gradedRows.push({
+          questionId: question.id,
+          selectedOptionId,
+          selectedOptionIds: [],
+          textResponse: null,
+          isCorrect: null,
+        });
+        continue;
+      }
+
+      const selectedOptionId = submitted?.selectedOptionId ?? null;
       if (selectedOptionId) {
         const selectedOption = optionMap.get(selectedOptionId);
-
         if (!selectedOption || selectedOption.questionId !== question.id) {
           throw new Error("Invalid selected option.");
         }
@@ -229,32 +333,55 @@ export async function submitQuizAttempt(input: SubmitQuizAttemptInput) {
         ? optionMap.get(selectedOptionId)
         : null;
 
-      return {
-        attemptId: attempt.id,
+      gradedRows.push({
         questionId: question.id,
         selectedOptionId,
+        selectedOptionIds: [],
+        textResponse: null,
         isCorrect: selectedOption?.isCorrect ?? false,
-      };
-    });
+      });
+    }
 
-    const correctCount = answerRows.filter((answer) => answer.isCorrect).length;
+    const correctCount = gradedRows.filter(
+      (row) => row.isCorrect === true
+    ).length;
 
-    const score = Math.round((correctCount / quiz.questions.length) * 100);
+    const score =
+      gradableQuestions.length > 0
+        ? Math.round((correctCount / gradableQuestions.length) * 100)
+        : 100;
     const passingScore = quiz.passingScore ?? 0;
     const passed = score >= passingScore;
 
-    await prisma.$transaction([
-      prisma.quizAnswer.deleteMany({
+    await prisma.$transaction(async (tx) => {
+      await tx.quizAnswer.deleteMany({
         where: {
           attemptId: attempt.id,
         },
-      }),
+      });
 
-      prisma.quizAnswer.createMany({
-        data: answerRows,
-      }),
+      for (const row of gradedRows) {
+        const answerRow = await tx.quizAnswer.create({
+          data: {
+            attemptId: attempt.id,
+            questionId: row.questionId,
+            selectedOptionId: row.selectedOptionId,
+            textResponse: row.textResponse,
+            isCorrect: row.isCorrect,
+          },
+        });
 
-      prisma.quizAttempt.update({
+        if (row.selectedOptionIds.length > 0) {
+          await tx.quizAnswerSelection.createMany({
+            data: row.selectedOptionIds.map((optionId) => ({
+              answerId: answerRow.id,
+              optionId,
+            })),
+          });
+        }
+      }
+
+      await tx.quizAttempt.update({
         where: {
           id: attempt.id,
         },
@@ -265,8 +392,8 @@ export async function submitQuizAttempt(input: SubmitQuizAttemptInput) {
           submittedAt: new Date(),
           gradedAt: new Date(),
         },
-      }),
-    ]);
+      });
+    });
 
     revalidatePath(`/quizzes/${quiz.id}`);
     revalidatePath("/quizzes");
@@ -280,7 +407,14 @@ export async function submitQuizAttempt(input: SubmitQuizAttemptInput) {
       score,
       totalQuestions: quiz.questions.length,
       passed,
-      answers: answerRows,
+      answers: gradedRows.map((row) => ({
+        attemptId: attempt.id,
+        questionId: row.questionId,
+        selectedOptionId: row.selectedOptionId,
+        selectedOptionIds: row.selectedOptionIds,
+        textResponse: row.textResponse,
+        isCorrect: row.isCorrect ?? false,
+      })),
     };
   } catch (error) {
     rethrowIfNextRedirect(error);

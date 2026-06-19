@@ -22,6 +22,10 @@
     "test:e2e:ui": "NODE_OPTIONS='--import tsx' playwright test --ui",
     "test:all": "bash scripts/test-all.sh",
     "migrate:wordpress": "tsx --env-file=.env migrate-wordpress.ts",
+    "backfill:quiz-questions": "tsx --env-file=.env scripts/backfill-quiz-questions.ts",
+    "backfill:publish-course-content": "tsx --env-file=.env scripts/publish-course-content.ts",
+    "s3:make-public": "tsx --env-file=.env scripts/make-objects-public.ts",
+    "backfill:chapter-videos": "tsx --env-file=.env scripts/backfill-chapter-videos.ts",
     "fix:migrated-content": "tsx --env-file=.env fix-migrated-tiptap-content.ts"
   },
   "prisma": {

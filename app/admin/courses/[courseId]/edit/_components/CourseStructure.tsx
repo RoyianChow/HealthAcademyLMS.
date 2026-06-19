@@ -97,6 +97,7 @@ export function CourseStructure({ data }: iAppProps) {
         id: lesson.id,
         title: lesson.title,
         order: lesson.position,
+        isPublished: lesson.isPublished,
       })),
         quizzes: chapter.quizzes.map((quiz) => ({
         id: quiz.id,
@@ -122,6 +123,7 @@ export function CourseStructure({ data }: iAppProps) {
             id: lesson.id,
             title: lesson.title,
             order: lesson.position,
+            isPublished: lesson.isPublished,
           })),
           quizzes: chapter.quizzes.map((quiz) => ({
             id: quiz.id,
@@ -376,6 +378,11 @@ export function CourseStructure({ data }: iAppProps) {
                                       >
                                         {lesson.title}
                                       </Link>
+                                      {!lesson.isPublished && (
+                                        <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground uppercase font-semibold">
+                                          Draft
+                                        </span>
+                                      )}
                                     </div>
                                     <DeleteLesson
                                       chapterId={item.id}

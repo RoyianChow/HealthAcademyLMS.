@@ -161,7 +161,7 @@ export class WPClient {
   }
 
   async fetchCourses(): Promise<WPCourse[]> {
-    return this.fetchPaginated<WPCourse>("/ldlms/v2/sfwd-courses");
+    return this.fetchPaginated<WPCourse>("/ldlms/v2/sfwd-courses?_embed=true");
   }
 
   async fetchCourseSteps(courseId: number): Promise<StepsTree> {

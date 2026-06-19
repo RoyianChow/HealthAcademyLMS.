@@ -9,6 +9,7 @@ import {
   routeAfterGate1,
 } from "./nodes/human-gate-1";
 import { humanGate2Node } from "./nodes/human-gate-2";
+import { loadExistingNode } from "./nodes/load-existing";
 import { uploadMediaNode } from "./nodes/upload-media";
 import { writeCurriculumNode } from "./nodes/write-curriculum";
 import { writeQuizzesNode } from "./nodes/write-quizzes";
@@ -20,6 +21,7 @@ const workflow = new StateGraph(MigrationAnnotation)
   .addNode("fetchContent", fetchContentNode)
   .addNode("fetchQuizzes", fetchQuizzesNode)
   .addNode("humanGate1", humanGate1Node)
+  .addNode("loadExisting", loadExistingNode)
   .addNode("uploadMedia", uploadMediaNode)
   .addNode("createStripePlaceholders", createStripePlaceholdersNode)
   .addNode("writeCurriculum", writeCurriculumNode)
@@ -31,9 +33,10 @@ const workflow = new StateGraph(MigrationAnnotation)
   .addEdge("fetchContent", "fetchQuizzes")
   .addEdge("fetchQuizzes", "humanGate1")
   .addConditionalEdges("humanGate1", routeAfterGate1, {
-    uploadMedia: "uploadMedia",
+    loadExisting: "loadExisting",
     __end__: END,
   })
+  .addEdge("loadExisting", "uploadMedia")
   .addEdge("uploadMedia", "createStripePlaceholders")
   .addEdge("createStripePlaceholders", "writeCurriculum")
   .addEdge("writeCurriculum", "writeQuizzes")

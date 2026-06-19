@@ -16,14 +16,19 @@ vi.mock("@/lib/db", () => ({
     },
     quizAnswer: {
       deleteMany: vi.fn(),
+      create: vi.fn(),
       createMany: vi.fn(),
     },
-    $transaction: vi.fn().mockResolvedValue(undefined),
+    quizAnswerSelection: {
+      createMany: vi.fn(),
+    },
+    $transaction: vi.fn(),
   },
 }));
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { QuestionType } from "@/lib/question-type";
 import { submitQuizAttempt } from "@/app/quizzes/[quizId]/action";
 
 const mockGetSession = vi.mocked(auth.api.getSession);
@@ -72,11 +77,13 @@ function makeQuestion(
   id: string,
   position: number,
   correctId: string,
-  wrongId: string
+  wrongId: string,
+  questionType: QuestionType = QuestionType.single
 ) {
   return {
     id,
     position,
+    questionType,
     options: [
       { id: correctId, position: 1, isCorrect: true },
       { id: wrongId, position: 2, isCorrect: false },
@@ -117,8 +124,27 @@ describe("submitQuizAttempt — scoring edge cases", () => {
     vi.clearAllMocks();
     mockGetSession.mockResolvedValue(USER_SESSION);
     vi.mocked(prisma.quizAnswer.deleteMany).mockResolvedValue({ count: 0 } as never);
+    vi.mocked(prisma.quizAnswer.create).mockResolvedValue({ id: "answer-1" } as never);
     vi.mocked(prisma.quizAnswer.createMany).mockResolvedValue({ count: 4 } as never);
-    vi.mocked(prisma.$transaction).mockResolvedValue(undefined);
+    vi.mocked(prisma.quizAnswerSelection.createMany).mockResolvedValue({ count: 0 } as never);
+    vi.mocked(prisma.quizAttempt.update).mockResolvedValue({} as never);
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn) => {
+      if (typeof fn === "function") {
+        return fn({
+          quizAnswer: {
+            deleteMany: prisma.quizAnswer.deleteMany,
+            create: prisma.quizAnswer.create,
+          },
+          quizAnswerSelection: {
+            createMany: prisma.quizAnswerSelection.createMany,
+          },
+          quizAttempt: {
+            update: prisma.quizAttempt.update,
+          },
+        } as never);
+      }
+      return undefined;
+    });
   });
 
   it("scores 100% and passes when all answers are correct", async () => {

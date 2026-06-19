@@ -1,7 +1,12 @@
 import type { MigrationState, WPQuestion } from "../state";
 import { WPClient } from "../wp-client";
 
-const SKIPPED_TYPES = new Set(["multiple", "essay", "assessment_answer"]);
+const KNOWN_TYPES = new Set([
+  "single",
+  "multiple",
+  "essay",
+  "assessment_answer",
+]);
 
 function toIntId(value: unknown): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -42,9 +47,7 @@ function partitionQuestions(rawQuestions: WPQuestion[]) {
       raw as WPQuestion & Record<string, unknown>
     );
 
-    if (SKIPPED_TYPES.has(normalized.question_type)) {
-      skippedQuestions.push(normalized);
-    } else if (normalized.question_type === "single") {
+    if (KNOWN_TYPES.has(normalized.question_type)) {
       wpQuestions.push(normalized);
     } else {
       skippedQuestions.push(normalized);
@@ -69,45 +72,38 @@ export async function fetchQuizzesNode(
 
   let { wpQuestions, skippedQuestions } = partitionQuestions(rawQuestions);
 
-  const linkedFromList = wpQuestions.filter((q) => q.quiz !== undefined).length;
-  console.log(
-    `  Questions linked to quiz from list endpoint: ${linkedFromList}/${wpQuestions.length}`
-  );
-
-  // List endpoint often omits `quiz` — fetch per-quiz when link rate is low
-  if (linkedFromList < wpQuestions.length * 0.5) {
-    console.log("  Fetching questions per quiz (list endpoint missing quiz IDs)…");
-    const byId = new Map<number, WPQuestion>();
-    for (const q of [...wpQuestions, ...skippedQuestions]) {
-      byId.set(q.id, q);
-    }
-
-    for (const quiz of wpQuizzes) {
-      const perQuiz = await client.fetchQuestionsForQuiz(quiz.id);
-      for (const raw of perQuiz) {
-        const normalized = normalizeQuestion(
-          raw as WPQuestion & Record<string, unknown>
-        );
-        normalized.quiz = quiz.id;
-        byId.set(normalized.id, normalized);
-      }
-    }
-
-    const merged = [...byId.values()];
-    ({ wpQuestions, skippedQuestions } = partitionQuestions(merged));
-
-    const linkedAfter = wpQuestions.filter((q) => q.quiz !== undefined).length;
-    console.log(
-      `  Questions linked to quiz after per-quiz fetch: ${linkedAfter}/${wpQuestions.length}`
-    );
+  // Always fetch per-quiz so every question is linked to its parent quiz ID.
+  console.log("  Fetching questions per quiz to link parent quiz IDs…");
+  const byId = new Map<number, WPQuestion>();
+  for (const q of [...wpQuestions, ...skippedQuestions]) {
+    byId.set(q.id, q);
   }
+
+  for (const quiz of wpQuizzes) {
+    const perQuiz = await client.fetchQuestionsForQuiz(quiz.id);
+    for (const raw of perQuiz) {
+      const normalized = normalizeQuestion(
+        raw as WPQuestion & Record<string, unknown>
+      );
+      normalized.quiz = quiz.id;
+      byId.set(normalized.id, normalized);
+    }
+  }
+
+  const merged = [...byId.values()];
+  ({ wpQuestions, skippedQuestions } = partitionQuestions(merged));
+
+  const linkedAfter = wpQuestions.filter((q) => q.quiz !== undefined).length;
+  console.log(
+    `  Questions linked to quiz after per-quiz fetch: ${linkedAfter}/${wpQuestions.length}`
+  );
 
   const byType = skippedQuestions.reduce<Record<string, number>>((acc, q) => {
     acc[q.question_type] = (acc[q.question_type] ?? 0) + 1;
     return acc;
   }, {});
 
-  console.log(`  Migratable (single): ${wpQuestions.length}`);
+  console.log(`  Migratable: ${wpQuestions.length}`);
   console.log(`  Skipped: ${skippedQuestions.length}`, byType);
 
   return {
@@ -117,7 +113,7 @@ export async function fetchQuizzesNode(
     migrationLog: [
       {
         phase: "fetchQuizzes",
-        message: `Fetched ${wpQuizzes.length} quizzes, ${wpQuestions.length} single-choice questions, skipped ${skippedQuestions.length}`,
+        message: `Fetched ${wpQuizzes.length} quizzes, ${wpQuestions.length} migratable questions, skipped ${skippedQuestions.length}`,
         timestamp: new Date().toISOString(),
       },
     ],

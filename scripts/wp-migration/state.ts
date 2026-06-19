@@ -6,6 +6,11 @@ export interface WPRenderedField {
   rendered: string;
 }
 
+export interface WPFeaturedMedia {
+  source_url: string;
+  mime_type?: string;
+}
+
 export interface WPCourse {
   id: number;
   title: WPRenderedField;
@@ -15,6 +20,10 @@ export interface WPCourse {
   price_type?: string;
   price_type_paynow_price?: string;
   content?: WPRenderedField;
+  featured_media?: number;
+  _embedded?: {
+    "wp:featuredmedia"?: WPFeaturedMedia[];
+  };
 }
 
 export interface WPLesson {
@@ -126,6 +135,7 @@ export interface MigrationStats {
   documentsCreated: number;
   pdfsUploaded: number;
   mp4sUploaded: number;
+  imagesUploaded: number;
   totalBytesUploaded: number;
 }
 
@@ -191,6 +201,10 @@ export const MigrationAnnotation = Annotation.Root({
     reducer: mergeRecordReducer,
     default: () => ({}),
   }),
+  courseThumbnailMap: Annotation<Record<number, string>>({
+    reducer: mergeRecordReducer,
+    default: () => ({}),
+  }),
   stripeMap: Annotation<Record<number, string>>({
     reducer: mergeRecordReducer,
     default: () => ({}),
@@ -228,6 +242,7 @@ export const MigrationAnnotation = Annotation.Root({
       documentsCreated: 0,
       pdfsUploaded: 0,
       mp4sUploaded: 0,
+      imagesUploaded: 0,
       totalBytesUploaded: 0,
     }),
   }),

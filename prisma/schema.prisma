@@ -248,6 +248,13 @@ model LessonProgress {
   @@index([lessonId])
 }
 
+enum QuestionType {
+  single
+  multiple
+  essay
+  assessment
+}
+
 model Quiz {
   id                    String   @id @default(uuid())
   title                 String
@@ -271,13 +278,14 @@ model Quiz {
 }
 
 model QuizQuestion {
-  id          String   @id @default(uuid())
-  question    String
-  position    Int
-  explanation String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  quizId      String
+  id           String       @id @default(uuid())
+  question     String
+  position     Int
+  explanation  String?
+  questionType QuestionType @default(single)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  quizId       String
 
   answers QuizAnswer[]
   options QuizOption[]
@@ -296,8 +304,9 @@ model QuizOption {
   updatedAt  DateTime @updatedAt
   questionId String
 
-  answers  QuizAnswer[] @relation("SelectedOptionAnswers")
-  question QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answers      QuizAnswer[]          @relation("SelectedOptionAnswers")
+  multiAnswers QuizAnswerSelection[]
+  question     QuizQuestion          @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@unique([questionId, position])
   @@index([questionId])
@@ -334,16 +343,31 @@ model QuizAnswer {
   attemptId        String
   questionId       String
   selectedOptionId String?
+  textResponse     String?
   isCorrect        Boolean?
   createdAt        DateTime @default(now())
 
-  attempt        QuizAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
-  question       QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  selectedOption QuizOption?  @relation("SelectedOptionAnswers", fields: [selectedOptionId], references: [id])
+  attempt        QuizAttempt             @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question       QuizQuestion            @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOption QuizOption?             @relation("SelectedOptionAnswers", fields: [selectedOptionId], references: [id])
+  selections     QuizAnswerSelection[]
 
   @@unique([attemptId, questionId])
   @@index([questionId])
   @@index([selectedOptionId])
+}
+
+model QuizAnswerSelection {
+  id       String @id @default(cuid())
+  answerId String
+  optionId String
+
+  answer QuizAnswer @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  option QuizOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@unique([answerId, optionId])
+  @@index([answerId])
+  @@index([optionId])
 }
 
 model CommunityPost {

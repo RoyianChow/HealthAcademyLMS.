@@ -1,61 +1,140 @@
+import { QuestionType } from "@/lib/question-type";
 import { prisma } from "@/lib/db";
 import {
   coerceRenderedHtml,
   decodeHtml,
   stripHtmlTags,
 } from "../content-parser";
-import type { MigrationState, WPQuiz } from "../state";
+import { collectQuizIdsFromSteps } from "../placement";
+import type { MigrationState, WPQuestion, WPQuiz } from "../state";
 
 function quizById(quizzes: WPQuiz[], id: number): WPQuiz | undefined {
   return quizzes.find((q) => q.id === id);
 }
 
-function collectQuizIdsFromSteps(
-  state: MigrationState
-): Map<number, { courseId: string; chapterId?: string }> {
-  const map = new Map<number, { courseId: string; chapterId?: string }>();
+function quizTitle(wpQuiz: WPQuiz): string {
+  return decodeHtml(coerceRenderedHtml(wpQuiz.title) || "Quiz");
+}
 
-  for (const wpCourse of state.wpCourses) {
-    const njCourseId = state.courseMap[wpCourse.id];
-    if (!njCourseId) continue;
+function toQuestionType(wpType: string): QuestionType {
+  if (wpType === "multiple") return QuestionType.multiple;
+  if (wpType === "essay") return QuestionType.essay;
+  if (wpType === "assessment_answer") return QuestionType.assessment;
+  return QuestionType.single;
+}
 
-    const steps = state.wpStepTrees[wpCourse.id];
-    if (!steps?.h) continue;
+async function findExistingQuiz(
+  courseId: string,
+  chapterId: string | null,
+  title: string
+) {
+  const candidates = await prisma.quiz.findMany({
+    where: { courseId, chapterId, title },
+    select: {
+      id: true,
+      _count: { select: { questions: true } },
+      createdAt: true,
+    },
+    orderBy: { createdAt: "asc" },
+  });
 
-    const lessons = steps.h["sfwd-lessons"] ?? {};
-    for (const lessonIdStr of Object.keys(lessons)) {
-      const wpLessonId = parseInt(lessonIdStr, 10);
-      const njChapterId = state.chapterMap[wpLessonId];
-      const lessonNode = lessons[lessonIdStr];
+  if (candidates.length === 0) return null;
 
-      const lessonQuizzes = lessonNode?.["sfwd-quiz"] ?? {};
-      for (const quizIdStr of Object.keys(lessonQuizzes)) {
-        map.set(parseInt(quizIdStr, 10), {
-          courseId: njCourseId,
-          chapterId: njChapterId,
-        });
-      }
+  return [...candidates].sort(
+    (a, b) =>
+      b._count.questions - a._count.questions ||
+      a.createdAt.getTime() - b.createdAt.getTime()
+  )[0];
+}
 
-      const topics = lessonNode?.["sfwd-topic"] ?? {};
-      for (const topicIdStr of Object.keys(topics)) {
-        const topicNode = topics[topicIdStr];
-        const topicQuizzes = topicNode?.["sfwd-quiz"] ?? {};
-        for (const quizIdStr of Object.keys(topicQuizzes)) {
-          map.set(parseInt(quizIdStr, 10), {
-            courseId: njCourseId,
-            chapterId: njChapterId,
-          });
-        }
-      }
-    }
+async function ensureQuestion(
+  quizId: string,
+  wpQuestion: WPQuestion,
+  fallbackIndex: number
+): Promise<{ questionsCreated: number; optionsCreated: number }> {
+  const answers = wpQuestion.answers ?? [];
+  const questionType = toQuestionType(wpQuestion.question_type);
 
-    const courseQuizzes = steps.h["sfwd-quiz"] ?? {};
-    for (const quizIdStr of Object.keys(courseQuizzes)) {
-      map.set(parseInt(quizIdStr, 10), { courseId: njCourseId });
-    }
+  if (
+    answers.length === 0 &&
+    questionType !== QuestionType.essay &&
+    questionType !== QuestionType.assessment
+  ) {
+    return { questionsCreated: 0, optionsCreated: 0 };
   }
 
-  return map;
+  const position = wpQuestion.menu_order ?? fallbackIndex;
+  const questionText =
+    stripHtmlTags(coerceRenderedHtml(wpQuestion.content)) ||
+    decodeHtml(coerceRenderedHtml(wpQuestion.title) || "Question");
+  const explanation = wpQuestion.correct_message
+    ? decodeHtml(wpQuestion.correct_message)
+    : null;
+
+  const existing = await prisma.quizQuestion.findUnique({
+    where: { quizId_position: { quizId, position } },
+    include: { options: true },
+  });
+
+  if (existing) {
+    if (questionType === QuestionType.essay) {
+      return { questionsCreated: 0, optionsCreated: 0 };
+    }
+
+    if (existing.options.length >= answers.length) {
+      return { questionsCreated: 0, optionsCreated: 0 };
+    }
+
+    const existingPositions = new Set(existing.options.map((o) => o.position));
+    let optionsCreated = 0;
+
+    for (let optIdx = 0; optIdx < answers.length; optIdx++) {
+      if (existingPositions.has(optIdx)) continue;
+
+      await prisma.quizOption.create({
+        data: {
+          text: decodeHtml(
+            typeof answers[optIdx]._answer === "string"
+              ? answers[optIdx]._answer
+              : coerceRenderedHtml(answers[optIdx]._answer as never)
+          ),
+          isCorrect: answers[optIdx]._correct,
+          position: optIdx,
+          questionId: existing.id,
+        },
+      });
+      optionsCreated++;
+    }
+
+    return { questionsCreated: 0, optionsCreated };
+  }
+
+  const created = await prisma.quizQuestion.create({
+    data: {
+      question: questionText,
+      position,
+      explanation,
+      questionType,
+      quizId,
+      options:
+        answers.length > 0
+          ? {
+              create: answers.map((answer, optIdx) => ({
+                text: decodeHtml(
+                  typeof answer._answer === "string"
+                    ? answer._answer
+                    : coerceRenderedHtml(answer._answer as never)
+                ),
+                isCorrect: answer._correct,
+                position: optIdx,
+              })),
+            }
+          : undefined,
+    },
+    include: { options: true },
+  });
+
+  return { questionsCreated: 1, optionsCreated: created.options.length };
 }
 
 export async function writeQuizzesNode(
@@ -88,61 +167,68 @@ export async function writeQuizzesNode(
     }
 
     try {
+      const title = quizTitle(wpQuiz);
       const descriptionHtml = coerceRenderedHtml(wpQuiz.content);
-      const quiz = await prisma.quiz.create({
-        data: {
-          title: decodeHtml(coerceRenderedHtml(wpQuiz.title) || "Quiz"),
-          description: descriptionHtml ? stripHtmlTags(descriptionHtml) : null,
-          courseId: placement.courseId,
-          chapterId: placement.chapterId ?? null,
-          isPublished: false,
-        },
-      });
+      let quizId = quizMap[wpQuizId];
 
-      quizMap[wpQuizId] = quiz.id;
-      quizzesCreated++;
+      if (!quizId) {
+        const existing = await findExistingQuiz(
+          placement.courseId,
+          placement.chapterId ?? null,
+          title
+        );
+
+        if (existing) {
+          quizId = existing.id;
+          console.log(`  Quiz ${wpQuizId}: "${title}" — using existing (${quizId})`);
+        } else {
+          const created = await prisma.quiz.create({
+            data: {
+              title,
+              description: descriptionHtml
+                ? stripHtmlTags(descriptionHtml)
+                : null,
+              courseId: placement.courseId,
+              chapterId: placement.chapterId ?? null,
+              isPublished: true,
+            },
+          });
+          quizId = created.id;
+          quizzesCreated++;
+          console.log(`  Quiz ${wpQuizId}: "${title}" — created (${quizId})`);
+        }
+      }
+
+      quizMap[wpQuizId] = quizId;
 
       const questions = questionsByQuiz.get(wpQuizId) ?? [];
       const sorted = [...questions].sort(
         (a, b) => (a.menu_order ?? 0) - (b.menu_order ?? 0)
       );
 
+      let quizQuestionsCreated = 0;
       for (let i = 0; i < sorted.length; i++) {
         const wpQuestion = sorted[i];
+        const questionType = toQuestionType(wpQuestion.question_type);
         const answers = wpQuestion.answers ?? [];
 
-        if (answers.length === 0) {
+        if (
+          answers.length === 0 &&
+          questionType !== QuestionType.essay &&
+          questionType !== QuestionType.assessment
+        ) {
           errors.push(`Question ${wpQuestion.id} has no answers — skipped`);
           continue;
         }
 
-        const created = await prisma.quizQuestion.create({
-          data: {
-            question:
-              stripHtmlTags(coerceRenderedHtml(wpQuestion.content)) ||
-              decodeHtml(coerceRenderedHtml(wpQuestion.title) || "Question"),
-            position: wpQuestion.menu_order ?? i,
-            explanation: wpQuestion.correct_message
-              ? decodeHtml(wpQuestion.correct_message)
-              : null,
-            quizId: quiz.id,
-            options: {
-              create: answers.map((answer, optIdx) => ({
-                text: decodeHtml(answer._answer),
-                isCorrect: answer._correct,
-                position: optIdx,
-              })),
-            },
-          },
-          include: { options: true },
-        });
-
-        questionsCreated++;
-        optionsCreated += created.options.length;
+        const result = await ensureQuestion(quizId, wpQuestion, i);
+        quizQuestionsCreated += result.questionsCreated;
+        questionsCreated += result.questionsCreated;
+        optionsCreated += result.optionsCreated;
       }
 
       console.log(
-        `  Quiz ${wpQuizId}: "${decodeHtml(wpQuiz.title.rendered)}" — ${sorted.length} questions`
+        `  Quiz ${wpQuizId}: "${title}" — ${sorted.length} WP questions, ${quizQuestionsCreated} newly created`
       );
     } catch (err) {
       const msg = `Failed to migrate quiz ${wpQuizId}: ${err instanceof Error ? err.message : String(err)}`;
@@ -161,7 +247,7 @@ export async function writeQuizzesNode(
   }
 
   console.log(
-    `Quizzes written: ${quizzesCreated} quizzes, ${questionsCreated} questions, ${optionsCreated} options`
+    `Quizzes written: ${quizzesCreated} new quizzes, ${questionsCreated} new questions, ${optionsCreated} new options`
   );
 
   return {
@@ -176,7 +262,7 @@ export async function writeQuizzesNode(
     migrationLog: [
       {
         phase: "writeQuizzes",
-        message: `Created ${quizzesCreated} quizzes, ${questionsCreated} questions`,
+        message: `Created ${quizzesCreated} quizzes, ${questionsCreated} questions (fill-missing mode)`,
         timestamp: new Date().toISOString(),
       },
     ],

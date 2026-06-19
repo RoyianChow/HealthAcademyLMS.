@@ -36,8 +36,13 @@ import { useTransition } from "react";
 import { tryCatch } from "@/hooks/try-catch";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { editCourse } from "../actions";
+import { useState } from "react";
+import { editCourse, type PublishScope } from "../actions";
 import { AdminCourseSingularType } from "@/app/data/admin/admin-get-course";
+import {
+  getCourseContentPublishCounts,
+  PublishCourseDialog,
+} from "./PublishCourseDialog";
 
 interface iAppProps {
   data: AdminCourseSingularType;
@@ -45,7 +50,11 @@ interface iAppProps {
 
 export function EditCourseForm({ data }: iAppProps) {
   const [pending, startTransition] = useTransition();
+  const [publishDialogOpen, setPublishDialogOpen] = useState(false);
+  const [pendingPublishValues, setPendingPublishValues] =
+    useState<CourseSchemaType | null>(null);
   const router = useRouter();
+  const publishCounts = getCourseContentPublishCounts(data.chapters);
   const form = useForm<CourseSchemaType>({
     resolver: zodResolver(courseSchema),
     defaultValues: {
@@ -62,10 +71,10 @@ export function EditCourseForm({ data }: iAppProps) {
     },
   });
 
-  function onSubmit(values: CourseSchemaType) {
+  function submitCourse(values: CourseSchemaType, publishScope?: PublishScope) {
     startTransition(async () => {
       const { data: result, error } = await tryCatch(
-        editCourse(values, data.id)
+        editCourse(values, data.id, publishScope ? { publishScope } : undefined)
       );
 
       if (error) {
@@ -75,15 +84,57 @@ export function EditCourseForm({ data }: iAppProps) {
 
       if (result.status === "success") {
         toast.success(result.message);
-        form.reset();
+        setPublishDialogOpen(false);
+        setPendingPublishValues(null);
         router.push("/admin/courses");
       } else if (result.status === "error") {
         toast.error(result.message);
       }
     });
   }
+
+  function onSubmit(values: CourseSchemaType) {
+    const isPublishing =
+      values.status === "Published" && data.status !== "Published";
+    const hasDraftContent =
+      publishCounts.draftLessons > 0 || publishCounts.draftQuizzes > 0;
+
+    if (isPublishing && hasDraftContent) {
+      setPendingPublishValues(values);
+      setPublishDialogOpen(true);
+      return;
+    }
+
+    submitCourse(values);
+  }
+
+  function handlePublishCourseOnly() {
+    if (!pendingPublishValues) return;
+    submitCourse(pendingPublishValues, "course_only");
+  }
+
+  function handlePublishAllContent() {
+    if (!pendingPublishValues) return;
+    submitCourse(pendingPublishValues, "course_and_all_content");
+  }
+
   return (
-    <Form {...form}>
+    <>
+      <PublishCourseDialog
+        open={publishDialogOpen}
+        onOpenChange={(open) => {
+          setPublishDialogOpen(open);
+          if (!open) {
+            setPendingPublishValues(null);
+          }
+        }}
+        counts={publishCounts}
+        pending={pending}
+        onPublishCourseOnly={handlePublishCourseOnly}
+        onPublishAllContent={handlePublishAllContent}
+      />
+
+      <Form {...form}>
       <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
         <FormField
           control={form.control}
@@ -311,5 +362,6 @@ export function EditCourseForm({ data }: iAppProps) {
         </Button>
       </form>
     </Form>
+    </>
   );
 }

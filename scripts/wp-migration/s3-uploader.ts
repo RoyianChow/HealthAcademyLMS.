@@ -1,4 +1,5 @@
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { deterministicFileKey } from "./idempotency";
 import type { MediaRef } from "./state";
 
 function getS3Client(): S3Client {
@@ -37,22 +38,20 @@ function getPublicUrl(): string {
   return url.replace(/\/$/, "");
 }
 
-function sanitizeFilename(filename: string): string {
-  return filename.replace(/[^a-zA-Z0-9.\-_]/g, "-");
-}
-
 function contentTypeFromUrl(url: string): string {
-  const lower = url.toLowerCase();
+  const lower = url.toLowerCase().split("?")[0];
   if (lower.endsWith(".pdf")) return "application/pdf";
   if (lower.endsWith(".mp4")) return "video/mp4";
+  if (lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return "image/jpeg";
+  if (lower.endsWith(".png")) return "image/png";
+  if (lower.endsWith(".gif")) return "image/gif";
+  if (lower.endsWith(".webp")) return "image/webp";
+  if (lower.endsWith(".svg")) return "image/svg+xml";
   return "application/octet-stream";
 }
 
-function folderFromUrl(url: string): string {
-  const lower = url.toLowerCase();
-  if (lower.endsWith(".pdf")) return "lesson-documents";
-  if (lower.endsWith(".mp4")) return "lesson-videos";
-  return "wp-migration";
+function sanitizeFilename(filename: string): string {
+  return filename.replace(/[^a-zA-Z0-9.\-_]/g, "-");
 }
 
 export async function downloadFromWp(url: string): Promise<{
@@ -78,13 +77,12 @@ export async function uploadToS3(
   wpUrl: string,
   buffer: Buffer,
   contentType: string,
-  filename: string
+  fileKeyOverride?: string
 ): Promise<MediaRef> {
   const s3 = getS3Client();
   const bucket = getBucket();
   const publicUrl = getPublicUrl();
-  const folder = folderFromUrl(wpUrl);
-  const fileKey = `wp-migration/${folder}/${Date.now()}-${filename}`;
+  const fileKey = fileKeyOverride ?? deterministicFileKey(wpUrl);
 
   await s3.send(
     new PutObjectCommand({
@@ -93,6 +91,7 @@ export async function uploadToS3(
       Body: buffer,
       ContentType: contentType,
       ContentLength: buffer.length,
+      ACL: "public-read",
     })
   );
 
@@ -104,7 +103,10 @@ export async function uploadToS3(
   };
 }
 
-export async function downloadAndUpload(wpUrl: string): Promise<MediaRef> {
-  const { buffer, contentType, filename } = await downloadFromWp(wpUrl);
-  return uploadToS3(wpUrl, buffer, contentType, filename);
+export async function downloadAndUpload(
+  wpUrl: string,
+  fileKeyOverride?: string
+): Promise<MediaRef> {
+  const { buffer, contentType } = await downloadFromWp(wpUrl);
+  return uploadToS3(wpUrl, buffer, contentType, fileKeyOverride);
 }

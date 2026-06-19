@@ -11,6 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { QuestionType } from "@/lib/question-type";
 
 type QuizResultData = {
   id: string;
@@ -21,6 +22,7 @@ type QuizResultData = {
     id: string;
     question: string;
     explanation: string | null;
+    questionType: QuestionType;
     options: {
       id: string;
       text: string;
@@ -37,7 +39,11 @@ type QuizResultData = {
       id: string;
       questionId: string;
       selectedOptionId: string | null;
+      textResponse: string | null;
       isCorrect: boolean | null;
+      selections: {
+        optionId: string;
+      }[];
     }[];
   }[];
 };
@@ -187,16 +193,21 @@ export function QuizResultDialog({ quizId }: QuizResultDialogProps) {
                   (option) => option.id === userAnswer?.selectedOptionId
                 );
 
-                const correctOption = question.options.find(
+                const selectedOptionIds = new Set(
+                  userAnswer?.selections.map((selection) => selection.optionId) ?? []
+                );
+
+                const correctOptions = question.options.filter(
                   (option) => option.isCorrect
                 );
 
                 const hasAnswered = Boolean(userAnswer);
 
                 const gotItRight =
-                  userAnswer?.isCorrect === true ||
-                  selectedOption?.isCorrect === true ||
-                  userAnswer?.selectedOptionId === correctOption?.id;
+                  question.questionType === QuestionType.single ||
+                  question.questionType === QuestionType.multiple
+                    ? userAnswer?.isCorrect === true
+                    : false;
 
                 return (
                   <div
@@ -206,7 +217,18 @@ export function QuizResultDialog({ quizId }: QuizResultDialogProps) {
                     <div className="mb-3 flex flex-wrap items-center gap-2">
                       <Badge variant="secondary">Question {index + 1}</Badge>
 
-                      {hasAnswered ? (
+                      {question.questionType === QuestionType.essay && hasAnswered ? (
+                        <Badge variant="outline">Response submitted</Badge>
+                      ) : null}
+
+                      {question.questionType === QuestionType.assessment &&
+                      hasAnswered ? (
+                        <Badge variant="outline">Response recorded</Badge>
+                      ) : null}
+
+                      {(question.questionType === QuestionType.single ||
+                        question.questionType === QuestionType.multiple) &&
+                      hasAnswered ? (
                         <Badge
                           className={clsx(
                             gotItRight
@@ -216,56 +238,68 @@ export function QuizResultDialog({ quizId }: QuizResultDialogProps) {
                         >
                           {gotItRight ? "Correct" : "Incorrect"}
                         </Badge>
-                      ) : (
+                      ) : null}
+
+                      {!hasAnswered ? (
                         <Badge variant="outline">Not Answered</Badge>
-                      )}
+                      ) : null}
                     </div>
 
                     <h3 className="text-base font-semibold leading-relaxed">
                       {question.question}
                     </h3>
 
-                    <div className="mt-4 space-y-3">
-                      {question.options.map((option, optionIndex) => {
-                        const isSelected = selectedOption?.id === option.id;
-                        const isCorrect = option.isCorrect;
+                    {question.questionType === QuestionType.essay ? (
+                      <div className="mt-4 rounded-xl border border-border/60 bg-muted/30 p-4 text-sm text-muted-foreground">
+                        {userAnswer?.textResponse || "No response submitted."}
+                      </div>
+                    ) : (
+                      <div className="mt-4 space-y-3">
+                        {question.options.map((option, optionIndex) => {
+                          const isSelected =
+                            question.questionType === QuestionType.multiple
+                              ? selectedOptionIds.has(option.id)
+                              : selectedOption?.id === option.id;
+                          const isCorrect = option.isCorrect;
 
-                        return (
-                          <div
-                            key={option.id}
-                            className={clsx(
-                              "rounded-xl border px-4 py-3 text-sm",
-                              isCorrect
-                                ? "border-green-600 bg-green-50"
-                                : isSelected
-                                  ? "border-red-600 bg-red-50"
-                                  : "border-border/60 bg-muted/20"
-                            )}
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div>
-                                <span className="mr-2 font-medium">
-                                  {String.fromCharCode(65 + optionIndex)}.
-                                </span>
-                                <span>{option.text}</span>
-                              </div>
+                          return (
+                            <div
+                              key={option.id}
+                              className={clsx(
+                                "rounded-xl border px-4 py-3 text-sm",
+                                isCorrect
+                                  ? "border-green-600 bg-green-50"
+                                  : isSelected
+                                    ? "border-red-600 bg-red-50"
+                                    : "border-border/60 bg-muted/20"
+                              )}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <span className="mr-2 font-medium">
+                                    {String.fromCharCode(65 + optionIndex)}.
+                                  </span>
+                                  <span>{option.text}</span>
+                                </div>
 
-                              <div className="flex shrink-0 gap-2">
-                                {isSelected && (
-                                  <Badge variant="outline">Your Answer</Badge>
-                                )}
+                                <div className="flex shrink-0 gap-2">
+                                  {isSelected && (
+                                    <Badge variant="outline">Your Answer</Badge>
+                                  )}
 
-                                {isCorrect && (
-                                  <Badge className="bg-green-600 text-white hover:bg-green-600">
-                                    Correct Answer
-                                  </Badge>
-                                )}
+                                  {isCorrect &&
+                                  question.questionType !== QuestionType.assessment ? (
+                                    <Badge className="bg-green-600 text-white hover:bg-green-600">
+                                      Correct Answer
+                                    </Badge>
+                                  ) : null}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                          );
+                        })}
+                      </div>
+                    )}
 
                     {question.explanation && (
                       <div className="mt-4 rounded-xl border border-border/60 bg-muted/30 p-4">
@@ -280,19 +314,16 @@ export function QuizResultDialog({ quizId }: QuizResultDialogProps) {
                       <p className="mt-4 text-sm text-muted-foreground">
                         You did not answer this question.
                       </p>
-                    ) : !selectedOption ? (
-                      <p className="mt-4 text-sm text-amber-600">
-                        Your answer was recorded, but the selected option was not
-                        saved.
-                      </p>
                     ) : null}
 
-                    {!gotItRight && correctOption && (
+                    {!gotItRight &&
+                    question.questionType === QuestionType.single &&
+                    correctOptions[0] ? (
                       <p className="mt-2 text-sm text-muted-foreground">
                         Correct answer:{" "}
-                        <span className="font-medium">{correctOption.text}</span>
+                        <span className="font-medium">{correctOptions[0].text}</span>
                       </p>
-                    )}
+                    ) : null}
                   </div>
                 );
               })}

@@ -5,9 +5,11 @@ import { submitQuizAttempt } from "../action";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import clsx from "clsx";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { QuestionType } from "@/lib/question-type";
 
 export type SubmissionResult = {
   status: "success" | "error";
@@ -21,8 +23,21 @@ export type SubmissionResult = {
     attemptId?: string;
     questionId: string;
     selectedOptionId: string | null;
+    selectedOptionIds?: string[];
+    textResponse?: string | null;
     isCorrect: boolean;
     explanation?: string | null;
+  }[];
+};
+
+type QuizQuestionView = {
+  id: string;
+  question: string;
+  explanation: string | null;
+  questionType: QuestionType;
+  options: {
+    id: string;
+    text: string;
   }[];
 };
 
@@ -34,15 +49,7 @@ type QuizAttemptProps = {
     passingScore: number | null;
     timeLimitMinutes: number | null;
     allowMultipleAttempts: boolean;
-    questions: {
-      id: string;
-      question: string;
-      explanation: string | null;
-      options: {
-        id: string;
-        text: string;
-      }[];
-    }[];
+    questions: QuizQuestionView[];
   };
   attemptId: string | null;
   startedAt: string | null;
@@ -50,6 +57,53 @@ type QuizAttemptProps = {
   nextAttemptNumber: number;
   lastResult?: SubmissionResult | null;
 };
+
+function isQuestionAnswered(
+  question: QuizQuestionView,
+  selectedAnswers: Record<string, string>,
+  multiSelectedAnswers: Record<string, Set<string>>,
+  textAnswers: Record<string, string>
+): boolean {
+  switch (question.questionType) {
+    case QuestionType.multiple:
+      return (multiSelectedAnswers[question.id]?.size ?? 0) > 0;
+    case QuestionType.essay:
+      return Boolean(textAnswers[question.id]?.trim());
+    case QuestionType.assessment:
+    case QuestionType.single:
+    default:
+      return Boolean(selectedAnswers[question.id]);
+  }
+}
+
+function buildSubmitPayload(
+  questions: QuizQuestionView[],
+  selectedAnswers: Record<string, string>,
+  multiSelectedAnswers: Record<string, Set<string>>,
+  textAnswers: Record<string, string>
+) {
+  return questions.map((question) => {
+    switch (question.questionType) {
+      case QuestionType.multiple:
+        return {
+          questionId: question.id,
+          selectedOptionIds: [...(multiSelectedAnswers[question.id] ?? [])],
+        };
+      case QuestionType.essay:
+        return {
+          questionId: question.id,
+          textResponse: textAnswers[question.id] ?? "",
+        };
+      case QuestionType.assessment:
+      case QuestionType.single:
+      default:
+        return {
+          questionId: question.id,
+          selectedOptionId: selectedAnswers[question.id] ?? null,
+        };
+    }
+  });
+}
 
 export function QuizAttempt({
   quiz,
@@ -60,16 +114,16 @@ export function QuizAttempt({
   lastResult,
 }: QuizAttemptProps) {
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
+  const [multiSelectedAnswers, setMultiSelectedAnswers] = useState<
+    Record<string, Set<string>>
+  >({});
+  const [textAnswers, setTextAnswers] = useState<Record<string, string>>({});
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
-  
-  // Initialize result with the last database result if it exists
   const [result, setResult] = useState<SubmissionResult | null>(lastResult || null);
-  
   const [isExpired, setIsExpired] = useState(false);
   const [isPending, startTransition] = useTransition();
   const hasAutoSubmittedRef = useRef(false);
 
-  // Clear the result screen if a new attempt is started
   useEffect(() => {
     if (attemptId) {
       setResult(null);
@@ -79,12 +133,18 @@ export function QuizAttempt({
   const totalQuestions = quiz.questions.length;
 
   const answeredCount = useMemo(() => {
-    return quiz.questions.filter((question) => selectedAnswers[question.id]).length;
-  }, [quiz.questions, selectedAnswers]);
+    return quiz.questions.filter((question) =>
+      isQuestionAnswered(
+        question,
+        selectedAnswers,
+        multiSelectedAnswers,
+        textAnswers
+      )
+    ).length;
+  }, [quiz.questions, selectedAnswers, multiSelectedAnswers, textAnswers]);
 
   const allAnswered = totalQuestions > 0 && answeredCount === totalQuestions;
 
-  // Timer calculation hook
   useEffect(() => {
     if (!quiz.timeLimitMinutes || result || !canAttempt || !startedAt) {
       return;
@@ -107,7 +167,6 @@ export function QuizAttempt({
     return () => window.clearInterval(timer);
   }, [quiz.timeLimitMinutes, startedAt, result, canAttempt]);
 
-  // Automated submission loop hook
   useEffect(() => {
     if (!isExpired || result || hasAutoSubmittedRef.current || !canAttempt || !attemptId) {
       return;
@@ -116,14 +175,16 @@ export function QuizAttempt({
     hasAutoSubmittedRef.current = true;
 
     startTransition(async () => {
-      const payload = quiz.questions.map((question) => ({
-        questionId: question.id,
-        selectedOptionId: selectedAnswers[question.id] ?? null,
-      }));
+      const payload = buildSubmitPayload(
+        quiz.questions,
+        selectedAnswers,
+        multiSelectedAnswers,
+        textAnswers
+      );
 
       const response = await submitQuizAttempt({
         quizId: quiz.id,
-        attemptId: attemptId,
+        attemptId,
         answers: payload,
       });
 
@@ -135,11 +196,39 @@ export function QuizAttempt({
       setResult(response);
       toast.error("Time is up. Your quiz has been submitted.");
     });
-  }, [isExpired, result, canAttempt, quiz, selectedAnswers, attemptId]);
+  }, [
+    isExpired,
+    result,
+    canAttempt,
+    quiz,
+    selectedAnswers,
+    multiSelectedAnswers,
+    textAnswers,
+    attemptId,
+  ]);
 
   function handleSelect(questionId: string, optionId: string) {
     if (isPending || result || isExpired) return;
     setSelectedAnswers((prev) => ({ ...prev, [questionId]: optionId }));
+  }
+
+  function handleMultiSelect(questionId: string, optionId: string) {
+    if (isPending || result || isExpired) return;
+
+    setMultiSelectedAnswers((prev) => {
+      const current = new Set(prev[questionId] ?? []);
+      if (current.has(optionId)) {
+        current.delete(optionId);
+      } else {
+        current.add(optionId);
+      }
+      return { ...prev, [questionId]: current };
+    });
+  }
+
+  function handleTextChange(questionId: string, value: string) {
+    if (isPending || result || isExpired) return;
+    setTextAnswers((prev) => ({ ...prev, [questionId]: value }));
   }
 
   function formatTime(seconds: number) {
@@ -165,14 +254,16 @@ export function QuizAttempt({
     }
 
     startTransition(async () => {
-      const payload = quiz.questions.map((question) => ({
-        questionId: question.id,
-        selectedOptionId: selectedAnswers[question.id] ?? null,
-      }));
+      const payload = buildSubmitPayload(
+        quiz.questions,
+        selectedAnswers,
+        multiSelectedAnswers,
+        textAnswers
+      );
 
       const response = await submitQuizAttempt({
         quizId: quiz.id,
-        attemptId: attemptId,
+        attemptId,
         answers: payload,
       });
 
@@ -182,7 +273,7 @@ export function QuizAttempt({
       }
 
       setResult(response);
-      
+
       if (response.passed) {
         toast.success(response.message);
       } else {
@@ -191,17 +282,209 @@ export function QuizAttempt({
     });
   }
 
+  function renderQuestionBadge(question: QuizQuestionView) {
+    switch (question.questionType) {
+      case QuestionType.multiple:
+        return <Badge variant="outline">Multiple choice</Badge>;
+      case QuestionType.essay:
+        return <Badge variant="outline">Essay</Badge>;
+      case QuestionType.assessment:
+        return <Badge variant="outline">Self-assessment</Badge>;
+      default:
+        return null;
+    }
+  }
+
+  function renderResultQuestion(question: QuizQuestionView, index: number) {
+    const answer = result?.answers?.find((item) => item.questionId === question.id);
+    const selectedOptionId = answer?.selectedOptionId ?? null;
+    const selectedOptionIds = new Set(answer?.selectedOptionIds ?? []);
+    const textResponse = answer?.textResponse ?? null;
+
+    const showGradedBadge =
+      question.questionType === QuestionType.single ||
+      question.questionType === QuestionType.multiple;
+
+    return (
+      <div key={question.id} className="rounded-xl border border-border/60 p-4">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <Badge variant="secondary" className="rounded-full px-3 py-1">
+            Question {index + 1}
+          </Badge>
+          {renderQuestionBadge(question)}
+          {showGradedBadge && answer ? (
+            <Badge
+              className={clsx(
+                answer.isCorrect
+                  ? "bg-green-600 text-white hover:bg-green-600"
+                  : "bg-red-600 text-white hover:bg-red-600"
+              )}
+            >
+              {answer.isCorrect ? "Correct" : "Incorrect"}
+            </Badge>
+          ) : null}
+          {question.questionType === QuestionType.essay && textResponse ? (
+            <Badge variant="outline">Response submitted</Badge>
+          ) : null}
+          {question.questionType === QuestionType.assessment && selectedOptionId ? (
+            <Badge variant="outline">Response recorded</Badge>
+          ) : null}
+        </div>
+
+        <h3 className="text-base font-semibold leading-relaxed">{question.question}</h3>
+
+        {question.questionType === QuestionType.essay ? (
+          <div className="mt-4 rounded-xl border border-border/60 bg-muted/30 p-4 text-sm text-muted-foreground">
+            {textResponse || "No response submitted."}
+          </div>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {question.options.map((option, optionIndex) => {
+              const isSelected =
+                question.questionType === QuestionType.multiple
+                  ? selectedOptionIds.has(option.id)
+                  : selectedOptionId === option.id;
+
+              return (
+                <div
+                  key={option.id}
+                  className={clsx(
+                    "w-full rounded-xl border px-4 py-3 text-left text-sm",
+                    isSelected
+                      ? "border-primary bg-primary/10 ring-1 ring-primary"
+                      : "border-border/60 bg-muted/30"
+                  )}
+                >
+                  <span className="mr-2 font-medium text-foreground">
+                    {String.fromCharCode(65 + optionIndex)}.
+                  </span>
+                  <span className="text-muted-foreground">{option.text}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {(answer?.explanation ?? question.explanation) ? (
+          <div className="mt-4 rounded-xl border border-border/60 bg-muted/40 p-4">
+            <p className="text-sm font-medium">Explanation</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {answer?.explanation ?? question.explanation}
+            </p>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  function renderActiveQuestion(question: QuizQuestionView, index: number) {
+    return (
+      <Card
+        key={question.id}
+        className="rounded-2xl border border-border/60 shadow-sm"
+      >
+        <CardHeader className="space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge variant="secondary" className="rounded-full px-3 py-1">
+              Question {index + 1}
+            </Badge>
+            {renderQuestionBadge(question)}
+            {question.questionType !== QuestionType.essay ? (
+              <span className="text-xs text-muted-foreground">
+                {question.options.length} option
+                {question.options.length !== 1 ? "s" : ""}
+              </span>
+            ) : null}
+          </div>
+
+          <CardTitle className="text-xl leading-relaxed">{question.question}</CardTitle>
+        </CardHeader>
+
+        <CardContent className="space-y-3">
+          {question.questionType === QuestionType.essay ? (
+            <Textarea
+              placeholder="Write your answer here..."
+              value={textAnswers[question.id] ?? ""}
+              onChange={(e) => handleTextChange(question.id, e.target.value)}
+              disabled={isPending || isExpired}
+              rows={6}
+            />
+          ) : question.questionType === QuestionType.multiple ? (
+            question.options.map((option, optionIndex) => {
+              const isSelected = multiSelectedAnswers[question.id]?.has(option.id);
+
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => handleMultiSelect(question.id, option.id)}
+                  disabled={isPending || isExpired}
+                  className={clsx(
+                    "w-full rounded-xl border px-4 py-3 text-left text-sm transition",
+                    "hover:border-primary/50 hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-70",
+                    isSelected
+                      ? "border-primary bg-primary/10 ring-1 ring-primary"
+                      : "border-border/60 bg-muted/30"
+                  )}
+                >
+                  <span className="mr-2 font-medium text-foreground">
+                    {String.fromCharCode(65 + optionIndex)}.
+                  </span>
+                  <span className="text-muted-foreground">{option.text}</span>
+                </button>
+              );
+            })
+          ) : (
+            question.options.map((option, optionIndex) => {
+              const isSelected = selectedAnswers[question.id] === option.id;
+
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => handleSelect(question.id, option.id)}
+                  disabled={isPending || isExpired}
+                  className={clsx(
+                    "w-full rounded-xl border px-4 py-3 text-left text-sm transition",
+                    "hover:border-primary/50 hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-70",
+                    isSelected
+                      ? "border-primary bg-primary/10 ring-1 ring-primary"
+                      : "border-border/60 bg-muted/30"
+                  )}
+                >
+                  <span className="mr-2 font-medium text-foreground">
+                    {String.fromCharCode(65 + optionIndex)}.
+                  </span>
+                  <span className="text-muted-foreground">{option.text}</span>
+                  {question.questionType === QuestionType.assessment ? (
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                      Self-assessment — no right answer
+                    </span>
+                  ) : null}
+                </button>
+              );
+            })
+          )}
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (!canAttempt && !result) {
     return (
       <section className="space-y-6">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight">Quiz Questions</h2>
-          <p className="text-sm text-muted-foreground">You have already used your allowed attempt for this quiz.</p>
+          <p className="text-sm text-muted-foreground">
+            You have already used your allowed attempt for this quiz.
+          </p>
         </div>
         <Card className="rounded-2xl border border-dashed border-border bg-muted/20">
           <CardContent className="py-12 text-center">
             <h3 className="text-lg font-semibold">No more attempts available</h3>
-            <p className="mt-2 text-sm text-muted-foreground">This quiz does not allow multiple attempts.</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              This quiz does not allow multiple attempts.
+            </p>
           </CardContent>
         </Card>
       </section>
@@ -299,73 +582,9 @@ export function QuizAttempt({
           </CardHeader>
 
           <CardContent className="space-y-6">
-            {quiz.questions.map((question, index) => {
-              const answer = result.answers?.find(
-                (item) => item.questionId === question.id
-              );
-              const selectedOptionId = answer?.selectedOptionId ?? null;
-
-              return (
-                <div
-                  key={question.id}
-                  className="rounded-xl border border-border/60 p-4"
-                >
-                  <div className="mb-3 flex items-center gap-3">
-                    <Badge variant="secondary" className="rounded-full px-3 py-1">
-                      Question {index + 1}
-                    </Badge>
-
-                    {answer ? (
-                      <Badge
-                        className={clsx(
-                          answer.isCorrect
-                            ? "bg-green-600 text-white hover:bg-green-600"
-                            : "bg-red-600 text-white hover:bg-red-600"
-                        )}
-                      >
-                        {answer.isCorrect ? "Correct" : "Incorrect"}
-                      </Badge>
-                    ) : null}
-                  </div>
-
-                  <h3 className="text-base font-semibold leading-relaxed">
-                    {question.question}
-                  </h3>
-
-                  <div className="mt-4 space-y-3">
-                    {question.options.map((option, optionIndex) => {
-                      const isSelected = selectedOptionId === option.id;
-
-                      return (
-                        <div
-                          key={option.id}
-                          className={clsx(
-                            "w-full rounded-xl border px-4 py-3 text-left text-sm",
-                            isSelected
-                              ? "border-primary bg-primary/10 ring-1 ring-primary"
-                              : "border-border/60 bg-muted/30"
-                          )}
-                        >
-                          <span className="mr-2 font-medium text-foreground">
-                            {String.fromCharCode(65 + optionIndex)}.
-                          </span>
-                          <span className="text-muted-foreground">{option.text}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {(answer?.explanation ?? question.explanation) ? (
-                    <div className="mt-4 rounded-xl border border-border/60 bg-muted/40 p-4">
-                      <p className="text-sm font-medium">Explanation</p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {answer?.explanation ?? question.explanation}
-                      </p>
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })}
+            {quiz.questions.map((question, index) =>
+              renderResultQuestion(question, index)
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -383,55 +602,9 @@ export function QuizAttempt({
             )}
           </div>
 
-          {quiz.questions.map((question, index) => (
-            <Card
-              key={question.id}
-              className="rounded-2xl border border-border/60 shadow-sm"
-            >
-              <CardHeader className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <Badge variant="secondary" className="rounded-full px-3 py-1">
-                    Question {index + 1}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground">
-                    {question.options.length} option
-                    {question.options.length !== 1 ? "s" : ""}
-                  </span>
-                </div>
-
-                <CardTitle className="text-xl leading-relaxed">
-                  {question.question}
-                </CardTitle>
-              </CardHeader>
-
-              <CardContent className="space-y-3">
-                {question.options.map((option, optionIndex) => {
-                  const isSelected = selectedAnswers[question.id] === option.id;
-
-                  return (
-                    <button
-                      key={option.id}
-                      type="button"
-                      onClick={() => handleSelect(question.id, option.id)}
-                      disabled={isPending || isExpired}
-                      className={clsx(
-                        "w-full rounded-xl border px-4 py-3 text-left text-sm transition",
-                        "hover:border-primary/50 hover:bg-muted/50 disabled:cursor-not-allowed disabled:opacity-70",
-                        isSelected
-                          ? "border-primary bg-primary/10 ring-1 ring-primary"
-                          : "border-border/60 bg-muted/30"
-                      )}
-                    >
-                      <span className="mr-2 font-medium text-foreground">
-                        {String.fromCharCode(65 + optionIndex)}.
-                      </span>
-                      <span className="text-muted-foreground">{option.text}</span>
-                    </button>
-                  );
-                })}
-              </CardContent>
-            </Card>
-          ))}
+          {quiz.questions.map((question, index) =>
+            renderActiveQuestion(question, index)
+          )}
 
           <div className="flex justify-end">
             <Button

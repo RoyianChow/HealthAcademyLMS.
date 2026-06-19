@@ -2,7 +2,9 @@ import { interrupt } from "@langchain/langgraph";
 import type { MigrationState } from "../state";
 
 function buildFinalReport(state: MigrationState) {
-  const reactCdn = state.interactiveTopics.filter((t) => !t.isStorable);
+  const reactCdn = state.interactiveTopics.filter(
+    (t) => t.classification.isReactCDN
+  );
 
   const skippedByType = state.skippedQuestions.reduce<Record<string, number>>(
     (acc, q) => {
@@ -21,22 +23,35 @@ function buildFinalReport(state: MigrationState) {
       placeholder: state.stripeMap[c.id],
     }));
 
+  const coursesStillPending = state.wpCourses
+    .filter((c) => state.courseMap[c.id])
+    .filter((c) => !state.courseThumbnailMap[c.id])
+    .map((c) => ({
+      wpId: c.id,
+      title: c.title.rendered,
+      reason: "No WP featured image",
+    }));
+
   return {
     recordsCreated: state.migrationStats,
     mediaUploaded: {
       pdfs: state.migrationStats.pdfsUploaded,
       mp4s: state.migrationStats.mp4sUploaded,
+      images: state.migrationStats.imagesUploaded,
       totalBytes: state.migrationStats.totalBytesUploaded,
       queued: state.mediaQueue.length,
       succeeded: Object.keys(state.mediaMap).length,
     },
     actionItems: {
       stripePriceFix: coursesNeedingStripe,
-      thumbnailUpload: coursesNeedingStripe.map((c) => ({
-        ...c,
-        note: 'Replace fileKey "MIGRATION_PENDING" with real thumbnail',
+      thumbnailUpload:
+        coursesStillPending.length > 0
+          ? coursesStillPending
+          : "All thumbnails uploaded from WP",
+      reactCdnModules: reactCdn.map((t) => ({
+        title: t.title,
+        note: "Stored in Lesson.interactiveScript — verify rendering in learner dashboard",
       })),
-      reactCdnRebuild: reactCdn.map((t) => t.title),
       skippedQuestions: {
         byType: skippedByType,
         ids: state.skippedQuestions.map((q) => q.id),

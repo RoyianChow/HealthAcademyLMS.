@@ -1,3 +1,5 @@
+"use client";
+
 import type { AdminCourseType } from "@/app/data/admin/admin-get-courses";
 import Image from "next/image";
 import Link from "next/link";
@@ -29,8 +31,12 @@ type AdminCourseCardProps = {
   data: AdminCourseType;
 };
 
+const PENDING_KEY = "MIGRATION_PENDING";
+
 export function AdminCourseCard({ data }: AdminCourseCardProps) {
-  const thumbnailUrl = useConstructUrl(data.fileKey);
+  const hasThumbnail =
+    !!data.fileKey && !data.fileKey.startsWith(PENDING_KEY);
+  const thumbnailUrl = useConstructUrl(hasThumbnail ? data.fileKey : null);
 
   return (
     <Card className="group overflow-hidden rounded-2xl border bg-card py-0 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
@@ -83,13 +89,19 @@ export function AdminCourseCard({ data }: AdminCourseCardProps) {
           </DropdownMenu>
         </div>
 
-        <Image
-          src={thumbnailUrl}
-          alt={`${data.title} course thumbnail`}
-          fill
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          className="object-cover transition duration-500 group-hover:scale-105"
-        />
+        {thumbnailUrl ? (
+          <Image
+            src={thumbnailUrl}
+            alt={`${data.title} course thumbnail`}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-cover transition duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center">
+            <School className="size-12 text-muted-foreground/30" />
+          </div>
+        )}
       </div>
 
       <CardContent className="flex h-full flex-col p-5">

@@ -102,6 +102,7 @@ export async function getQuizResultDetails(quizId: string) {
           id: true,
           question: true,
           explanation: true,
+          questionType: true,
           options: {
             orderBy: { position: "asc" },
             select: {
@@ -130,7 +131,13 @@ export async function getQuizResultDetails(quizId: string) {
               id: true,
               questionId: true,
               selectedOptionId: true,
+              textResponse: true,
               isCorrect: true,
+              selections: {
+                select: {
+                  optionId: true,
+                },
+              },
             },
           },
         },

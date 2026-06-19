@@ -1,19 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/app/data/admin/require-admin";
+import {
+  normalizeQuizQuestionType,
+  validateQuizQuestions,
+  type QuizQuestionInput,
+} from "@/lib/quiz-validation";
 
 export const runtime = "nodejs";
-
-type QuizOptionInput = {
-  text: string;
-  isCorrect: boolean;
-};
-
-type QuizQuestionInput = {
-  question: string;
-  explanation?: string | null;
-  options: QuizOptionInput[];
-};
 
 type QuizUpdateBody = {
   title?: string;
@@ -95,34 +89,9 @@ export async function PATCH(
       );
     }
 
-    for (const question of questions) {
-      if (!question.question.trim()) {
-        return NextResponse.json(
-          { error: "Each question must have text" },
-          { status: 400 }
-        );
-      }
-
-      if (!Array.isArray(question.options) || question.options.length < 2) {
-        return NextResponse.json(
-          { error: "Each question must have at least two options" },
-          { status: 400 }
-        );
-      }
-
-      if (question.options.some((option) => !option.text.trim())) {
-        return NextResponse.json(
-          { error: "Each option must have text" },
-          { status: 400 }
-        );
-      }
-
-      if (!question.options.some((option) => option.isCorrect)) {
-        return NextResponse.json(
-          { error: "Each question needs at least one correct option" },
-          { status: 400 }
-        );
-      }
+    const validationError = validateQuizQuestions(questions);
+    if (validationError) {
+      return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
     await prisma.$transaction(async (tx) => {
@@ -149,6 +118,7 @@ export async function PATCH(
             create: questions.map((question, questionIndex) => ({
               question: question.question.trim(),
               explanation: question.explanation?.trim() || null,
+              questionType: normalizeQuizQuestionType(question.questionType),
               position: questionIndex + 1,
               options: {
                 create: question.options.map((option, optionIndex) => ({

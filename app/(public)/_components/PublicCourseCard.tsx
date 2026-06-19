@@ -1,3 +1,5 @@
+"use client";
+
 import type { PublicCourseType } from "@/app/data/course/get-all-courses";
 import Image from "next/image";
 import Link from "next/link";
@@ -24,13 +26,19 @@ export function PublicCourseCard({ data }: PublicCourseCardProps) {
           {data.level}
         </Badge>
 
-        <Image
-          src={thumbnailUrl}
-          alt={`${data.title} course thumbnail`}
-          fill
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          className="object-cover transition duration-500 group-hover:scale-105"
-        />
+        {thumbnailUrl ? (
+          <Image
+            src={thumbnailUrl}
+            alt={`${data.title} course thumbnail`}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-cover transition duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-muted">
+            <School className="size-12 text-muted-foreground/30" />
+          </div>
+        )}
       </div>
 
       <CardContent className="flex h-full flex-col p-5">

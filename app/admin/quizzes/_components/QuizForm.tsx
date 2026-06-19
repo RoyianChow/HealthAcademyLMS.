@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { QuizQuestion, type Option } from "./QuizQuestion";
+import { QuizQuestion, type Option, type QuestionTypeValue } from "./QuizQuestion";
 
 type ChapterOption = {
   id: string;
@@ -44,6 +44,7 @@ type QuizFormData = {
     id: string;
     question: string;
     explanation?: string | null;
+    questionType?: QuestionTypeValue;
     options: Option[];
   }[];
 };
@@ -57,6 +58,7 @@ export type QuizQuestionItem = {
   id: string;
   question: string;
   explanation: string;
+  questionType: QuestionTypeValue;
   options: Option[];
   isSaved?: boolean;
 };
@@ -66,6 +68,7 @@ function createEmptyQuestion(): QuizQuestionItem {
     id: crypto.randomUUID(),
     question: "",
     explanation: "",
+    questionType: "single",
     options: [
       { id: crypto.randomUUID(), text: "", isCorrect: false },
       { id: crypto.randomUUID(), text: "", isCorrect: false },
@@ -105,6 +108,7 @@ export function QuizForm({ mode, initialData }: QuizFormProps) {
         id: question.id,
         question: question.question,
         explanation: question.explanation ?? "",
+        questionType: question.questionType ?? "single",
         options: question.options,
         isSaved: true,
       }));
@@ -146,6 +150,7 @@ export function QuizForm({ mode, initialData }: QuizFormProps) {
     updatedQuestion: {
       question: string;
       explanation: string;
+      questionType: QuestionTypeValue;
       options: Option[];
     }
   ) {
@@ -167,6 +172,7 @@ export function QuizForm({ mode, initialData }: QuizFormProps) {
     updatedQuestion: {
       question: string;
       explanation: string;
+      questionType: QuestionTypeValue;
       options: Option[];
     }
   ) {
@@ -181,6 +187,7 @@ export function QuizForm({ mode, initialData }: QuizFormProps) {
     savedQuestion: {
       question: string;
       explanation: string;
+      questionType: QuestionTypeValue;
       options: Option[];
     }
   ) {
@@ -197,12 +204,19 @@ export function QuizForm({ mode, initialData }: QuizFormProps) {
       return;
     }
 
-    if (hasEmptyOption) {
+    if (
+      savedQuestion.questionType !== "essay" &&
+      hasEmptyOption
+    ) {
       toast.error(`Question ${index + 1} has an empty option`);
       return;
     }
 
-    if (!hasCorrectAnswer) {
+    if (
+      (savedQuestion.questionType === "single" ||
+        savedQuestion.questionType === "multiple") &&
+      !hasCorrectAnswer
+    ) {
       toast.error(`Question ${index + 1} needs at least one correct answer`);
       return;
     }
@@ -214,6 +228,7 @@ export function QuizForm({ mode, initialData }: QuizFormProps) {
               ...question,
               question: savedQuestion.question,
               explanation: savedQuestion.explanation,
+              questionType: savedQuestion.questionType,
               options: savedQuestion.options,
               isSaved: true,
             }
@@ -266,12 +281,22 @@ export function QuizForm({ mode, initialData }: QuizFormProps) {
       return;
     }
 
-    const hasIncompleteQuestion = questions.some(
-      (question) =>
-        !question.question.trim() ||
-        question.options.some((option) => !option.text.trim()) ||
-        !question.options.some((option) => option.isCorrect)
-    );
+    const hasIncompleteQuestion = questions.some((question) => {
+      if (!question.question.trim()) return true;
+
+      if (question.questionType === "essay") return false;
+
+      if (question.options.some((option) => !option.text.trim())) return true;
+
+      if (
+        question.questionType === "single" ||
+        question.questionType === "multiple"
+      ) {
+        return !question.options.some((option) => option.isCorrect);
+      }
+
+      return false;
+    });
 
     if (hasIncompleteQuestion) {
       toast.error("Fix all questions before submitting");
@@ -301,6 +326,7 @@ export function QuizForm({ mode, initialData }: QuizFormProps) {
               id: question.id,
               question: question.question.trim(),
               explanation: question.explanation.trim() || null,
+              questionType: question.questionType,
               options: question.options.map((option) => ({
                 id: option.id,
                 text: option.text.trim(),

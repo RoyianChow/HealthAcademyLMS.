@@ -1,5 +1,5 @@
 import he from "he";
-import type { ActivityClassification, WPRenderedField, WPTopic } from "./state";
+import type { ActivityClassification, WPLesson, WPRenderedField, WPTopic } from "./state";
 
 const YOUTUBE_REGEX =
   /<iframe[^>]+src="[^"]*youtube\.com\/embed\/([a-zA-Z0-9_-]{11})[^"]*"/g;
@@ -11,6 +11,8 @@ const PDF_BLOCK_REGEX =
   /<div[^>]+class="[^"]*wp-block-file[^"]*"[^>]*>[\s\S]*?href="([^"]+\.pdf)"/gi;
 const PDF_ANCHOR_REGEX = /href="([^"]+\.pdf)"/gi;
 
+const INLINE_IMG_SRC_REGEX = /<img[^>]+src="([^"]+)"/gi;
+
 const REACT_CDN_NAMES = [
   "acetylcholine",
   "dopamine",
@@ -19,8 +21,13 @@ const REACT_CDN_NAMES = [
   "serotonin",
 ];
 
-export function decodeHtml(text: string): string {
-  return he.decode(text);
+export function decodeHtml(text: unknown): string {
+  const value =
+    typeof text === "string"
+      ? text
+      : coerceRenderedHtml(text as string | WPRenderedField | null | undefined);
+  if (!value) return "";
+  return he.decode(value);
 }
 
 /** Coerce WP REST `content` / `title` fields that may be a string or `{ rendered }`. */
@@ -40,7 +47,7 @@ export function coerceRenderedHtml(
 
 export function stripHtmlTags(html: unknown): string {
   const text = coerceRenderedHtml(html);
-  if (!text) return "";
+  if (!text || typeof text !== "string") return "";
   return decodeHtml(text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
 }
 
@@ -85,6 +92,30 @@ export function extractPdfUrls(html: string): string[] {
   return [...urls];
 }
 
+export function extractInlineImageUrls(html: string): string[] {
+  const urls: string[] = [];
+  let match: RegExpExecArray | null;
+  const regex = new RegExp(INLINE_IMG_SRC_REGEX.source, INLINE_IMG_SRC_REGEX.flags);
+  while ((match = regex.exec(html)) !== null) {
+    const url = match[1];
+    if (url.startsWith("http")) {
+      urls.push(url);
+    }
+  }
+  return [...new Set(urls)];
+}
+
+export function rewriteImageUrlsInHtml(
+  html: string,
+  urlMap: Record<string, string>
+): string {
+  let result = html;
+  for (const [wpUrl, s3Url] of Object.entries(urlMap)) {
+    result = result.split(`src="${wpUrl}"`).join(`src="${s3Url}"`);
+  }
+  return result;
+}
+
 export function isInteractiveActivity(topic: WPTopic): boolean {
   const title = topic.title.rendered;
   const html = topic.content.rendered;
@@ -119,28 +150,58 @@ export function isReactCDNActivity(topic: WPTopic): boolean {
 }
 
 export function isStorableInteractive(topic: WPTopic): boolean {
-  return isInteractiveActivity(topic) && !isReactCDNActivity(topic);
+  return isInteractiveActivity(topic);
 }
 
 export function collectMediaUrlsFromTopics(
   topics: WPTopic[]
-): { pdfUrls: string[]; mp4Urls: string[] } {
+): { pdfUrls: string[]; mp4Urls: string[]; imageUrls: string[] } {
+  return collectMediaUrlsFromCurriculum([], topics);
+}
+
+export function collectMediaUrlsFromCurriculum(
+  lessons: WPLesson[],
+  topics: WPTopic[]
+): { pdfUrls: string[]; mp4Urls: string[]; imageUrls: string[] } {
   const pdfSet = new Set<string>();
   const mp4Set = new Set<string>();
+  const imageSet = new Set<string>();
 
-  for (const topic of topics) {
-    for (const url of extractPdfUrls(topic.content.rendered)) {
+  const collectFromHtml = (html: string) => {
+    for (const url of extractPdfUrls(html)) {
       pdfSet.add(url);
     }
-    for (const url of extractMp4Urls(topic.content.rendered)) {
+    for (const url of extractMp4Urls(html)) {
       mp4Set.add(url);
     }
+    for (const url of extractInlineImageUrls(html)) {
+      imageSet.add(url);
+    }
+  };
+
+  for (const lesson of lessons) {
+    collectFromHtml(lesson.content.rendered);
+  }
+
+  for (const topic of topics) {
+    collectFromHtml(topic.content.rendered);
   }
 
   return {
     pdfUrls: [...pdfSet],
     mp4Urls: [...mp4Set],
+    imageUrls: [...imageSet],
   };
+}
+
+/** Remove embedded video blocks so content is not duplicated alongside LessonVideo rows. */
+export function htmlWithoutEmbeddedMedia(html: string): string {
+  let out = html;
+  out = out.replace(/<figure[^>]*class="[^"]*wp-block-video[^"]*"[^>]*>[\s\S]*?<\/figure>/gi, "");
+  out = out.replace(MP4_VIDEO_REGEX, "");
+  out = out.replace(MP4_SOURCE_REGEX, "");
+  out = out.replace(YOUTUBE_REGEX, "");
+  return out.replace(/\s+/g, " ").trim();
 }
 
 export function getPdfDisplayName(url: string): string {

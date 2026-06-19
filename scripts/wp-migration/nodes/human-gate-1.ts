@@ -1,5 +1,6 @@
 import { interrupt } from "@langchain/langgraph";
-import { collectMediaUrlsFromTopics } from "../content-parser";
+import { collectMediaUrlsFromCurriculum } from "../content-parser";
+import { getCourseThumbnailUrl } from "../idempotency";
 import type { MigrationState } from "../state";
 
 function buildAuditSummary(state: MigrationState) {
@@ -7,7 +8,9 @@ function buildAuditSummary(state: MigrationState) {
   const draft = state.wpCourses.length - published;
 
   const storable = state.interactiveTopics.filter((t) => t.isStorable);
-  const reactCdn = state.interactiveTopics.filter((t) => !t.isStorable);
+  const reactCdn = state.interactiveTopics.filter(
+    (t) => t.classification.isReactCDN
+  );
 
   const skippedByType = state.skippedQuestions.reduce<Record<string, number>>(
     (acc, q) => {
@@ -17,7 +20,10 @@ function buildAuditSummary(state: MigrationState) {
     {}
   );
 
-  const { pdfUrls, mp4Urls } = collectMediaUrlsFromTopics(state.wpTopics);
+  const { pdfUrls, mp4Urls, imageUrls } = collectMediaUrlsFromCurriculum(
+    state.wpLessons,
+    state.wpTopics
+  );
 
   return {
     courses: {
@@ -41,6 +47,7 @@ function buildAuditSummary(state: MigrationState) {
       storable: storable.length,
       reactCdn: reactCdn.length,
       reactCdnModules: reactCdn.map((t) => t.title),
+      note: "All interactive activities (including React CDN modules) are stored in Lesson.interactiveScript",
       storableTitles: storable.map((t) => t.title),
     },
     skippedQuestions: {
@@ -52,10 +59,20 @@ function buildAuditSummary(state: MigrationState) {
         title: q.title.rendered,
       })),
     },
+    thumbnails: {
+      coursesWithFeaturedImage: state.wpCourses.filter(
+        (c) => getCourseThumbnailUrl(c) !== null
+      ).length,
+      coursesWithoutFeaturedImage: state.wpCourses.filter(
+        (c) => getCourseThumbnailUrl(c) === null
+      ).length,
+      note: "Courses with no WP featured image will retain MIGRATION_PENDING fileKey",
+    },
     mediaEstimate: {
       pdfs: pdfUrls.length,
       mp4s: mp4Urls.length,
-      total: pdfUrls.length + mp4Urls.length,
+      images: imageUrls.length,
+      total: pdfUrls.length + mp4Urls.length + imageUrls.length,
     },
   };
 }
@@ -96,6 +113,6 @@ export async function humanGate1Node(
   };
 }
 
-export function routeAfterGate1(state: MigrationState): "uploadMedia" | "__end__" {
-  return state.gate1Proceed ? "uploadMedia" : "__end__";
+export function routeAfterGate1(state: MigrationState): "loadExisting" | "__end__" {
+  return state.gate1Proceed ? "loadExisting" : "__end__";
 }

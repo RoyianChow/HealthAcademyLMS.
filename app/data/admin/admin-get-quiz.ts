@@ -62,6 +62,7 @@ export async function adminGetQuiz(quizId: string) {
       id: question.id,
       question: question.question,
       explanation: question.explanation,
+      questionType: question.questionType,
       options: question.options.map((option) => ({
         id: option.id,
         text: option.text,

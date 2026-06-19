@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/app/data/admin/require-admin";
+import {
+  normalizeQuizQuestionType,
+  validateQuizQuestions,
+  type QuizQuestionInput,
+} from "@/lib/quiz-validation";
 
 export async function POST(req: Request) {
   await requireAdmin();
@@ -65,40 +70,9 @@ export async function POST(req: Request) {
       );
     }
 
-    for (const question of questions) {
-      if (!question.question?.trim()) {
-        return NextResponse.json(
-          { error: "Each question must have text" },
-          { status: 400 }
-        );
-      }
-
-      if (!Array.isArray(question.options) || question.options.length < 2) {
-        return NextResponse.json(
-          { error: "Each question must have at least 2 options" },
-          { status: 400 }
-        );
-      }
-
-      const hasCorrect = question.options.some(
-        (opt: { isCorrect: boolean }) => opt.isCorrect
-      );
-
-      if (!hasCorrect) {
-        return NextResponse.json(
-          { error: "Each question must have a correct answer" },
-          { status: 400 }
-        );
-      }
-
-      for (const option of question.options) {
-        if (!option.text?.trim()) {
-          return NextResponse.json(
-            { error: "Option text cannot be empty" },
-            { status: 400 }
-          );
-        }
-      }
+    const validationError = validateQuizQuestions(questions as QuizQuestionInput[]);
+    if (validationError) {
+      return NextResponse.json({ error: validationError }, { status: 400 });
     }
 
     const quiz = await prisma.quiz.create({
@@ -112,29 +86,18 @@ export async function POST(req: Request) {
         timeLimitMinutes: timeLimitMinutes ?? null,
         allowMultipleAttempts: Boolean(allowMultipleAttempts),
         questions: {
-          create: questions.map(
-            (
-              question: {
-                question: string;
-                explanation?: string | null;
-                options: { text: string; isCorrect: boolean }[];
-              },
-              questionIndex: number
-            ) => ({
+          create: (questions as QuizQuestionInput[]).map(
+            (question, questionIndex) => ({
               question: question.question.trim(),
               explanation: question.explanation?.trim() || null,
+              questionType: normalizeQuizQuestionType(question.questionType),
               position: questionIndex + 1,
               options: {
-                create: question.options.map(
-                  (
-                    option: { text: string; isCorrect: boolean },
-                    optionIndex: number
-                  ) => ({
-                    text: option.text.trim(),
-                    isCorrect: Boolean(option.isCorrect),
-                    position: optionIndex + 1,
-                  })
-                ),
+                create: question.options.map((option, optionIndex) => ({
+                  text: option.text.trim(),
+                  isCorrect: Boolean(option.isCorrect),
+                  position: optionIndex + 1,
+                })),
               },
             })
           ),

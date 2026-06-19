@@ -15,6 +15,9 @@ import {
 } from "@/lib/zodSchemas";
 import { request } from "@arcjet/next";
 import { revalidatePath } from "next/cache";
+import { CourseStatus } from "@/src/generated/prisma/client";
+
+export type PublishScope = "course_only" | "course_and_all_content";
 
 const aj = arcjet.withRule(
   fixedWindow({
@@ -26,7 +29,8 @@ const aj = arcjet.withRule(
 
 export async function editCourse(
   data: CourseSchemaType,
-  courseId: string
+  courseId: string,
+  options?: { publishScope?: PublishScope }
 ): Promise<ApiResponse> {
   const user = await requireAdmin();
 
@@ -59,15 +63,67 @@ export async function editCourse(
       };
     }
 
-    await prisma.course.update({
-      where: {
-        id: courseId,
-        //userId: user.user.id, // Add this only if you want to restrict course editing to the admin who created it.
-      },
-      data: {
-        ...result.data,
-      },
+    const existingCourse = await prisma.course.findUnique({
+      where: { id: courseId },
+      select: { status: true, slug: true },
     });
+
+    if (!existingCourse) {
+      return {
+        status: "error",
+        message: "Course not found",
+      };
+    }
+
+    const isPublishing =
+      result.data.status === CourseStatus.Published &&
+      existingCourse.status !== CourseStatus.Published;
+
+    if (
+      isPublishing &&
+      options?.publishScope === "course_and_all_content"
+    ) {
+      await prisma.$transaction([
+        prisma.course.update({
+          where: { id: courseId },
+          data: { ...result.data },
+        }),
+        prisma.lesson.updateMany({
+          where: { chapter: { courseId } },
+          data: { isPublished: true },
+        }),
+        prisma.quiz.updateMany({
+          where: { courseId },
+          data: { isPublished: true },
+        }),
+      ]);
+    } else {
+      await prisma.course.update({
+        where: { id: courseId },
+        data: { ...result.data },
+      });
+    }
+
+    revalidatePath("/admin/courses");
+    revalidatePath(`/admin/courses/${courseId}/edit`);
+    revalidatePath("/courses");
+    revalidatePath(`/courses/${existingCourse.slug}`);
+    revalidatePath("/dashboard");
+
+    if (isPublishing && options?.publishScope === "course_and_all_content") {
+      return {
+        status: "success",
+        message: "Course and all lessons and quizzes published successfully",
+      };
+    }
+
+    if (isPublishing) {
+      return {
+        status: "success",
+        message:
+          "Course published successfully. Draft lessons and quizzes remain unpublished.",
+      };
+    }
 
     return {
       status: "success",

@@ -9,7 +9,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
-import { env } from "@/lib/env";
+import { constructPublicUrl } from "@/lib/construct-public-url";
 import {
   IconBook,
   IconCategory,
@@ -39,7 +39,7 @@ export default async function SlugPage({ params }: { params: Params }) {
       <div className="order-1 lg:col-span-2">
         <div className="relative aspect-video w-full overflow-hidden rounded-xl shadow-lg">
           <Image
-            src={`https://${env.NEXT_PUBLIC_S3_BUCKET_NAME_IMAGES}.fly.storage.tigris.dev/${course.fileKey}`}
+            src={constructPublicUrl(course.fileKey)}
             alt=""
             fill
             className="object-cover"

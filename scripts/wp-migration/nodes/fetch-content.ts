@@ -34,10 +34,9 @@ export async function fetchContentNode(
     });
   }
 
-  const storable = interactiveTopics.filter((t) => t.isStorable).length;
-  const reactCdn = interactiveTopics.filter((t) => !t.isStorable).length;
+  const storable = interactiveTopics.length;
   console.log(
-    `  Interactive activities: ${interactiveTopics.length} total (${storable} storable, ${reactCdn} React CDN)`
+    `  Interactive activities: ${storable} total (all stored in interactiveScript)`
   );
 
   return {
