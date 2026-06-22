@@ -1,21 +1,27 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  turbopack: {
+    root: process.cwd(),
+  },
+
   images: {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "abdullah-health-academy-dev.fly.storage.tigris.dev",
+        hostname: "health-academy-lms.t3.tigrisfiles.io",
         port: "",
         pathname: "/**",
       },
-      {
-        protocol: "https",
-        hostname: "abdullah-health-academy-dev.t3.tigrisfiles.io",
-      },
     ],
   },
-  serverExternalPackages: ["pdf-parse"],
-} as NextConfig;
+
+  serverExternalPackages: [
+    "pdf-parse",
+    "@prisma/client",
+    "@prisma/adapter-pg",
+    "pg",
+  ],
+};
 
 export default nextConfig;
