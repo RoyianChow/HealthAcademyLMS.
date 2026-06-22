@@ -1,14 +1,25 @@
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../../../src/generated/prisma/client";
 import { E2E_SEED } from "../fixtures/seed-ids";
 
-const globalForPrisma = globalThis as unknown as { e2ePrisma?: PrismaClient };
+const globalForPrisma = globalThis as unknown as {
+  e2ePrisma?: PrismaClient;
+};
+
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL is required for E2E Prisma.");
+}
+
+const adapter = new PrismaPg({
+  connectionString: databaseUrl,
+});
 
 export const e2ePrisma =
   globalForPrisma.e2ePrisma ??
   new PrismaClient({
-    datasources: {
-      db: { url: process.env.DATABASE_URL },
-    },
+    adapter,
   });
 
 if (process.env.NODE_ENV !== "production") {

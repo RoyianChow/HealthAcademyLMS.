@@ -1,7 +1,19 @@
 import { PrismaClient } from "../src/generated/prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-const prisma = new PrismaClient();
+const connectionString = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
 
+if (!connectionString) {
+  throw new Error("DIRECT_URL or DATABASE_URL is required to seed the database.");
+}
+
+const adapter = new PrismaPg({
+  connectionString,
+});
+
+const prisma = new PrismaClient({
+  adapter,
+});
 const IDS = {
   adminUser: "admin-test-001",
   studentUser: "student-test-001",
