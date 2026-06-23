@@ -1,35 +1,13 @@
 "use server";
 
-import arcjet, { fixedWindow } from "@/lib/arcjet";
 import { resend } from "@/lib/resend";
 import {
   buildContactConfirmationEmailHtml,
   buildContactNotificationEmailHtml,
 } from "@/lib/email/templates";
-import { headers } from "next/headers";
-
-const contactLimiter = arcjet.withRule(
-  fixedWindow({
-    mode: "LIVE",
-    window: "10m",
-    max: 3,
-  })
-);
 
 export async function sendContactEmail(_prevState: unknown, formData: FormData) {
   try {
-    const headersList = await headers();
-    const decision = await contactLimiter.protect(
-      new Request("http://localhost/contact", { headers: headersList }),
-      {
-        fingerprint: headersList.get("x-forwarded-for") ?? "contact-form",
-      }
-    );
-
-    if (decision.isDenied()) {
-      return { error: "Too many contact requests. Please try again later." };
-    }
-
     const firstName = formData.get("firstName") as string;
     const lastName = formData.get("lastName") as string;
     const email = formData.get("email") as string;

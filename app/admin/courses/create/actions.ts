@@ -1,20 +1,10 @@
 "use server";
 
 import { requireAdmin } from "@/app/data/admin/require-admin";
-import arcjet, { fixedWindow } from "@/lib/arcjet";
 import { prisma } from "@/lib/db";
 import { stripe } from "@/lib/stripe";
 import { ApiResponse } from "@/lib/types";
 import { courseSchema, CourseSchemaType } from "@/lib/zodSchemas";
-import { request } from "@arcjet/next";
-
-const aj = arcjet.withRule(
-  fixedWindow({
-    mode: "LIVE",
-    window: "1m",
-    max: 5,
-  })
-);
 
 export async function CreateCourse(
   values: CourseSchemaType
@@ -22,25 +12,6 @@ export async function CreateCourse(
   const session = await requireAdmin();
 
   try {
-    const req = await request();
-    const decision = await aj.protect(req, {
-      fingerprint: session.user.id,
-    });
-
-    if (decision.isDenied()) {
-      if (decision.reason.isRateLimit()) {
-        return {
-          status: "error",
-          message: "You have been blocked due to rate limiting",
-        };
-      } else {
-        return {
-          status: "error",
-          message: "Security check failed. Please contact support.",
-        };
-      }
-    }
-
     const validation = courseSchema.safeParse(values);
 
     if (!validation.success) {
@@ -69,7 +40,9 @@ export async function CreateCourse(
 
     // 2. Check for duplicate Slug
     const existingSlug = await prisma.course.findUnique({
-      where: { slug: validation.data.slug },
+      where: {
+        slug: validation.data.slug,
+      },
     });
 
     if (existingSlug) {
@@ -81,6 +54,7 @@ export async function CreateCourse(
 
     // 3. Create Stripe Product
     let stripeProduct;
+
     try {
       stripeProduct = await stripe.products.create({
         name: validation.data.title,
@@ -90,7 +64,9 @@ export async function CreateCourse(
           unit_amount: Math.round(validation.data.price * 100),
         },
       });
-    } catch {
+    } catch (error) {
+      console.error("STRIPE_PRODUCT_CREATE_ERROR:", error);
+
       return {
         status: "error",
         message: "Failed to connect to payment provider (Stripe).",
@@ -112,6 +88,7 @@ export async function CreateCourse(
     };
   } catch (error) {
     console.error("COURSE_CREATION_ERROR:", error);
+
     return {
       status: "error",
       message: "An unexpected error occurred while saving to the database.",

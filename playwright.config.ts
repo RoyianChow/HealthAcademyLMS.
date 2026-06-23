@@ -10,7 +10,6 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
 const testServerEnv: Record<string, string> = {
   NODE_ENV: "production",
   E2E_TEST: "true",
-  ARCJET_ENV: "development",
   DATABASE_URL:
     process.env.DATABASE_URL ??
     "postgresql://test:test@localhost:5433/healthacademy_test",
@@ -21,7 +20,6 @@ const testServerEnv: Record<string, string> = {
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? "",
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? "",
   RESEND_API_KEY: process.env.RESEND_API_KEY ?? "",
-  ARCJET_KEY: process.env.ARCJET_KEY ?? "",
   AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID ?? "",
   AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY ?? "",
   AWS_ENDPOINT_URL_S3: process.env.AWS_ENDPOINT_URL_S3 ?? "",

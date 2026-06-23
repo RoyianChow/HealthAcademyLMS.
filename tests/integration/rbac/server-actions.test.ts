@@ -10,7 +10,7 @@
  *
  * Includes course mutations, admin self-enroll, and quiz deletion
  * (`deleteQuiz` from app/actions/quiz).
- * Only the external I/O boundaries (auth, database, Stripe, Arcjet) are mocked.
+ * Only the external I/O boundaries (auth, database, Stripe) are mocked.
  *
  * User schema context:
  *   model User { role String? }  — role "user" means a regular user.
@@ -86,25 +86,6 @@ vi.mock("@/lib/stripe", () => ({
   stripe: {
     products: { create: vi.fn() },
   },
-}));
-
-vi.mock("@/lib/arcjet", () => ({
-  default: {
-    withRule: vi.fn().mockReturnValue({
-      protect: vi.fn().mockResolvedValue({
-        isDenied: () => false,
-        reason: { isRateLimit: () => false },
-      }),
-    }),
-  },
-  fixedWindow: vi.fn(() => ({})),
-}));
-
-vi.mock("@arcjet/next", () => ({
-  default: vi.fn(() => ({})),
-  request: vi.fn().mockResolvedValue({}),
-  createMiddleware: vi.fn((_aj: unknown, h: unknown) => h),
-  detectBot: vi.fn(() => ({})),
 }));
 
 vi.mock("@/src/generated/prisma/client", () => ({
@@ -549,15 +530,6 @@ describe("Admin server actions — user role access (integration)", () => {
       // Mock the DB call so it doesn't throw.
       vi.mocked(prisma.course.delete).mockResolvedValue({} as never);
 
-      // Mock the arcjet protect call so deleteCourse can proceed without error
-      const { default: arcjet } = await import("@/lib/arcjet");
-      vi.mocked(arcjet.withRule).mockReturnValue({
-        protect: vi.fn().mockResolvedValue({
-          isDenied: () => false,
-          reason: { isRateLimit: () => false },
-        }),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
 
       // The action should succeed (not throw a redirect)
       await expect(deleteCourse("course-1")).resolves.not.toThrow();
@@ -572,15 +544,6 @@ describe("Admin server actions — user role access (integration)", () => {
         user: { ...USER_SESSION.user, id: "admin-1", role: "admin" },
       };
       mockGetSession.mockResolvedValue(adminSession);
-
-      const { default: arcjet } = await import("@/lib/arcjet");
-      vi.mocked(arcjet.withRule).mockReturnValue({
-        protect: vi.fn().mockResolvedValue({
-          isDenied: () => false,
-          reason: { isRateLimit: () => false },
-        }),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
 
       vi.mocked(stripe.products.create).mockResolvedValue({
         default_price: "price_test",
@@ -607,14 +570,6 @@ describe("Admin server actions — user role access (integration)", () => {
       };
       mockGetSession.mockResolvedValue(adminSession);
 
-      const { default: arcjet } = await import("@/lib/arcjet");
-      vi.mocked(arcjet.withRule).mockReturnValue({
-        protect: vi.fn().mockResolvedValue({
-          isDenied: () => false,
-          reason: { isRateLimit: () => false },
-        }),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any);
 
       vi.mocked(prisma.course.update).mockResolvedValue({} as never);
 

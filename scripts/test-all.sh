@@ -66,7 +66,6 @@ load_test_env() {
   export DIRECT_URL="${DIRECT_URL:-$DATABASE_URL}"
   export PLAYWRIGHT_BASE_URL="${PLAYWRIGHT_BASE_URL:-http://localhost:3000}"
   export E2E_TEST="${E2E_TEST:-true}"
-  export ARCJET_ENV="${ARCJET_ENV:-development}"
 }
 
 require_docker() {
@@ -120,7 +119,6 @@ fi
 
 log "E2E tests (Playwright)"
 export NODE_OPTIONS="${NODE_OPTIONS:---import tsx}"
-export ARCJET_ENV="${ARCJET_ENV:-development}"
 npm run test:e2e
 
 cleanup_db

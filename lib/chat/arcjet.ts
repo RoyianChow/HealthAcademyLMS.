@@ -1,38 +1,34 @@
-import arcjet, { fixedWindow } from "@/lib/arcjet";
+type ChatLimiter = {
+  protect: (
+    request: Request,
+    options?: {
+      fingerprint?: string;
+    }
+  ) => Promise<{
+    isDenied: () => boolean;
+  }>;
+};
 
-/** Per-user rate limits for chat API routes. */
-export const chatPostLimiter = arcjet.withRule(
-  fixedWindow({
-    mode: "LIVE",
-    window: "1m",
-    max: 15,
-  })
-);
+/** Temporary no-op limiter while Arcjet is disabled. */
+function createAllowLimiter(): ChatLimiter {
+  return {
+    protect: async () => ({
+      isDenied: () => false,
+    }),
+  };
+}
 
-export const chatReadLimiter = arcjet.withRule(
-  fixedWindow({
-    mode: "LIVE",
-    window: "1m",
-    max: 60,
-  })
-);
+/** Per-user rate limits for chat API routes are disabled for now. */
+export const chatPostLimiter = createAllowLimiter();
+
+export const chatReadLimiter = createAllowLimiter();
 
 export async function enforceChatRateLimit(
-  request: Request,
-  fingerprint: string,
-  limiter: ReturnType<typeof arcjet.withRule>
+  _request: Request,
+  _fingerprint: string,
+  _limiter: ChatLimiter
 ) {
-  const decision = await limiter.protect(request, { fingerprint });
-
-  if (decision.isDenied()) {
-    return {
-      denied: true as const,
-      response: Response.json(
-        { error: "Too many chat requests. Please try again later." },
-        { status: 429 }
-      ),
-    };
-  }
-
-  return { denied: false as const };
+  return {
+    denied: false as const,
+  };
 }

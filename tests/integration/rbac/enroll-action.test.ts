@@ -37,18 +37,6 @@ vi.mock("@/lib/stripe", () => ({
   },
 }));
 
-vi.mock("@/lib/arcjet", () => ({
-  default: {
-    withRule: vi.fn().mockReturnValue({
-      protect: (...args: unknown[]) => mockProtect(...args),
-    }),
-  },
-  fixedWindow: vi.fn(() => ({})),
-}));
-
-vi.mock("@arcjet/next", () => ({
-  request: vi.fn().mockResolvedValue({}),
-}));
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -177,20 +165,7 @@ describe("enrollInCourseAction", () => {
     expect(stripe.checkout.sessions.create).not.toHaveBeenCalled();
   });
 
-  /** Arcjet rate-limiting is evaluated before any DB call; even an authenticated
-   *  user is blocked when the protection rule signals isDenied. */
-  it("returns error when Arcjet blocks the request", async () => {
-    mockGetSession.mockResolvedValue(SESSION);
-    mockProtect.mockResolvedValue({ isDenied: () => true });
 
-    const result = await enrollInCourseAction("c1");
-
-    expect(result).toEqual({
-      status: "error",
-      message: "You have been blocked",
-    });
-    expect(prisma.course.findUnique).not.toHaveBeenCalled();
-  });
 
   /** Brand-new enrollment (no row): transaction creates Pending enrollment then
    *  Stripe Checkout returns a URL the client can redirect to. */

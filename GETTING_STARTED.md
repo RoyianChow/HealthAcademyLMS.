@@ -18,7 +18,7 @@ This document contains quick references for contributors to the Health Academy L
 | Document | Contents |
 |----------|----------|
 | [documentation/API_REFERENCE.md](./documentation/API_REFERENCE.md) | API route handlers, server actions |
-| [documentation/SERVICES.md](./documentation/SERVICES.md) | File storage (Tigris/S3), payments (Stripe), security (Arcjet), email (Resend), AI Advisor, authentication |
+| [documentation/SERVICES.md](./documentation/SERVICES.md) | File storage (Tigris/S3), payments (Stripe), email (Resend), AI Advisor, authentication |
 | [documentation/TESTING_AND_CI.md](./documentation/TESTING_AND_CI.md) | Full testing framework — unit tests (Vitest), integration tests (Vitest), E2E tests (Playwright), test database setup, coverage, bugs found, CI pipeline, environment variables reference |
 | [documentation/DATABASE_ERD.md](./documentation/DATABASE_ERD.md) | Full ERD, field reference tables, enum definitions, index documentation |
 | [documentation/WP_MIGRATION_AGENT.md](./documentation/WP_MIGRATION_AGENT.md) | WordPress/LearnDash → Next.js migration agent — setup, operation, architecture, post-migration checklist |
@@ -61,7 +61,6 @@ HealthAcademyLMS/
 │   ├── env.ts                  # Validated env vars (t3-env + Zod)
 │   ├── stripe.ts               # Stripe client (server-only)
 │   ├── S3Client.ts             # AWS S3 client for Tigris (server-only)
-│   ├── arcjet.ts               # Arcjet instance (server-only)
 │   ├── resend.ts               # Resend client
 │   ├── chat/                   # AI Advisor subsystem
 │   ├── utils.ts                # General utilities (cn, etc.)

@@ -2,10 +2,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { defaultChatPreferences } from "@/lib/chat/defaults";
 import {
-  chatPostLimiter,
-  enforceChatRateLimit,
-} from "@/lib/chat/arcjet";
-import {
   findRelevantCourseExcerpts,
   getAccessibleCoursesForUser,
 } from "@/lib/chat/course-context";
@@ -45,14 +41,6 @@ const chatRequestSchema = z.object({
 export async function POST(request: Request) {
   try {
     const sessionUser = await requireUser();
-    const rateLimit = await enforceChatRateLimit(
-      request,
-      sessionUser.id,
-      chatPostLimiter
-    );
-    if (rateLimit.denied) {
-      return rateLimit.response;
-    }
 
     const { body, uploadedPdfs } = await parseRequest(request);
 
@@ -66,12 +54,15 @@ export async function POST(request: Request) {
 
     const user = await resolveChatUserContext(sessionUser.id);
     const accessibleCourses = await getAccessibleCoursesForUser(user);
+
     const attachedPdfs =
       uploadedPdfs.length > 0 ? await extractPdfContexts(uploadedPdfs) : [];
+
     const { recentMessages, earlierSummary } = await getConversationContext({
       userId: user.id,
       conversationId: body.conversationId,
     });
+
     const safety = analyzeSafety(effectiveQuestion);
 
     const relevantExcerpts = findRelevantCourseExcerpts({
@@ -100,13 +91,16 @@ export async function POST(request: Request) {
       attachedPdfs,
       message: effectiveQuestion,
     });
+
     const userAttachments = buildUserAttachments(attachedPdfs);
+
     const assistantSources = buildAssistantSources({
       relevantExcerpts,
       attachedPdfs,
       safetyFlags: safety.flags,
       strictSourceUse: preferences.strictSourceUse,
     });
+
     const assistantFollowUps = buildFollowUpSuggestions({
       mode: preferences.mode,
       attachedPdfs,
@@ -133,6 +127,7 @@ export async function POST(request: Request) {
     const stream = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
+
         const send = (payload: object) => {
           controller.enqueue(encoder.encode(`${JSON.stringify(payload)}\n`));
         };
@@ -152,13 +147,14 @@ export async function POST(request: Request) {
           }
 
           assistantReply = applySafetyPostProcessing(
-            assistantReply || (await generateNutritionReply({
-              messages,
-              question: effectiveQuestion,
-              relevantExcerpts,
-              attachedPdfs,
-              strictSourceUse: preferences.strictSourceUse,
-            })),
+            assistantReply ||
+              (await generateNutritionReply({
+                messages,
+                question: effectiveQuestion,
+                relevantExcerpts,
+                attachedPdfs,
+                strictSourceUse: preferences.strictSourceUse,
+              })),
             safety.flags
           );
 
@@ -182,6 +178,7 @@ export async function POST(request: Request) {
             error instanceof Error
               ? error.message
               : "Unable to process the chat message.";
+
           send({ type: "error", error: errorMessage });
           controller.close();
         }
@@ -207,6 +204,7 @@ async function parseRequest(request: Request) {
 
   if (contentType.includes("multipart/form-data")) {
     const formData = await request.formData();
+
     const uploadedPdfs = formData
       .getAll("pdf")
       .filter((value): value is File => value instanceof File && value.size > 0);

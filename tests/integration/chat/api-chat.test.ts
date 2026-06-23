@@ -8,6 +8,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { redirect } from "next/navigation";
 
+vi.mock("next/navigation", () => ({
+  redirect: vi.fn(() => {
+    throw new Error("NEXT_REDIRECT");
+  }),
+}));
+
 vi.mock("@/app/data/user/require-user", () => ({
   requireUser: vi.fn(),
 }));
@@ -47,16 +53,12 @@ vi.mock("@/lib/chat/prompt", () => ({
 
 vi.mock("@/lib/chat/safety", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/chat/safety")>();
+
   return {
     ...actual,
     analyzeSafety: vi.fn(actual.analyzeSafety),
   };
 });
-
-vi.mock("@/lib/chat/arcjet", () => ({
-  chatPostLimiter: {},
-  enforceChatRateLimit: vi.fn().mockResolvedValue({ denied: false }),
-}));
 
 import { requireUser } from "@/app/data/user/require-user";
 import { generateNutritionReply, streamNutritionReply } from "@/lib/chat/openai";
@@ -116,13 +118,16 @@ const STORED_TURN = {
 function makeJsonRequest(body: Record<string, unknown>) {
   return new Request("http://localhost:3000/api/chat", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify(body),
   });
 }
 
 async function readNdjsonResponse(response: Response) {
   const text = await response.text();
+
   return text
     .trim()
     .split("\n")
@@ -133,7 +138,9 @@ async function readNdjsonResponse(response: Response) {
 describe("POST /api/chat", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
     mockRequireUser.mockResolvedValue(SESSION_USER);
+
     mockResolveUser.mockResolvedValue({
       id: SESSION_USER.id,
       name: SESSION_USER.name,
@@ -142,13 +149,17 @@ describe("POST /api/chat", () => {
       dietaryFocus: [],
       enrolledCourseIds: [],
     });
+
     mockGenerateReply.mockResolvedValue(
       "Macronutrients include proteins, fats, and carbohydrates."
     );
+
     mockStreamReply.mockImplementation(async function* () {
       yield "Macronutrients include proteins, fats, and carbohydrates.";
     });
+
     mockAppendTurn.mockResolvedValue(STORED_TURN);
+
     mockAnalyzeSafety.mockImplementation(() => ({
       flags: [],
       promptBlock: "Safety rules:",
@@ -156,7 +167,7 @@ describe("POST /api/chat", () => {
     }));
   });
 
-  it("returns 400 when unauthenticated (requireUser redirects)", async () => {
+  it("returns 400 when unauthenticated requireUser redirects", async () => {
     mockRequireUser.mockImplementation(async () => {
       redirect("/login");
     });
@@ -169,7 +180,9 @@ describe("POST /api/chat", () => {
     );
 
     expect(response.status).toBe(400);
+
     const json = await response.json();
+
     expect(json.error).toBe("NEXT_REDIRECT");
     expect(mockRedirect).toHaveBeenCalledWith("/login");
     expect(mockGenerateReply).not.toHaveBeenCalled();
@@ -187,7 +200,12 @@ describe("POST /api/chat", () => {
     expect(response.headers.get("Content-Type")).toBe("application/x-ndjson");
 
     const events = await readNdjsonResponse(response);
-    expect(events.at(-1)).toEqual({ type: "done", ...STORED_TURN });
+
+    expect(events.at(-1)).toEqual({
+      type: "done",
+      ...STORED_TURN,
+    });
+
     expect(mockStreamReply).toHaveBeenCalledTimes(1);
     expect(mockGenerateReply).not.toHaveBeenCalled();
     expect(mockAppendTurn).toHaveBeenCalledTimes(1);
@@ -202,7 +220,9 @@ describe("POST /api/chat", () => {
     );
 
     expect(response.status).toBe(400);
+
     const json = await response.json();
+
     expect(json.error).toBe("Please enter a message or attach a PDF.");
     expect(mockGenerateReply).not.toHaveBeenCalled();
   });
@@ -243,6 +263,7 @@ describe("POST /api/chat", () => {
 
     expect(response.status).toBe(200);
     expect(mockGenerateReply).not.toHaveBeenCalled();
+
     expect(mockAppendTurn).toHaveBeenCalledWith(
       expect.objectContaining({
         assistantMessage:
@@ -262,6 +283,7 @@ describe("POST /api/chat", () => {
     );
 
     expect(response.status).toBe(200);
+
     await readNdjsonResponse(response);
 
     expect(mockBuildChatMessages).toHaveBeenCalledWith(
@@ -273,6 +295,7 @@ describe("POST /api/chat", () => {
         }),
       })
     );
+
     expect(mockAppendTurn).toHaveBeenCalledWith(
       expect.objectContaining({
         mode: "study",

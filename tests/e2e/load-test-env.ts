@@ -36,7 +36,6 @@ export function loadTestEnv(rootDir: string) {
   }
 
   process.env.E2E_TEST ??= "true";
-  process.env.ARCJET_ENV ??= "development";
   process.env.DATABASE_URL ??=
     "postgresql://test:test@localhost:5433/healthacademy_test";
   process.env.DIRECT_URL ??= process.env.DATABASE_URL;

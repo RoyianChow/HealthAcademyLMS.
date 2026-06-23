@@ -1,7 +1,6 @@
 "use server";
 
 import { requireAdmin } from "@/app/data/admin/require-admin";
-import arcjet, { fixedWindow } from "@/lib/arcjet";
 import { prisma } from "@/lib/db";
 import { ApiResponse } from "@/lib/types";
 import {
@@ -13,43 +12,15 @@ import {
   type LessonSchemaType,
   type LessonDocumentSchemaType,
 } from "@/lib/zodSchemas";
-import { request } from "@arcjet/next";
 import { revalidatePath } from "next/cache";
-
-const aj = arcjet.withRule(
-  fixedWindow({
-    mode: "LIVE",
-    window: "1m",
-    max: 5,
-  })
-);
 
 export async function editCourse(
   data: CourseSchemaType,
   courseId: string
 ): Promise<ApiResponse> {
-  const user = await requireAdmin();
+  await requireAdmin();
 
   try {
-    const req = await request();
-    const decision = await aj.protect(req, {
-      fingerprint: user.user.id,
-    });
-
-    if (decision.isDenied()) {
-      if (decision.reason.isRateLimit()) {
-        return {
-          status: "error",
-          message: "You have been blocked due to rate limiting",
-        };
-      } else {
-        return {
-          status: "error",
-          message: "You are a bot! if this is a mistake contact our support",
-        };
-      }
-    }
-
     const result = courseSchema.safeParse(data);
 
     if (!result.success) {
@@ -62,7 +33,6 @@ export async function editCourse(
     await prisma.course.update({
       where: {
         id: courseId,
-        //userId: user.user.id, // Add this only if you want to restrict course editing to the admin who created it.
       },
       data: {
         ...result.data,
@@ -87,6 +57,7 @@ export async function reorderLessons(
   courseId: string
 ): Promise<ApiResponse> {
   await requireAdmin();
+
   try {
     if (!lessons || lessons.length === 0) {
       return {
@@ -98,7 +69,7 @@ export async function reorderLessons(
     const tempUpdates = lessons.map((lesson) =>
       prisma.lesson.update({
         where: {
-          id: lesson.id, 
+          id: lesson.id,
         },
         data: {
           position: -lesson.position,
@@ -116,6 +87,7 @@ export async function reorderLessons(
         },
       })
     );
+
     await prisma.$transaction([...tempUpdates, ...finalUpdates]);
 
     revalidatePath(`/admin/courses/${courseId}/edit`);
@@ -125,7 +97,8 @@ export async function reorderLessons(
       message: "Lessons reordered successfully",
     };
   } catch (error) {
-    console.error("REORDER_LESSONS_ERROR:", error); 
+    console.error("REORDER_LESSONS_ERROR:", error);
+
     return {
       status: "error",
       message: "Failed to reorder lessons.",
@@ -138,6 +111,7 @@ export async function reorderChapters(
   chapters: { id: string; position: number }[]
 ): Promise<ApiResponse> {
   await requireAdmin();
+
   try {
     if (!chapters || chapters.length === 0) {
       return {
@@ -149,10 +123,10 @@ export async function reorderChapters(
     const tempUpdates = chapters.map((chapter) =>
       prisma.chapter.update({
         where: {
-          id: chapter.id, 
+          id: chapter.id,
         },
         data: {
-          position: -chapter.position, 
+          position: -chapter.position,
         },
       })
     );
@@ -167,6 +141,7 @@ export async function reorderChapters(
         },
       })
     );
+
     await prisma.$transaction([...tempUpdates, ...finalUpdates]);
 
     revalidatePath(`/admin/courses/${courseId}/edit`);
@@ -176,7 +151,8 @@ export async function reorderChapters(
       message: "Chapters reordered successfully",
     };
   } catch (error) {
-    console.error("REORDER_CHAPTERS_ERROR:", error); 
+    console.error("REORDER_CHAPTERS_ERROR:", error);
+
     return {
       status: "error",
       message: "Failed to reorder chapters",
@@ -188,6 +164,7 @@ export async function createChapter(
   values: ChapterSchemaType
 ): Promise<ApiResponse> {
   await requireAdmin();
+
   try {
     const result = chapterSchema.safeParse(values);
 
@@ -233,6 +210,7 @@ export async function createChapter(
     };
   }
 }
+
 export async function createLesson(
   values: LessonSchemaType
 ): Promise<ApiResponse> {
@@ -265,7 +243,9 @@ export async function createLesson(
         },
       });
 
-      const validVideos = (data.videos ?? []).filter(v => v.videoKey || v.youtubeUrl);
+      const validVideos = (data.videos ?? []).filter(
+        (video) => video.videoKey || video.youtubeUrl
+      );
 
       const createdLesson = await tx.lesson.create({
         data: {
@@ -276,7 +256,7 @@ export async function createLesson(
           chapterId: data.chapterId,
           position: (maxPos?.position ?? 0) + 1,
           isPublished: data.isPublished ?? false,
-          isFreePreview: data.isFreePreview ?? false,          
+          isFreePreview: data.isFreePreview ?? false,
           videos: {
             create: validVideos.map((video, idx) => ({
               title: video.title || null,
@@ -331,6 +311,7 @@ export async function deleteLesson({
   lessonId: string;
 }): Promise<ApiResponse> {
   await requireAdmin();
+
   try {
     const chapterWithLessons = await prisma.chapter.findUnique({
       where: {
@@ -385,6 +366,7 @@ export async function deleteLesson({
       }),
       ...updates,
     ]);
+
     revalidatePath(`/admin/courses/${courseId}/edit`);
 
     return {
@@ -407,6 +389,7 @@ export async function deleteChapter({
   courseId: string;
 }): Promise<ApiResponse> {
   await requireAdmin();
+
   try {
     const courseWithChapters = await prisma.course.findUnique({
       where: {
@@ -460,6 +443,7 @@ export async function deleteChapter({
       }),
       ...updates,
     ]);
+
     revalidatePath(`/admin/courses/${courseId}/edit`);
 
     return {
@@ -484,6 +468,7 @@ export async function editChapter({
   title: string;
 }): Promise<ApiResponse> {
   await requireAdmin();
+
   try {
     if (!title || title.trim() === "") {
       return {
@@ -509,11 +494,10 @@ export async function editChapter({
     };
   } catch (error) {
     console.error("EDIT_CHAPTER_ERROR:", error);
+
     return {
       status: "error",
       message: "Failed to update chapter",
     };
   }
 }
-
-

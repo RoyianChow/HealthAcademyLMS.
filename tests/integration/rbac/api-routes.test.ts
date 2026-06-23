@@ -44,7 +44,6 @@ vi.mock("@/lib/db", () => ({
 // Prevent @t3-oss/env-nextjs from throwing on missing env vars at import time.
 vi.mock("@/lib/env", () => ({
   env: {
-    ARCJET_KEY: "test-key",
     AWS_REGION: "us-east-1",
     AWS_ENDPOINT_URL_S3: "https://s3.example.com",
     AWS_ACCESS_KEY_ID: "test-access-key-id",
@@ -54,15 +53,6 @@ vi.mock("@/lib/env", () => ({
     NEXT_PUBLIC_S3_PUBLIC_URL: "https://cdn.example.com",
     NEXT_PUBLIC_APP_URL: "http://localhost:3000",
   },
-}));
-
-vi.mock("@/lib/arcjet", () => ({
-  default: {
-    withRule: vi.fn().mockReturnValue({
-      protect: vi.fn().mockResolvedValue({ isDenied: () => false }),
-    }),
-  },
-  fixedWindow: vi.fn(() => ({})),
 }));
 
 // Shared S3 client used by app/api/s3/* routes.

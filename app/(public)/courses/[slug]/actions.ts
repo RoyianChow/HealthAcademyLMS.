@@ -1,21 +1,11 @@
 "use server";
 
-import arcjet, { fixedWindow } from "@/lib/arcjet";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { stripe } from "@/lib/stripe";
 import { auth } from "@/lib/auth";
-import { request } from "@arcjet/next";
 import { headers } from "next/headers";
 import Stripe from "stripe";
-
-const aj = arcjet.withRule(
-  fixedWindow({
-    mode: "LIVE",
-    window: "1m",
-    max: 5,
-  })
-);
 
 type EnrollInCourseResponse =
   | {
@@ -51,19 +41,6 @@ export async function enrollInCourseAction(
   const user = session.user;
 
   try {
-    const req = await request();
-
-    const decision = await aj.protect(req, {
-      fingerprint: user.id,
-    });
-
-    if (decision.isDenied()) {
-      return {
-        status: "error",
-        message: "You have been blocked",
-      };
-    }
-
     const course = await prisma.course.findUnique({
       where: {
         id: courseId,
