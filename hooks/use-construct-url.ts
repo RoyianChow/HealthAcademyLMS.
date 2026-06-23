@@ -1,14 +1,17 @@
-import { env } from "@/lib/env";
-
 export function useConstructUrl(key?: string | null): string {
   if (!key) return "";
 
-  const bucket = env.NEXT_PUBLIC_S3_BUCKET_NAME_IMAGES;
+  const publicUrl = process.env.NEXT_PUBLIC_S3_PUBLIC_URL;
 
-  if (!bucket) {
-    console.warn("Missing S3 bucket env: NEXT_PUBLIC_S3_BUCKET_NAME_IMAGES");
+  if (!publicUrl) {
+    console.warn("Missing env: NEXT_PUBLIC_S3_PUBLIC_URL");
     return "";
   }
 
-  return `https://${bucket}.fly.storage.tigris.dev/${encodeURIComponent(key)}`;
+  const safeKey = key
+    .split("/")
+    .map((part) => encodeURIComponent(part))
+    .join("/");
+
+  return `${publicUrl.replace(/\/$/, "")}/${safeKey}`;
 }
