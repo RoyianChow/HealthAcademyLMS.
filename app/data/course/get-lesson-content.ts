@@ -68,13 +68,14 @@ export async function getLessonContent(lessonId: string) {
     },
   });
 
+  const isAdmin = session.role === "admin";
   const hasActiveEnrollment = enrollment && enrollment.status === EnrollmentStatus.Active;
 
-  if (!hasActiveEnrollment && !lesson.isFreePreview) {
+  if (!isAdmin && !hasActiveEnrollment && !lesson.isFreePreview) {
     return notFound();
   }
 
-  if (!lesson.isPublished && !lesson.isFreePreview) {
+  if (!isAdmin && !lesson.isPublished && !lesson.isFreePreview) {
     return notFound();
   }
 

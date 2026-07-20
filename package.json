@@ -28,6 +28,7 @@
     "test:e2e": "NODE_OPTIONS='--import tsx' playwright test",
     "test:e2e:ui": "NODE_OPTIONS='--import tsx' playwright test --ui",
     "test:all": "bash scripts/test-all.sh",
+    "grant:admin": "tsx --env-file=.env scripts/grant-admin.ts",
     "migrate:wordpress": "tsx --env-file=.env migrate-wordpress.ts",
     "fix:migrated-content": "tsx --env-file=.env fix-migrated-tiptap-content.ts"
   },
