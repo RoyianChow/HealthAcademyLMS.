@@ -8,6 +8,8 @@
  *
  * All paid flows require `stripePriceId`; there is no server-side “free enroll”
  * branch — a $0 course still goes through Checkout when a price id exists.
+ * A missing or MIGRATION_PENDING price id is self-healed: the action creates
+ * a real Stripe product/price from the stored course price and persists it.
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -20,7 +22,7 @@ vi.mock("@/lib/auth", () => ({
 
 vi.mock("@/lib/db", () => ({
   prisma: {
-    course: { findUnique: vi.fn() },
+    course: { findUnique: vi.fn(), update: vi.fn() },
     user: { findUnique: vi.fn(), update: vi.fn() },
     $transaction: vi.fn(),
   },
@@ -33,6 +35,7 @@ vi.mock("@/lib/env", () => ({
 vi.mock("@/lib/stripe", () => ({
   stripe: {
     customers: { create: vi.fn() },
+    products: { create: vi.fn() },
     checkout: { sessions: { create: vi.fn() } },
   },
 }));
@@ -113,9 +116,11 @@ describe("enrollInCourseAction", () => {
     expect(stripe.checkout.sessions.create).not.toHaveBeenCalled();
   });
 
-  /** A course without a Stripe price ID cannot be purchased; this guard prevents
-   *  creating a Stripe checkout session that would immediately fail. */
-  it("returns error when course has no Stripe price", async () => {
+  /** A missing price id (e.g. a MIGRATION_PENDING placeholder from the
+   *  WordPress migration) is self-healed: the action creates a real Stripe
+   *  product/price from the stored course price, persists it, and proceeds
+   *  to Checkout with the new price. */
+  it("creates and persists a Stripe price when course has none, then checks out", async () => {
     mockGetSession.mockResolvedValue(SESSION);
     vi.mocked(prisma.course.findUnique).mockResolvedValue({
       id: "c1",
@@ -124,13 +129,73 @@ describe("enrollInCourseAction", () => {
       slug: "s",
       stripePriceId: null,
     } as never);
+    vi.mocked(stripe.products.create).mockResolvedValue({
+      id: "prod_1",
+      default_price: "price_new",
+    } as never);
+    vi.mocked(prisma.course.update).mockResolvedValue({} as never);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({
+      stripeCustomerId: "cus_1",
+    } as never);
+    vi.mocked(prisma.$transaction).mockImplementation(async (fn) => {
+      const tx = {
+        enrollment: {
+          findUnique: vi.fn().mockResolvedValue(null),
+          create: vi.fn().mockResolvedValue({ id: "e-new", status: "Pending" }),
+          update: vi.fn(),
+        },
+      };
+      return fn(tx as never);
+    });
+    vi.mocked(stripe.checkout.sessions.create).mockResolvedValue({
+      url: "https://checkout.stripe.com/healed",
+    } as never);
+
+    const result = await enrollInCourseAction("c1");
+
+    expect(stripe.products.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "C",
+        default_price_data: expect.objectContaining({ unit_amount: 1000 }),
+      })
+    );
+    expect(prisma.course.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "c1" },
+        data: { stripePriceId: "price_new" },
+      })
+    );
+    expect(stripe.checkout.sessions.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        line_items: [{ price: "price_new", quantity: 1 }],
+      })
+    );
+    expect(result).toMatchObject({
+      status: "success",
+      checkoutUrl: "https://checkout.stripe.com/healed",
+    });
+  });
+
+  /** A course with neither a Stripe price nor a positive stored price cannot
+   *  be self-healed — the action refuses instead of creating a $0 Stripe
+   *  price. */
+  it("returns error when course has no Stripe price and price is 0", async () => {
+    mockGetSession.mockResolvedValue(SESSION);
+    vi.mocked(prisma.course.findUnique).mockResolvedValue({
+      id: "c1",
+      title: "C",
+      price: 0,
+      slug: "s",
+      stripePriceId: null,
+    } as never);
 
     const result = await enrollInCourseAction("c1");
 
     expect(result).toMatchObject({
       status: "error",
-      message: "This course does not have a Stripe price configured.",
+      message: "This course is not available for purchase yet.",
     });
+    expect(stripe.products.create).not.toHaveBeenCalled();
     expect(stripe.checkout.sessions.create).not.toHaveBeenCalled();
   });
 

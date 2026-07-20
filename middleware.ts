@@ -16,5 +16,13 @@ export const config = {
 };
 
 export default function middleware(request: NextRequest) {
+  // The matcher already restricts this to /admin routes in production, but
+  // guard explicitly so the behaviour holds when called directly (tests).
+  const { pathname } = request.nextUrl;
+
+  if (pathname !== "/admin" && !pathname.startsWith("/admin/")) {
+    return NextResponse.next();
+  }
+
   return authMiddleware(request);
 }
