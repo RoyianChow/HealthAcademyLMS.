@@ -259,7 +259,7 @@ export default function Home() {
                 controls
                 playsInline
                 preload="metadata"
-                className="aspect-video w-full bg-black object-cover"
+                className="aspect-video w-full bg-black object-contain"
               >
                 <source
                   src="https://health-academy-lms.t3.tigrisfiles.io/FINAL-1.mp4"

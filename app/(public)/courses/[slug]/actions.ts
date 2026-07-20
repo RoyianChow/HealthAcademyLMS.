@@ -61,11 +61,34 @@ export async function enrollInCourseAction(
       };
     }
 
-    if (!course.stripePriceId) {
-      return {
-        status: "error",
-        message: "This course does not have a Stripe price configured.",
-      };
+    // Courses migrated from WordPress were saved with a
+    // "MIGRATION_PENDING_<id>" placeholder instead of a real Stripe price,
+    // which makes checkout creation fail with "No such price". Create the
+    // real Stripe product/price on first purchase attempt and persist it.
+    let stripePriceId = course.stripePriceId;
+
+    if (!stripePriceId || stripePriceId.startsWith("MIGRATION_PENDING")) {
+      if (course.price <= 0) {
+        return {
+          status: "error",
+          message: "This course is not available for purchase yet.",
+        };
+      }
+
+      const stripeProduct = await stripe.products.create({
+        name: course.title,
+        default_price_data: {
+          currency: "usd",
+          unit_amount: Math.round(course.price * 100),
+        },
+      });
+
+      stripePriceId = stripeProduct.default_price as string;
+
+      await prisma.course.update({
+        where: { id: course.id },
+        data: { stripePriceId },
+      });
     }
 
     let stripeCustomerId: string;
@@ -150,11 +173,11 @@ export async function enrollInCourseAction(
       };
     }
 
-    const checkoutSession = await stripe.checkout.sessions.create({
+    const checkoutParams: Stripe.Checkout.SessionCreateParams = {
       customer: stripeCustomerId,
       line_items: [
         {
-          price: course.stripePriceId,
+          price: stripePriceId,
           quantity: 1,
         },
       ],
@@ -166,7 +189,38 @@ export async function enrollInCourseAction(
         courseId: course.id,
         enrollmentId: enrollment.id,
       },
-    });
+    };
+
+    let checkoutSession: Stripe.Checkout.Session;
+
+    try {
+      // Collect sales tax (HST/GST for Canadian buyers) via Stripe Tax.
+      // Requires Stripe Tax to be activated in the Stripe dashboard.
+      checkoutSession = await stripe.checkout.sessions.create({
+        ...checkoutParams,
+        automatic_tax: { enabled: true },
+        billing_address_collection: "required",
+        customer_update: { address: "auto" },
+      });
+    } catch (error) {
+      const isTaxConfigError =
+        error instanceof Stripe.errors.StripeInvalidRequestError &&
+        (error.param?.includes("automatic_tax") ||
+          error.message.toLowerCase().includes("tax"));
+
+      if (!isTaxConfigError) {
+        throw error;
+      }
+
+      // Stripe Tax is not activated on this account yet. Keep checkout
+      // working without tax rather than blocking purchases entirely.
+      console.error(
+        "STRIPE_TAX_NOT_CONFIGURED: HST is NOT being collected. Activate Stripe Tax in the Stripe dashboard (Settings -> Tax) to charge HST at checkout.",
+        error.message
+      );
+
+      checkoutSession = await stripe.checkout.sessions.create(checkoutParams);
+    }
 
     if (!checkoutSession.url) {
       return {

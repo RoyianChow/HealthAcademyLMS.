@@ -18,10 +18,15 @@ export const env = createEnv({
     BETTER_AUTH_SECRET: z.string().min(1),
     BETTER_AUTH_URL: z.string().url(),
 
-    AUTH_GITHUB_CLIENT_ID: z.string().min(1),
-    AUTH_GITHUB_SECRET: z.string().min(1),
-
     RESEND_API_KEY: z.string().min(1),
+
+    // Resend's shared onboarding sender only delivers to the Resend account
+    // owner's inbox. Set this to an address on a verified domain so OTP
+    // emails reach real users.
+    RESEND_FROM_EMAIL: z
+      .string()
+      .min(1)
+      .default("Health Academy <onboarding@resend.dev>"),
 
     AWS_ACCESS_KEY_ID: z.string().min(1),
     AWS_SECRET_ACCESS_KEY: z.string().min(1),

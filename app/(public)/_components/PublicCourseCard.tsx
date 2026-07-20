@@ -8,7 +8,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useConstructUrl } from "@/hooks/use-construct-url";
-import { cn } from "@/lib/utils";
+import { cn, formatCoursePrice } from "@/lib/utils";
 
 type PublicCourseCardProps = {
   data: PublicCourseType;
@@ -59,6 +59,10 @@ export function PublicCourseCard({ data }: PublicCourseCardProps) {
               <span className="truncate">{data.category}</span>
             </div>
           </div>
+
+          <p className="pt-1 text-xl font-bold text-primary">
+            {formatCoursePrice(data.price)}
+          </p>
         </div>
 
         <Link

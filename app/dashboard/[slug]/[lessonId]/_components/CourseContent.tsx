@@ -110,7 +110,7 @@ function VideoPlayer({
   return (
     <div className="aspect-video overflow-hidden rounded-xl bg-black shadow-sm">
       <video
-        className="h-full w-full object-cover"
+        className="h-full w-full object-contain"
         controls
         playsInline
         preload="metadata"
@@ -125,52 +125,88 @@ function VideoPlayer({
   );
 }
 
+function isPdfDocument(
+  document: LessonContentType["documents"][number]
+): boolean {
+  return (
+    document.fileType === "application/pdf" ||
+    /\.pdf$/i.test(document.name) ||
+    /\.pdf$/i.test(document.fileKey)
+  );
+}
+
 function LessonDocumentItem({
   document,
 }: {
   document: LessonContentType["documents"][number];
 }) {
   const constructedUrl = useConstructUrl(document.fileKey);
-  const documentUrl = document.fileUrl || constructedUrl;
   const fileSize = formatFileSize(document.fileSize);
+  const isPdf = isPdfDocument(document);
+
+  // PDFs go through the view route, which forces an inline Content-Type so
+  // the browser renders them instead of downloading (some older uploads are
+  // stored as application/octet-stream).
+  const inlineUrl = `/api/lesson-documents/view?key=${encodeURIComponent(
+    document.fileKey
+  )}`;
+  const downloadUrl = `${inlineUrl}&download=1`;
+  const documentUrl = isPdf
+    ? inlineUrl
+    : document.fileUrl || constructedUrl;
 
   return (
-    <article className="flex flex-col gap-4 rounded-xl border bg-card p-4 shadow-sm transition hover:bg-muted/40 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex min-w-0 items-start gap-3">
-        <div className="shrink-0 rounded-lg bg-primary/10 p-2">
-          <FileText className="size-5 text-primary" />
+    <article className="flex flex-col gap-4 rounded-xl border bg-card p-4 shadow-sm transition hover:bg-muted/40">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="shrink-0 rounded-lg bg-primary/10 p-2">
+            <FileText className="size-5 text-primary" />
+          </div>
+
+          <div className="min-w-0">
+            <p className="truncate font-medium text-foreground">
+              {document.name}
+            </p>
+
+            {(document.fileType || fileSize) && (
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                {document.fileType && <span>{document.fileType}</span>}
+                {document.fileType && fileSize && (
+                  <span aria-hidden="true">•</span>
+                )}
+                {fileSize && <span>{fileSize}</span>}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="min-w-0">
-          <p className="truncate font-medium text-foreground">
-            {document.name}
-          </p>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <a href={documentUrl} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="mr-2 size-4" />
+              Open in new tab
+            </a>
+          </Button>
 
-          {(document.fileType || fileSize) && (
-            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              {document.fileType && <span>{document.fileType}</span>}
-              {document.fileType && fileSize && <span aria-hidden="true">•</span>}
-              {fileSize && <span>{fileSize}</span>}
-            </div>
-          )}
+          <Button variant="outline" size="sm" asChild>
+            <a
+              href={isPdf ? downloadUrl : documentUrl}
+              download={document.name}
+            >
+              <Download className="mr-2 size-4" />
+              Download
+            </a>
+          </Button>
         </div>
       </div>
 
-      <div className="flex shrink-0 flex-wrap items-center gap-2">
-        <Button variant="outline" size="sm" asChild>
-          <a href={documentUrl} target="_blank" rel="noopener noreferrer">
-            <ExternalLink className="mr-2 size-4" />
-            View
-          </a>
-        </Button>
-
-        <Button variant="outline" size="sm" asChild>
-          <a href={documentUrl} download={document.name}>
-            <Download className="mr-2 size-4" />
-            Download
-          </a>
-        </Button>
-      </div>
+      {isPdf && (
+        <iframe
+          src={inlineUrl}
+          title={document.name}
+          className="h-[70vh] w-full rounded-lg border bg-muted"
+        />
+      )}
     </article>
   );
 }
