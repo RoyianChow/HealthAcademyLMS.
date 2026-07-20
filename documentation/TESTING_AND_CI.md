@@ -707,8 +707,6 @@ All variables are validated in `lib/env.ts` via `@t3-oss/env-nextjs` + Zod. The 
 | `DATABASE_URL` | PostgreSQL connection string (Neon with `?sslmode=require` for production; `postgresql://test:test@localhost:5433/healthacademy_test` for local tests) |
 | `BETTER_AUTH_SECRET` | Random secret for better-auth signing (min 32 chars) |
 | `BETTER_AUTH_URL` | Full URL of the app (`http://localhost:3000` in development) |
-| `AUTH_GITHUB_CLIENT_ID` | GitHub OAuth App Client ID |
-| `AUTH_GITHUB_SECRET` | GitHub OAuth App Client Secret |
 | `GOOGLE_CLIENT_ID` | Google OAuth Client ID |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret |
 | `RESEND_API_KEY` | Resend API key for email OTP delivery |

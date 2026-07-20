@@ -1,5 +1,15 @@
 import "dotenv/config";
-import { defineConfig, env } from "prisma/config";
+import { defineConfig } from "prisma/config";
+
+// `prisma generate` runs from postinstall (including CI jobs with no
+// database) and does not need a connection, but loading this config fails
+// hard if DIRECT_URL is unset. Fall back so generate works anywhere;
+// commands that actually connect (migrate, studio) still need a real URL
+// and will fail at connect time if only the placeholder is available.
+const databaseUrl =
+  process.env.DIRECT_URL ??
+  process.env.DATABASE_URL ??
+  "postgresql://placeholder:placeholder@localhost:5432/placeholder";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -7,6 +17,6 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: env("DIRECT_URL"),
+    url: databaseUrl,
   },
 });

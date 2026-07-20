@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
 
-import { GithubIcon, Loader, Loader2, Send } from "lucide-react";
+import { Loader, Loader2, Send } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -20,28 +20,10 @@ import { toast } from "sonner";
 export function LoginForm() {
   const router = useRouter();
 
-  const [githubPending, startGithubTransition] = useTransition();
   const [googlePending, startGoogleTransition] = useTransition();
   const [emailPending, startEmailTransition] = useTransition();
 
   const [email, setEmail] = useState("");
-
-  async function signInWithGithub() {
-    startGithubTransition(async () => {
-      await authClient.signIn.social({
-        provider: "github",
-        callbackURL: "/dashboard",
-        fetchOptions: {
-          onSuccess: () => {
-            toast.success("Signed in with GitHub, you will be redirected...");
-          },
-          onError: () => {
-            toast.error("Internal Server Error");
-          },
-        },
-      });
-    });
-  }
 
   async function signInWithGoogle() {
     startGoogleTransition(async () => {
@@ -61,17 +43,26 @@ export function LoginForm() {
   }
 
   function signInWithEmail() {
+    const trimmedEmail = email.trim();
+
+    if (!trimmedEmail || !trimmedEmail.includes("@")) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
     startEmailTransition(async () => {
       await authClient.emailOtp.sendVerificationOtp({
-        email,
+        email: trimmedEmail,
         type: "sign-in",
         fetchOptions: {
           onSuccess: () => {
             toast.success("Email sent");
-            router.push(`/verify-request?email=${email}`);
+            router.push(`/verify-request?email=${encodeURIComponent(trimmedEmail)}`);
           },
-          onError: () => {
-            toast.error("Error sending email");
+          onError: (ctx) => {
+            toast.error(
+              ctx.error.message || "Error sending email. Please try again."
+            );
           },
         },
       });
@@ -83,32 +74,13 @@ export function LoginForm() {
       <CardHeader>
         <CardTitle className="text-xl">Welcome Back!</CardTitle>
         <CardDescription>
-          Login with your GitHub, Google, or Email account
+          Login with your Google or Email account
         </CardDescription>
       </CardHeader>
 
       <CardContent className="flex flex-col gap-4">
         <Button
-          disabled={githubPending || googlePending}
-          onClick={signInWithGithub}
-          className="w-full"
-          variant="outline"
-        >
-          {githubPending ? (
-            <>
-              <Loader className="size-4 animate-spin" />
-              <span>Loading...</span>
-            </>
-          ) : (
-            <>
-              <GithubIcon className="size-4" />
-              Sign in with GitHub
-            </>
-          )}
-        </Button>
-
-        <Button
-          disabled={googlePending || githubPending}
+          disabled={googlePending}
           onClick={signInWithGoogle}
           className="w-full"
           variant="outline"
@@ -157,6 +129,7 @@ export function LoginForm() {
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
             <Input
+              id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               type="email"

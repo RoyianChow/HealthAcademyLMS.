@@ -23,6 +23,7 @@ import Image from "next/image";
 import { checkIfCourseBought } from "@/app/data/user/user-is-enrolled";
 import Link from "next/link";
 import { EnrollmentButton } from "./_components/EnrollmentButton";
+import { formatCoursePrice } from "@/lib/utils";
 
 export const revalidate = 300;
 import { buttonVariants } from "@/components/ui/button";
@@ -203,10 +204,7 @@ export default async function SlugPage({ params }: { params: Params }) {
               <div className="flex items-center justify-between mb-6">
                 <span className="text-lg font-medium">Price:</span>
                 <span className="text-2xl font-bold text-primary">
-                  {new Intl.NumberFormat("en-US", {
-                    style: "currency",
-                    currency: "USD",
-                  }).format(course.price)}
+                  {formatCoursePrice(course.price)}
                 </span>
               </div>
 

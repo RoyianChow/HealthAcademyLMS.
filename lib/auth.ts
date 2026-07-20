@@ -25,10 +25,6 @@ export const auth = betterAuth({
   },
 
   socialProviders: {
-    github: {
-      clientId: env.AUTH_GITHUB_CLIENT_ID,
-      clientSecret: env.AUTH_GITHUB_SECRET,
-    },
     google: {
       clientId: env.GOOGLE_CLIENT_ID,
       clientSecret: env.GOOGLE_CLIENT_SECRET,
@@ -38,12 +34,21 @@ export const auth = betterAuth({
   plugins: [
     emailOTP({
       async sendVerificationOTP({ email, otp }) {
-        await resend.emails.send({
-          from: "Health Academy <onboarding@resend.dev>",
+        // Resend does not throw on failure — it returns { error }. Without
+        // this check a failed send (e.g. the sandbox onboarding@resend.dev
+        // sender, which only delivers to the Resend account owner) reports
+        // "Email sent" to the user while nothing ever arrives.
+        const { error } = await resend.emails.send({
+          from: env.RESEND_FROM_EMAIL,
           to: [email],
           subject: "Health Academy - Verify your email",
           html: buildOtpEmailHtml(otp),
         });
+
+        if (error) {
+          console.error("Failed to send verification OTP email:", error);
+          throw new Error(error.message ?? "Failed to send verification email");
+        }
       },
     }),
     admin(),
