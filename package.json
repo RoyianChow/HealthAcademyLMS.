@@ -32,9 +32,6 @@
     "migrate:wordpress": "tsx --env-file=.env migrate-wordpress.ts",
     "fix:migrated-content": "tsx --env-file=.env fix-migrated-tiptap-content.ts"
   },
-  "prisma": {
-    "seed": "tsx prisma/seed-test.ts"
-  },
   "dependencies": {
    
     "@aws-sdk/client-s3": "^3.1032.0",
