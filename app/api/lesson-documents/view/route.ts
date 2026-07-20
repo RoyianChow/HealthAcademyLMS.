@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
     where: { fileKey },
     select: {
       name: true,
+      fileKey: true,
       fileType: true,
       lesson: {
         select: {
@@ -62,10 +63,12 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // Read using the database-verified key, not the raw query parameter, so
+    // only keys registered as lesson documents can ever reach S3.
     const object = await S3.send(
       new GetObjectCommand({
         Bucket: env.S3_BUCKET_NAME,
-        Key: fileKey,
+        Key: document.fileKey,
       })
     );
 
@@ -76,7 +79,7 @@ export async function GET(req: NextRequest) {
     const isPdf =
       document.fileType === "application/pdf" ||
       /\.pdf$/i.test(document.name) ||
-      /\.pdf$/i.test(fileKey);
+      /\.pdf$/i.test(document.fileKey);
 
     const contentType = isPdf
       ? "application/pdf"
