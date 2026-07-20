@@ -15,6 +15,10 @@ export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
+    // Prisma 7 ignores the package.json "prisma" block — the seed command
+    // must live here or `prisma migrate reset` / `prisma db seed` will
+    // silently skip seeding (breaking E2E global setup).
+    seed: "tsx prisma/seed-test.ts",
   },
   datasource: {
     url: databaseUrl,

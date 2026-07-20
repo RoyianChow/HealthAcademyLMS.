@@ -46,7 +46,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Document not found" }, { status: 404 });
   }
 
-  if (!document.lesson.isFreePreview) {
+  const isAdmin = session.user.role === "admin";
+
+  if (!isAdmin && !document.lesson.isFreePreview) {
     const enrollment = await prisma.enrollment.findUnique({
       where: {
         userId_courseId: {
