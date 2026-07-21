@@ -20,14 +20,6 @@ export const env = createEnv({
 
     RESEND_API_KEY: z.string().min(1),
 
-    // Resend's shared onboarding sender only delivers to the Resend account
-    // owner's inbox. Set this to an address on a verified domain so OTP
-    // emails reach real users.
-    RESEND_FROM_EMAIL: z
-      .string()
-      .min(1)
-      .default("Health Academy <onboarding@resend.dev>"),
-
     AWS_ACCESS_KEY_ID: z.string().min(1),
     AWS_SECRET_ACCESS_KEY: z.string().min(1),
     AWS_ENDPOINT_URL_S3: z.string().min(1),

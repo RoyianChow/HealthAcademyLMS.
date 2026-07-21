@@ -47,25 +47,6 @@ function emailShell({ title, body, previewText }: EmailTemplateOptions) {
 </html>`;
 }
 
-export function buildOtpEmailHtml(otp: string) {
-  return emailShell({
-    title: "Verify your email",
-    previewText: "Your Health Academy sign-in code",
-    body: `
-      <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:${textColor};">
-        Use the verification code below to sign in to your Health Academy account.
-      </p>
-      <div style="margin:24px 0;padding:20px;border:1px dashed ${brandColor};border-radius:12px;text-align:center;background:#f9faf6;">
-        <p style="margin:0 0 8px;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:${mutedColor};">One-time code</p>
-        <p style="margin:0;font-size:32px;font-weight:700;letter-spacing:0.3em;color:${brandColor};">${otp}</p>
-      </div>
-      <p style="margin:0;font-size:14px;line-height:1.6;color:${mutedColor};">
-        This code expires soon. If you did not request it, you can safely ignore this email.
-      </p>
-    `,
-  });
-}
-
 export function buildContactNotificationEmailHtml({
   fullName,
   email,
