@@ -120,14 +120,12 @@ BETTER_AUTH_SECRET=generate-a-random-secret-here
 BETTER_AUTH_URL=http://localhost:3000
 
 # GitHub OAuth
-AUTH_GITHUB_CLIENT_ID=
-AUTH_GITHUB_SECRET=
 
 # Google OAuth
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 
-# Resend (email OTP)
+# Resend (contact form emails)
 RESEND_API_KEY=
 
 # Arcjet (security)

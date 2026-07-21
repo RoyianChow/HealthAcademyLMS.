@@ -15,8 +15,6 @@ const testServerEnv: Record<string, string> = {
     "postgresql://test:test@localhost:5433/healthacademy_test",
   BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET ?? "",
   BETTER_AUTH_URL: process.env.BETTER_AUTH_URL ?? baseURL,
-  AUTH_GITHUB_CLIENT_ID: process.env.AUTH_GITHUB_CLIENT_ID ?? "",
-  AUTH_GITHUB_SECRET: process.env.AUTH_GITHUB_SECRET ?? "",
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ?? "",
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ?? "",
   RESEND_API_KEY: process.env.RESEND_API_KEY ?? "",

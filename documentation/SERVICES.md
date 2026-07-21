@@ -184,26 +184,16 @@ Additional Arcjet rules exported from `lib/arcjet.ts` for use in specific route 
 
 ## 5. Email (Resend)
 
-[Resend](https://resend.com/) is used exclusively for Email OTP delivery (magic sign-in codes).
+[Resend](https://resend.com/) is used to deliver contact form submissions.
 
-The Resend client is initialized in `lib/resend.ts` and called from `lib/auth.ts` inside the `emailOTP` plugin:
+The Resend client is initialized in `lib/resend.ts` and called from
+`app/(public)/contact/actions/send-contact-email.ts`.
 
-```typescript
-emailOTP({
-  async sendVerificationOTP({ email, otp }) {
-    await resend.emails.send({
-      from: "Healthy Academy LMS <onboarding@resend.dev>",
-      to: [email],
-      subject: "Healthy Academy LMS - Verify your email",
-      html: `<p>Your OTP is <strong>${otp}</strong></p>`,
-    });
-  },
-}),
-```
-
-> **Important:** The `from` address `onboarding@resend.dev` is a Resend sandbox address that only delivers to the Resend account owner's email. For production, a custom sending domain must be verified in the Resend dashboard and the `from` address must be updated in `lib/auth.ts`.
-
-The `ContactForm` component (`components/email/ContactForm.tsx`) also uses Resend to deliver contact form submissions, configured separately.
+> **Note:** Authentication is Google-only — there is no email/OTP sign-in, so
+> Resend is not on the login path. The `from` address `onboarding@resend.dev`
+> is a Resend sandbox sender that only delivers to the Resend account owner's
+> email; for production, verify a custom sending domain in the Resend dashboard
+> and update the `from` address in the contact email action.
 
 ---
 
